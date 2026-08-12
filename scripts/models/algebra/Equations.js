@@ -4,18 +4,19 @@
 Every successful operation in this namespace is an equivalence-preserving
 rewrite.  Unsupported drags return the original equation reference.
 */
-function Equations() {
+function Equations(expressions, equation_paths) {
+    const paths = equation_paths;
 
     function other_side(side) {
         return side === 'L'? 'R' : 'L';
     }
 
     function is_direct_child(path, parent_path) {
-        return EquationPaths.parent(path) === parent_path;
+        return paths.parent(path) === parent_path;
     }
 
     function replace_two_children(equation, parent_path, source_index, target_index, replacement, identity_type) {
-        const parent = EquationPaths.resolve(equation, parent_path);
+        const parent = paths.resolve(equation, parent_path);
         const items = parent.type === 'add'? parent.terms.slice() : parent.factors.slice();
         const low = Math.min(source_index, target_index);
         const high = Math.max(source_index, target_index);
@@ -25,36 +26,36 @@ function Equations() {
         let updated;
         if (identity_type === 'add' && replacement.type === 'constant' && replacement.value === 0) {
             items.splice(low, 1);
-            updated = Expressions.add(items);
+            updated = expressions.add(items);
         } else if (identity_type === 'mul' && replacement.type === 'constant' && replacement.value === 1) {
             items.splice(low, 1);
-            updated = Expressions.mul(items);
+            updated = expressions.mul(items);
         } else {
-            updated = identity_type === 'add'? Expressions.add(items) : Expressions.mul(items);
+            updated = identity_type === 'add'? expressions.add(items) : expressions.mul(items);
         }
-        return EquationPaths.replace(equation, parent_path, updated);
+        return paths.replace(equation, parent_path, updated);
     }
 
     function move_across(equation, source_path, target_side) {
-        const parsed = EquationPaths.split(source_path);
+        const parsed = paths.split(source_path);
         if (parsed.side === target_side) return equation;
 
-        const source = EquationPaths.resolve(equation, source_path);
+        const source = paths.resolve(equation, source_path);
         if (source == null) return equation;
 
         const source_root_path = parsed.side;
-        const source_root = EquationPaths.resolve(equation, source_root_path);
-        const target_root = EquationPaths.resolve(equation, target_side);
-        const parent_path = EquationPaths.parent(source_path);
-        const segment = EquationPaths.segment(source_path);
+        const source_root = paths.resolve(equation, source_root_path);
+        const target_root = paths.resolve(equation, target_side);
+        const parent_path = paths.parent(source_path);
+        const segment = paths.segment(source_path);
 
         // a + b = c  ->  a = c - b
         if (source_root.type === 'add' && parent_path === source_root_path) {
             const index = Number(segment);
-            const new_source = Expressions.remove_indexed(source_root, index);
-            const new_target = Expressions.append_add(target_root, Expressions.negate(source));
-            return EquationPaths.with_side(
-                EquationPaths.with_side(equation, parsed.side, new_source),
+            const new_source = expressions.remove_indexed(source_root, index);
+            const new_target = expressions.append_add(target_root, expressions.negate(source));
+            return paths.with_side(
+                paths.with_side(equation, parsed.side, new_source),
                 target_side,
                 new_target
             );
@@ -68,10 +69,10 @@ function Equations() {
             source.value !== 0
         ) {
             const index = Number(segment);
-            const new_source = Expressions.remove_indexed(source_root, index);
-            const new_target = Expressions.div(target_root, source);
-            return EquationPaths.with_side(
-                EquationPaths.with_side(equation, parsed.side, new_source),
+            const new_source = expressions.remove_indexed(source_root, index);
+            const new_target = expressions.div(target_root, source);
+            return paths.with_side(
+                paths.with_side(equation, parsed.side, new_source),
                 target_side,
                 new_target
             );
@@ -85,10 +86,10 @@ function Equations() {
             source.type === 'constant' &&
             source.value !== 0
         ) {
-            const new_source = Expressions.ungroup(source_root.numerator);
-            const new_target = Expressions.append_mul(target_root, source);
-            return EquationPaths.with_side(
-                EquationPaths.with_side(equation, parsed.side, new_source),
+            const new_source = expressions.ungroup(source_root.numerator);
+            const new_target = expressions.append_mul(target_root, source);
+            return paths.with_side(
+                paths.with_side(equation, parsed.side, new_source),
                 target_side,
                 new_target
             );
@@ -98,19 +99,19 @@ function Equations() {
     }
 
     function combine_siblings(equation, source_path, target_path) {
-        const source_parent_path = EquationPaths.parent(source_path);
-        const target_parent_path = EquationPaths.parent(target_path);
+        const source_parent_path = paths.parent(source_path);
+        const target_parent_path = paths.parent(target_path);
         if (source_parent_path == null || source_parent_path !== target_parent_path) return equation;
 
-        const parent = EquationPaths.resolve(equation, source_parent_path);
-        const source = EquationPaths.resolve(equation, source_path);
-        const target = EquationPaths.resolve(equation, target_path);
-        const source_segment = EquationPaths.segment(source_path);
-        const target_segment = EquationPaths.segment(target_path);
+        const parent = paths.resolve(equation, source_parent_path);
+        const source = paths.resolve(equation, source_path);
+        const target = paths.resolve(equation, target_path);
+        const source_segment = paths.segment(source_path);
+        const target_segment = paths.segment(target_path);
 
         // 2x + 3x -> 5x, and 7 + (-3) -> 4.
         if (parent.type === 'add') {
-            const combined = Expressions.combine_like(source, target);
+            const combined = expressions.combine_like(source, target);
             if (combined == null) return equation;
             return replace_two_children(
                 equation,
@@ -133,7 +134,7 @@ function Equations() {
                 source_parent_path,
                 Number(source_segment),
                 Number(target_segment),
-                Expressions.constant(source.value * target.value),
+                expressions.constant(source.value * target.value),
                 'mul'
             );
         }
@@ -147,10 +148,10 @@ function Equations() {
              (source_segment === 'd' && target_segment === 'n')) &&
             parent.denominator.value !== 0
         ) {
-            return EquationPaths.replace(
+            return paths.replace(
                 equation,
                 source_parent_path,
-                Expressions.constant(parent.numerator.value / parent.denominator.value)
+                expressions.constant(parent.numerator.value / parent.denominator.value)
             );
         }
 
@@ -173,9 +174,9 @@ function Equations() {
                 group_index = Number(source_segment);
             }
 
-            if (scale && grouped && grouped.Expressions.type === 'add') {
-                const distributed = Expressions.add(
-                    grouped.Expressions.terms.map(term => Expressions.scale_term(scale, term))
+            if (scale && grouped && grouped.expressions.type === 'add') {
+                const distributed = expressions.add(
+                    grouped.expressions.terms.map(term => expressions.scale_term(scale, term))
                 );
                 const factors = parent.factors.slice();
                 const high = Math.max(scale_index, group_index);
@@ -183,10 +184,10 @@ function Equations() {
                 factors.splice(high, 1);
                 factors.splice(low, 1);
                 factors.splice(Math.min(group_index, factors.length), 0, distributed);
-                return EquationPaths.replace(
+                return paths.replace(
                     equation,
                     source_parent_path,
-                    Expressions.mul(factors)
+                    expressions.mul(factors)
                 );
             }
         }
@@ -205,18 +206,18 @@ function Equations() {
         const target_path = target_key.slice(5);
         if (
             source_path === target_path ||
-            EquationPaths.is_ancestor(source_path, target_path) ||
-            EquationPaths.is_ancestor(target_path, source_path)
+            paths.is_ancestor(source_path, target_path) ||
+            paths.is_ancestor(target_path, source_path)
         ) return equation;
 
         return combine_siblings(equation, source_path, target_path);
     }
 
     function moves_for_source(equation, source_path) {
-        const parsed = EquationPaths.split(source_path);
+        const parsed = paths.split(source_path);
         const candidates = [
             `side:${other_side(parsed.side)}`,
-            ...EquationPaths.all(equation).map(path => `path:${path}`),
+            ...paths.all(equation).map(path => `path:${path}`),
         ];
         return Object.freeze(candidates.filter(target_key =>
             move(equation, source_path, target_key) !== equation
@@ -224,7 +225,7 @@ function Equations() {
     }
 
     function draggable_paths(equation) {
-        return Object.freeze(EquationPaths.all(equation).filter(path =>
+        return Object.freeze(paths.all(equation).filter(path =>
             moves_for_source(equation, path).length > 0
         ));
     }

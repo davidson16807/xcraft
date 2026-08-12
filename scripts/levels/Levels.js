@@ -1,13 +1,13 @@
 'use strict';
 // HUMAN VETTED
 
-function Levels() {
-    const c = Expressions.constant;
-    const v = Expressions.variable;
-    const a = Expressions.add;
-    const m = Expressions.mul;
-    const d = Expressions.div;
-    const g = Expressions.group;
+function Levels(expressions) {
+    const c = expressions.constant;
+    const v = expressions.variable;
+    const a = expressions.add;
+    const m = expressions.mul;
+    const d = expressions.div;
+    const g = expressions.group;
     const e = (left, right) => new Equation(left, right);
     const x = () => v('x');
 

@@ -114,32 +114,41 @@
         document.getElementById('logo'), 
         {throwOnError: false })
 
-    const equation_ops = Equations();
+    const expressions = Expressions();
+    const equation_paths = EquationPaths(expressions);
+    const equation_properties = EquationProperties(expressions);
+    const equations = Equations(expressions, equation_paths);
     const history = AppHistoryTraversal(Infinity);
-    const equation_drags = EquationDrags(equation_ops);
+    const equation_drags = EquationDrags(equations);
+
     const app_updater = AppUpdater({
         app_history_traversal: history,
         drag_ops: AppDragOperations(equation_drags, history),
         equation_drags: equation_drags,
+        equation_properties: equation_properties
     });
 
     const equation_view = EquationView({
         html: Html(document),
-        equation_ops: equation_ops,
+        equations: equations,
         render: katex.render,
+        expressions: expressions,
+        equation_paths: equation_paths,
     });
 
     const app_view = AppView({
         equation_view: equation_view,
         render: katex.render,
+        equation_properties: equation_properties,
     }, app_updater);
 
     const released = equation_drags.release();
 
+    const levels = Levels(expressions);
     app_view.wire(
         new AppState(
-            Levels(), 0, // levels
-            Levels()[0].equation, // equation
+            levels, 0, // levels
+            levels[0].equation, // equation
             released, released.initialize(), // drag
             [], [], // history
             window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches?

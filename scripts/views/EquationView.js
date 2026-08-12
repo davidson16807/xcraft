@@ -2,8 +2,10 @@
 
 function EquationView(dependencies) {
     const html = dependencies.html;
-    const equation_ops = dependencies.equation_ops;
+    const equations = dependencies.equations;
     const render = dependencies.render;
+    const expressions = dependencies.expressions;
+    const equation_paths = dependencies.equation_paths;
 
     function math(latex, class_name) {
         const node = html.span({ class: class_name || 'math-atom' }, []);
@@ -12,11 +14,11 @@ function EquationView(dependencies) {
     }
 
     function sign_and_absolute(expression) {
-        const mono = Expressions.coefficient_and_basis(expression);
+        const mono = expressions.coefficient_and_basis(expression);
         if (mono.coefficient < 0) {
             return {
                 sign: -1,
-                absolute: Expressions.from_coefficient_and_basis(-mono.coefficient, mono.basis),
+                absolute: expressions.from_coefficient_and_basis(-mono.coefficient, mono.basis),
             };
         }
         return { sign: 1, absolute: expression };
@@ -156,10 +158,10 @@ function EquationView(dependencies) {
 
     function draw_ghost(equation, drag_state) {
         if (!drag_state || !drag_state.source_path) return null;
-        const source = EquationPaths.resolve(equation, drag_state.source_path);
+        const source = equation_paths.resolve(equation, drag_state.source_path);
         if (!source) return null;
         const ghost = html.div({ class:'drag-ghost' }, []);
-        const latex = Expressions.to_latex(source);
+        const latex = expressions.to_latex(source);
         render(latex, ghost, { throwOnError:false, output:'html' });
         ghost.style.left = `${drag_state.current.x}px`;
         ghost.style.top = `${drag_state.current.y}px`;
@@ -171,7 +173,7 @@ function EquationView(dependencies) {
         draw: function(equation, drag_state, div_io) {
 
             const valid_targets = new Set(drag_state && drag_state.candidates || []);
-            const draggable_paths = new Set(equation_ops.draggable_paths(equation));
+            const draggable_paths = new Set(equations.draggable_paths(equation));
 
             div_io.replaceChildren(
                 html.div({ class:'equation-row' }, [

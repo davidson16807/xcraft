@@ -9,12 +9,17 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/algebra/Expressions.js',
     'scripts/models/algebra/Equation.js',
     'scripts/models/algebra/Equations.js',
+    'scripts/models/algebra/EquationProperties.js',
+    'scripts/models/algebra/EquationPaths.js',
     'scripts/levels/Levels.js',
 ].forEach(file => {
     vm.runInThisContext(fs.readFileSync(path.join(root, file), 'utf8'), { filename:file });
 });
 
-const algebra = Equations();
+const expressions = Equations();
+const properties = EquationProperties(expressions);
+const paths = EquationPaths(expressions);
+const algebra = Equations(expressions);
 const levels = Levels();
 
 function assert(condition, message) {
@@ -23,8 +28,8 @@ function assert(condition, message) {
 
 function assertShape(actual, expected, message) {
     assert(
-        EquationProperties.is_same_shape(actual, expected),
-        `${message}\nexpected: ${EquationProperties.to_latex(expected)}\nactual:   ${EquationProperties.to_latex(actual)}`
+        properties.is_same_shape(actual, expected),
+        `${message}\nexpected: ${properties.to_latex(expected)}\nactual:   ${properties.to_latex(actual)}`
     );
 }
 
@@ -120,8 +125,8 @@ function solveLevel10() {
 
 function sameSolutionSamples(before, after) {
     for (let x = -20; x <= 20; x++) {
-        const b = EquationProperties.is_satisfied(before, {x:x});
-        const a = EquationProperties.is_satisfied(after, {x:x});
+        const b = properties.is_satisfied(before, {x:x});
+        const a = properties.is_satisfied(after, {x:x});
         if (a !== b) return false;
     }
     return true;
@@ -129,23 +134,23 @@ function sameSolutionSamples(before, after) {
 
 function verifyAdvertisedMoves() {
     const queue = levels.map(level => ({ equation:level.equation, depth:0 }));
-    const visited = new Set(queue.map(item => EquationProperties.shape_key(item.equation)));
+    const visited = new Set(queue.map(item => properties.shape_key(item.equation)));
     let checked = 0;
 
     while (queue.length > 0) {
         const { equation, depth } = queue.shift();
-        for (const source of EquationPaths.all(equation)) {
+        for (const source of paths.all(equation)) {
             for (const target of algebra.moves_for_source(equation, source)) {
                 const updated = algebra.move(equation, source, target);
                 assert(updated !== equation, 'advertised move must change state');
                 assert(
                     sameSolutionSamples(equation, updated),
                     `move changed sampled solution set: ${source} -> ${target}\n`+
-                    `${EquationProperties.to_latex(equation)} -> ${EquationProperties.to_latex(updated)}`
+                    `${properties.to_latex(equation)} -> ${properties.to_latex(updated)}`
                 );
                 checked++;
                 if (depth < 3) {
-                    const key = EquationProperties.shape_key(updated);
+                    const key = properties.shape_key(updated);
                     if (!visited.has(key) && visited.size < 5000) {
                         visited.add(key);
                         queue.push({ equation:updated, depth:depth+1 });

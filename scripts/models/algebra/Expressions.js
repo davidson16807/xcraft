@@ -5,7 +5,7 @@
 Constructors return deeply immutable values.  Transformations never modify
 an input expression; they return either the original reference or a new tree.
 */
-const Expressions = (() => {
+const Expressions = () => {
     const freeze = Object.freeze;
 
     const constant = value => freeze({ type: 'constant', value: Number(value) });
@@ -280,4 +280,4 @@ const Expressions = (() => {
         evaluate,
         ungroup,
     });
-})();
+};

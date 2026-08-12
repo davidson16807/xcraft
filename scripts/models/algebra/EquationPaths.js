@@ -1,6 +1,6 @@
 'use strict';
 
-const EquationPaths = (() => {
+const EquationPaths = (expressions) => {
     function split(path) {
         const parts = path.split('/');
         return { side: parts[0], segments: parts.slice(1) };
@@ -22,13 +22,13 @@ const EquationPaths = (() => {
 
     function resolve(equation, path) {
         const parsed = split(path);
-        return Expressions.at(side_expression(equation, parsed.side), parsed.segments);
+        return expressions.at(side_expression(equation, parsed.side), parsed.segments);
     }
 
     function replace(equation, path, replacement) {
         const parsed = split(path);
         const original = side_expression(equation, parsed.side);
-        const updated = Expressions.replace(original, parsed.segments, replacement);
+        const updated = expressions.replace(original, parsed.segments, replacement);
         if (updated === original) return equation;
         return parsed.side === 'L'?
             equation.with({ left: updated }) :
@@ -44,10 +44,10 @@ const EquationPaths = (() => {
     function all_expression_paths(expression, root_path) {
         const output = [root_path];
         function visit(node, path) {
-            Expressions.children(node).forEach(segment => {
+            expressions.children(node).forEach(segment => {
                 const child_path = `${path}/${segment}`;
                 output.push(child_path);
-                visit(Expressions.child(node, segment), child_path);
+                visit(expressions.child(node, segment), child_path);
             });
         }
         visit(expression, root_path);
@@ -75,4 +75,4 @@ const EquationPaths = (() => {
         all,
         is_ancestor,
     });
-})();
+};

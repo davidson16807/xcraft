@@ -9,11 +9,12 @@ function AppUpdater(dependencies) {
     const history = dependencies.app_history_traversal;
     const drag_ops = dependencies.drag_ops;
     const drags = dependencies.equation_drags;
+    const equation_properties = dependencies.equation_properties;
 
     // this function exists for future reference to allow level unlocking behavior
     function mark_completed(app) {
         const level = app.levels[app.level_index];
-        if (!EquationProperties.is_same_shape(app.equation, level.goal)) return app;
+        if (!equation_properties.is_same_shape(app.equation, level.goal)) return app;
         return app;
     }
 
