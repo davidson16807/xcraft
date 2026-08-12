@@ -8,15 +8,15 @@ function EquationView(dependencies) {
     function math(latex, class_name) {
         const node = html.span({ class: class_name || 'math-atom' }, []);
         render(latex, node, { throwOnError: false, output: 'html' });
-        return node;4
+        return node;
     }
 
     function sign_and_absolute(expression) {
-        const mono = Expression.coefficient_and_basis(expression);
+        const mono = Expressions.coefficient_and_basis(expression);
         if (mono.coefficient < 0) {
             return {
                 sign: -1,
-                absolute: Expression.from_coefficient_and_basis(-mono.coefficient, mono.basis),
+                absolute: Expressions.from_coefficient_and_basis(-mono.coefficient, mono.basis),
             };
         }
         return { sign: 1, absolute: expression };
@@ -159,7 +159,7 @@ function EquationView(dependencies) {
         const source = EquationPaths.resolve(equation, drag_state.source_path);
         if (!source) return null;
         const ghost = html.div({ class:'drag-ghost' }, []);
-        const latex = Expression.to_latex(source);
+        const latex = Expressions.to_latex(source);
         render(latex, ghost, { throwOnError:false, output:'html' });
         ghost.style.left = `${drag_state.current.x}px`;
         ghost.style.top = `${drag_state.current.y}px`;

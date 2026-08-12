@@ -4,7 +4,7 @@
 Every successful operation in this namespace is an equivalence-preserving
 rewrite.  Unsupported drags return the original equation reference.
 */
-function EquationOperations() {
+function Equations() {
 
     function other_side(side) {
         return side === 'L'? 'R' : 'L';
@@ -25,12 +25,12 @@ function EquationOperations() {
         let updated;
         if (identity_type === 'add' && replacement.type === 'constant' && replacement.value === 0) {
             items.splice(low, 1);
-            updated = Expression.add(items);
+            updated = Expressions.add(items);
         } else if (identity_type === 'mul' && replacement.type === 'constant' && replacement.value === 1) {
             items.splice(low, 1);
-            updated = Expression.mul(items);
+            updated = Expressions.mul(items);
         } else {
-            updated = identity_type === 'add'? Expression.add(items) : Expression.mul(items);
+            updated = identity_type === 'add'? Expressions.add(items) : Expressions.mul(items);
         }
         return EquationPaths.replace(equation, parent_path, updated);
     }
@@ -51,8 +51,8 @@ function EquationOperations() {
         // a + b = c  ->  a = c - b
         if (source_root.type === 'add' && parent_path === source_root_path) {
             const index = Number(segment);
-            const new_source = Expression.remove_indexed(source_root, index);
-            const new_target = Expression.append_add(target_root, Expression.negate(source));
+            const new_source = Expressions.remove_indexed(source_root, index);
+            const new_target = Expressions.append_add(target_root, Expressions.negate(source));
             return EquationPaths.with_side(
                 EquationPaths.with_side(equation, parsed.side, new_source),
                 target_side,
@@ -68,8 +68,8 @@ function EquationOperations() {
             source.value !== 0
         ) {
             const index = Number(segment);
-            const new_source = Expression.remove_indexed(source_root, index);
-            const new_target = Expression.div(target_root, source);
+            const new_source = Expressions.remove_indexed(source_root, index);
+            const new_target = Expressions.div(target_root, source);
             return EquationPaths.with_side(
                 EquationPaths.with_side(equation, parsed.side, new_source),
                 target_side,
@@ -85,8 +85,8 @@ function EquationOperations() {
             source.type === 'constant' &&
             source.value !== 0
         ) {
-            const new_source = Expression.ungroup(source_root.numerator);
-            const new_target = Expression.append_mul(target_root, source);
+            const new_source = Expressions.ungroup(source_root.numerator);
+            const new_target = Expressions.append_mul(target_root, source);
             return EquationPaths.with_side(
                 EquationPaths.with_side(equation, parsed.side, new_source),
                 target_side,
@@ -110,7 +110,7 @@ function EquationOperations() {
 
         // 2x + 3x -> 5x, and 7 + (-3) -> 4.
         if (parent.type === 'add') {
-            const combined = Expression.combine_like(source, target);
+            const combined = Expressions.combine_like(source, target);
             if (combined == null) return equation;
             return replace_two_children(
                 equation,
@@ -133,7 +133,7 @@ function EquationOperations() {
                 source_parent_path,
                 Number(source_segment),
                 Number(target_segment),
-                Expression.constant(source.value * target.value),
+                Expressions.constant(source.value * target.value),
                 'mul'
             );
         }
@@ -150,7 +150,7 @@ function EquationOperations() {
             return EquationPaths.replace(
                 equation,
                 source_parent_path,
-                Expression.constant(parent.numerator.value / parent.denominator.value)
+                Expressions.constant(parent.numerator.value / parent.denominator.value)
             );
         }
 
@@ -173,9 +173,9 @@ function EquationOperations() {
                 group_index = Number(source_segment);
             }
 
-            if (scale && grouped && grouped.expression.type === 'add') {
-                const distributed = Expression.add(
-                    grouped.expression.terms.map(term => Expression.scale_term(scale, term))
+            if (scale && grouped && grouped.Expressions.type === 'add') {
+                const distributed = Expressions.add(
+                    grouped.Expressions.terms.map(term => Expressions.scale_term(scale, term))
                 );
                 const factors = parent.factors.slice();
                 const high = Math.max(scale_index, group_index);
@@ -186,7 +186,7 @@ function EquationOperations() {
                 return EquationPaths.replace(
                     equation,
                     source_parent_path,
-                    Expression.mul(factors)
+                    Expressions.mul(factors)
                 );
             }
         }

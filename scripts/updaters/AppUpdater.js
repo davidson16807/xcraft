@@ -13,7 +13,7 @@ function AppUpdater(dependencies) {
     // this function exists for future reference to allow level unlocking behavior
     function mark_completed(app) {
         const level = app.levels[app.level_index];
-        if (!EquationMetrics.is_same_shape(app.equation, level.goal)) return app;
+        if (!EquationProperties.is_same_shape(app.equation, level.goal)) return app;
         return app;
     }
 

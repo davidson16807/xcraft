@@ -2,12 +2,12 @@
 // HUMAN VETTED
 
 function Levels() {
-    const c = Expression.constant;
-    const v = Expression.variable;
-    const a = Expression.add;
-    const m = Expression.mul;
-    const d = Expression.div;
-    const g = Expression.group;
+    const c = Expressions.constant;
+    const v = Expressions.variable;
+    const a = Expressions.add;
+    const m = Expressions.mul;
+    const d = Expressions.div;
+    const g = Expressions.group;
     const e = (left, right) => new Equation(left, right);
     const x = () => v('x');
 

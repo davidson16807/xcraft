@@ -48,7 +48,7 @@ The page loads KaTeX and Bootstrap from jsDelivr, so those two assets require ne
 
 ## Interaction rules
 
-A drag is never interpreted as arbitrary text editing. `EquationOperations` accepts only explicit equivalence-preserving rewrites. Invalid drops return the original equation reference and therefore do nothing.
+A drag is never interpreted as arbitrary text editing. `Equations` accepts only explicit equivalence-preserving rewrites. Invalid drops return the original equation reference and therefore do nothing.
 
 Implemented gestures include:
 
