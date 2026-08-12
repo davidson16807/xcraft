@@ -1,27 +1,15 @@
 'use strict';
 
 function EquationView(dependencies) {
+
     const html = dependencies.html;
     const equations = dependencies.equations;
     const render = dependencies.render;
-    const expressions = dependencies.expressions;
-    const equation_paths = dependencies.equation_paths;
 
     function math(latex, class_name) {
         const node = html.span({ class: class_name || 'math-atom' }, []);
         render(latex, node, { throwOnError: false, output: 'html' });
         return node;
-    }
-
-    function sign_and_absolute(expression) {
-        const mono = expressions.coefficient_and_basis(expression);
-        if (mono.coefficient < 0) {
-            return {
-                sign: -1,
-                absolute: expressions.from_coefficient_and_basis(-mono.coefficient, mono.basis),
-            };
-        }
-        return { sign: 1, absolute: expression };
     }
 
     function path_attributes(path, draggable_paths, valid_targets) {
@@ -57,7 +45,7 @@ function EquationView(dependencies) {
             case 'add':
                 wrapper.classList.add('expression-add');
                 expression.terms.forEach((term, i) => {
-                    const signed = sign_and_absolute(term);
+                    const signed = equations.sign_and_absolute(term);
                     const term_path = `${path}/${i}`;
                     const term_wrapper = html.span(path_attributes(term_path, draggable_paths, valid_targets), []);
                     term_wrapper.classList.add('addend');
@@ -158,10 +146,9 @@ function EquationView(dependencies) {
 
     function draw_ghost(equation, drag_state) {
         if (!drag_state || !drag_state.source_path) return null;
-        const source = equation_paths.resolve(equation, drag_state.source_path);
-        if (!source) return null;
+        const latex = equations.path_latex(equation, drag_state.source_path);
+        if (!latex) return null;
         const ghost = html.div({ class:'drag-ghost' }, []);
-        const latex = expressions.to_latex(source);
         render(latex, ghost, { throwOnError:false, output:'html' });
         ghost.style.left = `${drag_state.current.x}px`;
         ghost.style.top = `${drag_state.current.y}px`;

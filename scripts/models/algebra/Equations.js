@@ -7,6 +7,22 @@ rewrite.  Unsupported drags return the original equation reference.
 function Equations(expressions, equation_paths) {
     const paths = equation_paths;
 
+    function sign_and_absolute(expression) {
+        const mono = expressions.coefficient_and_basis(expression);
+        if (mono.coefficient < 0) {
+            return {
+                sign: -1,
+                absolute: expressions.from_coefficient_and_basis(-mono.coefficient, mono.basis),
+            };
+        }
+        return { sign: 1, absolute: expression };
+    }
+
+    function path_latex(equation, source_path) {
+        const source = equation_paths.resolve(equation, source_path);
+        return source && expressions.to_latex(source);
+    }
+
     function other_side(side) {
         return side === 'L'? 'R' : 'L';
     }
@@ -234,5 +250,7 @@ function Equations(expressions, equation_paths) {
         move,
         moves_for_source,
         draggable_paths,
+        sign_and_absolute,
+        path_latex,
     });
 }

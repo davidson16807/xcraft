@@ -118,9 +118,10 @@
     const equation_paths = EquationPaths(expressions);
     const equation_properties = EquationProperties(expressions);
     const equations = Equations(expressions, equation_paths);
-    const history = AppHistoryTraversal(Infinity);
-    const equation_drags = EquationDrags(equations);
 
+    const history = AppHistoryTraversal(Infinity);
+
+    const equation_drags = EquationDrags(equations);
     const app_updater = AppUpdater({
         app_history_traversal: history,
         drag_ops: AppDragOperations(equation_drags, history),
@@ -132,8 +133,6 @@
         html: Html(document),
         equations: equations,
         render: katex.render,
-        expressions: expressions,
-        equation_paths: equation_paths,
     });
 
     const app_view = AppView({
@@ -143,7 +142,6 @@
     }, app_updater);
 
     const released = equation_drags.release();
-
     const levels = Levels(expressions);
     app_view.wire(
         new AppState(
