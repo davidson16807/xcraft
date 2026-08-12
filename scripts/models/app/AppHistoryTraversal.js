@@ -1,14 +1,12 @@
 'use strict';
+// HUMAN VETTED
 
 function AppHistoryTraversal(max_history_size) {
-    const snapshot = app => Object.freeze({
-        equation: app.equation,
-    });
 
     return Object.freeze({
         do: function(app, equation) {
             if (equation === app.equation) return app;
-            const undo = [...app.undo_history, snapshot(app)];
+            const undo = [...app.undo_history, app.equation];
             if (undo.length > max_history_size) undo.shift();
             return app.with({
                 equation: equation,
@@ -22,9 +20,9 @@ function AppHistoryTraversal(max_history_size) {
             const undo = app.undo_history.slice();
             const previous = undo.pop();
             return app.with({
-                equation: previous.equation,
+                equation: previous,
                 undo_history: undo,
-                redo_history: [...app.redo_history, snapshot(app)],
+                redo_history: [...app.redo_history, app.equation],
             });
         },
 
@@ -33,10 +31,12 @@ function AppHistoryTraversal(max_history_size) {
             const redo = app.redo_history.slice();
             const next = redo.pop();
             return app.with({
-                equation: next.equation,
-                undo_history: [...app.undo_history, snapshot(app)],
+                equation: next,
+                undo_history: [...app.undo_history, app.equation],
                 redo_history: redo,
             });
         },
+
     });
+
 }

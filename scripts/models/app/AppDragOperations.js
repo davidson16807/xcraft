@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 function AppDragOperations(equation_drags, history) {
     return Object.freeze({

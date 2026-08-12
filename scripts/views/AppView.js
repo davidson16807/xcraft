@@ -6,7 +6,6 @@ function AppView(dependencies, app_updater) {
     const render = dependencies.render;
 
     function draw(app, dom_io) {
-        console.log(app)
 
         const app_element = dom_io.getElementById('app');
         const equation_element = dom_io.getElementById('equation');
@@ -52,9 +51,9 @@ function AppView(dependencies, app_updater) {
         });
 
         equation_view.draw(
-            equation_element,
             app.equation,
-            app.drag_type.id === DragState.symbol? app.drag_state : null
+            app.drag_type.id === DragState.symbol? app.drag_state : null,
+            equation_element,
         );
     }
 

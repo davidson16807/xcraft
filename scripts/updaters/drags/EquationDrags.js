@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 function EquationDrags(equation_ops) {
     function drag_value(source_path, start, current, candidates) {

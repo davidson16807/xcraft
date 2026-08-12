@@ -6,9 +6,9 @@
 Messages and prior state are its only inputs; it returns a new AppState.
 */
 function AppUpdater(dependencies) {
-    const app_history_traversal = dependencies.app_history_traversal;
+    const history = dependencies.app_history_traversal;
     const drag_ops = dependencies.drag_ops;
-    const equation_drags = dependencies.equation_drags;
+    const drags = dependencies.equation_drags;
 
     // this function exists for future reference to allow level unlocking behavior
     function mark_completed(app) {
@@ -19,7 +19,7 @@ function AppUpdater(dependencies) {
 
     function load_level(app, index) {
         const bounded = Math.max(0, Math.min(app.levels.length-1, index));
-        const drag_type = equation_drags.release();
+        const drag_type = drags.release();
         return app.with({
             level_index: bounded,
             equation: app.levels[bounded].equation,
@@ -31,7 +31,7 @@ function AppUpdater(dependencies) {
     }
 
     function release(app) {
-        const drag_type = equation_drags.release();
+        const drag_type = drags.release();
         return app.with({ drag_type: drag_type, drag_state: drag_type.initialize() });
     }
 
@@ -40,8 +40,8 @@ function AppUpdater(dependencies) {
         drag_move: (app, x,y) => drag_ops.move(app, x,y),
         drag_drop: (app, target_key) => drag_ops.drop(app, target_key),
         drag_cancel: (app) => drag_ops.cancel(app),
-        undo: (app) => release(app_history_traversal.undo(app)),
-        redo: (app) => release(app_history_traversal.redo(app)),
+        undo: (app) => release(history.undo(app)),
+        redo: (app) => release(history.redo(app)),
         restart: (app) => release(load_level(app, app.level_index)),
         last_level: (app) => release(load_level(app, app.level_index-1)),
         next_level: (app) => release(load_level(app, app.level_index+1)),

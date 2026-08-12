@@ -8,7 +8,7 @@ function EquationView(dependencies) {
     function math(latex, class_name) {
         const node = html.span({ class: class_name || 'math-atom' }, []);
         render(latex, node, { throwOnError: false, output: 'html' });
-        return node;
+        return node;4
     }
 
     function sign_and_absolute(expression) {
@@ -167,20 +167,26 @@ function EquationView(dependencies) {
     }
 
     return Object.freeze({
-        draw: function(container, equation, drag_state) {
+
+        draw: function(equation, drag_state, div_io) {
+
             const valid_targets = new Set(drag_state && drag_state.candidates || []);
             const draggable_paths = new Set(equation_ops.draggable_paths(equation));
 
-            container.replaceChildren();
-            const row = html.div({ class:'equation-row' }, [
-                draw_side(equation.left, 'L', draggable_paths, valid_targets),
-                html.span({ class:'equals-sign' }, [math('=', 'math-equals')]),
-                draw_side(equation.right, 'R', draggable_paths, valid_targets),
-            ]);
-            container.appendChild(row);
+            div_io.replaceChildren(
+                html.div({ class:'equation-row' }, [
+                    draw_side(equation.left, 'L', draggable_paths, valid_targets),
+                    html.span({ class:'equals-sign' }, [math('=', 'math-equals')]),
+                    draw_side(equation.right, 'R', draggable_paths, valid_targets),
+                ])
+            );
 
             const ghost = draw_ghost(equation, drag_state);
-            if (ghost) container.appendChild(ghost);
+            if (ghost) div_io.appendChild(ghost);
+
         },
+
     });
+
 }
+
