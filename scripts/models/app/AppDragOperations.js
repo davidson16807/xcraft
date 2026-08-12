@@ -2,8 +2,8 @@
 
 function AppDragOperations(equation_drags, history) {
     return Object.freeze({
-        start: function(app, source_path, point) {
-            const drag_type = equation_drags.symbol(app.equation, source_path, point);
+        start: function(app, source_path, x,y) {
+            const drag_type = equation_drags.symbol(app.equation, source_path, {x:x,y:y});
             if (drag_type.initialize().candidates.length === 0) return app;
             return app.with({
                 drag_type: drag_type,
@@ -11,9 +11,9 @@ function AppDragOperations(equation_drags, history) {
             });
         },
 
-        move: function(app, point) {
+        move: function(app, x,y) {
             if (app.drag_type.id === DragState.released) return app;
-            return app.with({ drag_state: app.drag_type.move(app.drag_state, point) });
+            return app.with({ drag_state: app.drag_type.move(app.drag_state, {x:x,y:y}) });
         },
 
         drop: function(app, target_key) {

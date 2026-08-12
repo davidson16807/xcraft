@@ -133,19 +133,17 @@
     }, app_updater);
 
     const released = equation_drags.release();
-    let app = new AppState(
-        Levels(),
-        0,
-        Levels()[0].equation,
-        released,
-        released.initialize(),
-        [],
-        [],
-        window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches?
-            'night' : 'day'
-    );
 
-    app_view.wire(app, document);
+    app_view.wire(
+        new AppState(
+            Levels(), 0, // levels
+            Levels()[0].equation, // equation
+            released, released.initialize(), // drag
+            [], [], // history
+            window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches?
+                'night' : 'day'
+        ), document
+    );
 
 })();
 

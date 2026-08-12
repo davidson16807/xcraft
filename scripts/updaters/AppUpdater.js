@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 `AppUpdater` is the update function in the Model-View-Updater architecture.
@@ -29,36 +30,22 @@ function AppUpdater(dependencies) {
         });
     }
 
+    function release(app) {
+        const drag_type = equation_drags.release();
+        return app.with({ drag_type: drag_type, drag_state: drag_type.initialize() });
+    }
+
     return Object.freeze({
-        update: function(message, app) {
-            switch (message.type) {
-                case 'drag_start':
-                    return drag_ops.start(app, message.source_path, message.point);
-                case 'drag_move':
-                    return drag_ops.move(app, message.point);
-                case 'drag_drop':
-                    return drag_ops.drop(app, message.target_key);
-                case 'drag_cancel':
-                    return drag_ops.cancel(app);
-                case 'undo':
-                    drag_type = equation_drags.release();
-                    return app.with({ drag_type: drag_type, drag_state: drag_type.initialize() });
-                case 'redo':
-                    drag_type = equation_drags.release();
-                    return app.with({ drag_type: drag_type, drag_state: drag_type.initialize() });
-                case 'restart':
-                    return load_level(app, app.level_index);
-                case 'previous_level':
-                    return load_level(app, app.level_index-1);
-                case 'next_level':
-                    return load_level(app, app.level_index+1);
-                case 'select_level':
-                    return load_level(app, message.level_index);
-                case 'toggle_theme':
-                    return app.with({ theme: app.theme === 'day'? 'night' : 'day' });
-                default:
-                    return app;
-            }
-        },
+        drag_start: (app, source_path, x,y) => drag_ops.start(app, source_path, x,y),
+        drag_move: (app, x,y) => drag_ops.move(app, x,y),
+        drag_drop: (app, target_key) => drag_ops.drop(app, target_key),
+        drag_cancel: (app) => drag_ops.cancel(app),
+        undo: (app) => release(app_history_traversal.undo(app)),
+        redo: (app) => release(app_history_traversal.redo(app)),
+        restart: (app) => release(load_level(app, app.level_index)),
+        last_level: (app) => release(load_level(app, app.level_index-1)),
+        next_level: (app) => release(load_level(app, app.level_index+1)),
+        select_level: (app, level_index) => release(load_level(app, level_index)),
+        toggle_theme: (app) => app.with({ theme: app.theme === 'day'? 'night' : 'day' }),
     });
 }

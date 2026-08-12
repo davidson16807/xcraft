@@ -6,6 +6,7 @@ function AppView(dependencies, app_updater) {
     const render = dependencies.render;
 
     function draw(app, dom_io) {
+        console.log(app)
 
         const app_element = dom_io.getElementById('app');
         const equation_element = dom_io.getElementById('equation');
@@ -69,8 +70,7 @@ function AppView(dependencies, app_updater) {
         const theme_button = dom_io.getElementById('theme');
         const level_strip = dom_io.getElementById('level-strip');
 
-        function dispatch(message) {
-            const updated = app_updater.update(message, app);
+        function dispatch(updated) {
             if (updated !== app) {
                 app = updated;
                 draw(app, dom_io);
@@ -82,63 +82,58 @@ function AppView(dependencies, app_updater) {
             const source = event.target.closest('[data-draggable="1"]');
             if (!source || !equation_element.contains(source)) return;
             event.preventDefault();
-            dispatch({
-                type: 'drag_start',
-                source_path: source.getAttribute('data-path'),
-                point: { x:event.clientX, y:event.clientY },
-            });
+            dispatch(app_updater.drag_start(app, source.getAttribute('data-path'), event.clientX, event.clientY ), dom_io);
         });
 
         dom_io.addEventListener('pointermove', event => {
-            dispatch({ type:'drag_move', point:{ x:event.clientX, y:event.clientY } });
+            dispatch(app_updater.drag_move(app, event.clientX, event.clientY), dom_io);
         }, { passive:true });
 
         dom_io.addEventListener('pointerup', event => {
             const under_pointer = dom_io.elementFromPoint(event.clientX, event.clientY);
             const target = under_pointer && under_pointer.closest('[data-valid-drop="1"]');
             dispatch(target?
-                { type:'drag_drop', target_key:target.getAttribute('data-drop-key') } :
-                { type:'drag_cancel' }
-            );
+                    app_updater.drag_drop(app, target.getAttribute('data-drop-key')) :
+                    app_updater.drag_cancel(app), 
+                dom_io);
         });
 
-        dom_io.addEventListener('pointercancel', () => dispatch({ type:'drag_cancel' }));
+        dom_io.addEventListener('pointercancel', () => dispatch(app_updater.drag_cancel(app), dom_io));
 
-        undo_button.addEventListener('click', () => dispatch({ type:'undo' }));
-        redo_button.addEventListener('click', () => dispatch({ type:'redo' }));
-        restart_button.addEventListener('click', () => dispatch({ type:'restart' }));
-        previous_button.addEventListener('click', () => dispatch({ type:'previous_level' }));
-        next_button.addEventListener('click', () => dispatch({ type:'next_level' }));
-        theme_button.addEventListener('click', () => dispatch({ type:'toggle_theme' }));
+        undo_button.addEventListener('click', () => dispatch(app_updater.undo(app), dom_io));
+        redo_button.addEventListener('click', () => dispatch(app_updater.redo(app), dom_io));
+        restart_button.addEventListener('click', () => dispatch(app_updater.restart(app), dom_io));
+        previous_button.addEventListener('click', () => dispatch(app_updater.last_level(app), dom_io));
+        next_button.addEventListener('click', () => dispatch(app_updater.next_level(app), dom_io));
+        theme_button.addEventListener('click', () => dispatch(app_updater.toggle_theme(app), dom_io));
 
         level_strip.addEventListener('click', event => {
             const button = event.target.closest('[data-level-index]');
             if (!button) return;
-            dispatch({
-                type:'select_level',
-                level_index:Number(button.getAttribute('data-level-index')),
-            });
+            dispatch(app_updater.select_level(appNumber(button.getAttribute('data-level-index'))), dom_io);
         });
 
         dom_io.addEventListener('keydown', event => {
             const key = event.key.toLowerCase();
             if ((event.ctrlKey || event.metaKey) && key === 'z' && !event.shiftKey) {
                 event.preventDefault();
-                dispatch({ type:'undo' });
+                dispatch(app_updater.undo(app), dom_io);
             } else if (
                 (event.ctrlKey || event.metaKey) &&
                 (key === 'y' || (key === 'z' && event.shiftKey))
             ) {
                 event.preventDefault();
-                dispatch({ type:'redo' });
+                dispatch(app_updater.redo(app), dom_io);
             } else if (key === 'escape') {
-                dispatch({ type:'drag_cancel' });
+                dispatch(app_updater.drag_cancel(app), dom_io);
             }
         });
+
     }
 
     return Object.freeze({
         wire: wire,
         draw: draw,
     });
+
 }
