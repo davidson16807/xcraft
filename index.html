@@ -118,8 +118,7 @@
 
     const expression_hash = ExpressionHash();
     const expressions = Expressions(expression_hash);
-    const equation_paths = EquationPaths(expressions);
-    const equations = Equations(expressions, ExpressionLatex(), equation_paths);
+    const equations = Equations(expressions, ExpressionLatex(), EquationPaths(expressions));
     const equation_hash = EquationHash(expression_hash);
 
     const history = AppHistoryTraversal(Infinity);

@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 function EquationView(dependencies) {
 
@@ -29,20 +30,19 @@ function EquationView(dependencies) {
         return attrs;
     }
 
-    function draw_expression(expression, path, draggable_paths, valid_targets, options) {
-        const opts = options || {};
-        const wrapper = html.span(path_attributes(path, draggable_paths, valid_targets), []);
+    function draw_expression(expression, path, draggable_paths, valid_targets) {
+        const attributes = path_attributes(path, draggable_paths, valid_targets);
+        let wrapper;
 
         switch (expression.type) {
             case 'constant':
-                wrapper.appendChild(math(String(expression.value)));
-                break;
+                return html.span(attributes, [math(String(expression.value))]);
 
             case 'variable':
-                wrapper.appendChild(math(expression.name));
-                break;
+                return html.span(attributes, [math(expression.name)]);
 
             case 'add':
+                wrapper = html.span(attributes);
                 wrapper.classList.add('expression-add');
                 expression.terms.forEach((term, i) => {
                     const signed = equations.sign_and_absolute(term);
@@ -63,16 +63,19 @@ function EquationView(dependencies) {
                     term_wrapper.appendChild(absolute_node);
                     wrapper.appendChild(term_wrapper);
                 });
-                break;
+                return wrapper;
 
             case 'mul':
+                wrapper = html.span(attributes);
                 wrapper.classList.add('expression-mul');
                 expression.factors.forEach((factor, i) => {
                     if (
                         i > 0 &&
                         expression.factors[i-1].type === 'constant' &&
                         factor.type === 'constant'
-                    ) wrapper.appendChild(math('\\cdot', 'math-operator multiplication-dot'));
+                    ) { 
+                        wrapper.appendChild(math('\\cdot', 'math-operator multiplication-dot'));
+                    }
                     wrapper.appendChild(draw_expression(
                         factor,
                         `${path}/${i}`,
@@ -80,9 +83,10 @@ function EquationView(dependencies) {
                         valid_targets
                     ));
                 });
-                break;
+                return wrapper;
 
             case 'div': {
+                wrapper = html.span(attributes);
                 wrapper.classList.add('expression-fraction');
                 const numerator = html.span({ class:'fraction-numerator' }, [
                     draw_expression(expression.numerator, `${path}/n`, draggable_paths, valid_targets)
@@ -92,10 +96,11 @@ function EquationView(dependencies) {
                 ]);
                 wrapper.appendChild(numerator);
                 wrapper.appendChild(denominator);
-                break;
+                return wrapper;
             }
 
             case 'group':
+                wrapper = html.span(attributes);
                 wrapper.classList.add('expression-group');
                 wrapper.appendChild(math('(', 'math-paren'));
                 wrapper.appendChild(draw_expression(
@@ -105,11 +110,9 @@ function EquationView(dependencies) {
                     valid_targets
                 ));
                 wrapper.appendChild(math(')', 'math-paren'));
-                break;
+                return wrapper;
         }
 
-        if (opts.ghost) wrapper.classList.add('drag-ghost-expression');
-        return wrapper;
     }
 
     /*
