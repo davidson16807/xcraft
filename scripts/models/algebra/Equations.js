@@ -190,9 +190,9 @@ function Equations(expressions, equation_paths) {
                 group_index = Number(source_segment);
             }
 
-            if (scale && grouped && grouped.expressions.type === 'add') {
+            if (scale && grouped && grouped.expression.type === 'add') {
                 const distributed = expressions.add(
-                    grouped.expressions.terms.map(term => expressions.scale_term(scale, term))
+                    grouped.expression.terms.map(term => expressions.scale_term(scale, term))
                 );
                 const factors = parent.factors.slice();
                 const high = Math.max(scale_index, group_index);
