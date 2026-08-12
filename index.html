@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="description" content="A drag-to-transform algebra game.">
+    <title>equationcraft</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.18.1/dist/katex.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="./styles/app.css">
+
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.18.1/dist/katex.min.js"></script>
+    <script defer src="./scripts/dom/Html.js"></script>
+    <script defer src="./scripts/models/algebra/Expression.js"></script>
+    <script defer src="./scripts/models/algebra/Equation.js"></script>
+    <script defer src="./scripts/models/algebra/EquationOperations.js"></script>
+    <script defer src="./scripts/models/app/AppState.js"></script>
+    <script defer src="./scripts/models/app/AppHistoryTraversal.js"></script>
+    <script defer src="./scripts/updaters/drags/DragState.js"></script>
+    <script defer src="./scripts/updaters/drags/EquationDrags.js"></script>
+    <script defer src="./scripts/models/app/AppDragOperations.js"></script>
+    <script defer src="./scripts/levels/Levels.js"></script>
+    <script defer src="./scripts/updaters/AppUpdater.js"></script>
+    <script defer src="./scripts/views/EquationView.js"></script>
+    <script defer src="./scripts/views/AppView.js"></script>
+    <script defer src="./scripts/App.js"></script>
+</head>
+<body>
+<div id="app" data-theme="day">
+    <header class="app-header">
+        <div class="brand">
+            <span class="brand-mark">x↔x</span>
+            <span class="brand-name">equationcraft</span>
+        </div>
+        <div class="level-meta"><span id="level-counter">1 / 10</span></div>
+    </header>
+
+    <nav class="toolbar" aria-label="Game controls">
+        <div class="toolbar-group">
+            <button id="undo" type="button" class="btn btn-sm" disabled>↶ Undo</button>
+            <button id="redo" type="button" class="btn btn-sm" disabled>↷ Redo</button>
+            <button id="restart" type="button" class="btn btn-sm">Restart</button>
+        </div>
+        <div class="toolbar-group">
+            <button id="previous-level" type="button" class="btn btn-sm" aria-label="Previous level">←</button>
+            <button id="next-level" type="button" class="btn btn-sm" aria-label="Next level">→</button>
+            <button id="theme" type="button" class="btn btn-sm" aria-label="Use night mode">☾</button>
+        </div>
+    </nav>
+
+    <div id="level-strip" class="level-strip" aria-label="Levels"></div>
+
+    <main>
+        <section class="lesson-header">
+            <div class="lesson-title-row">
+                <h1 id="level-title">Balance</h1>
+                <span id="solved-mark" aria-label="Solved">✓</span>
+            </div>
+            <p id="level-concept"></p>
+            <div class="goal">
+                <span>Goal</span>
+                <span id="goal-math"></span>
+            </div>
+        </section>
+
+        <section id="equation" class="equation-stage" aria-label="Interactive equation"></section>
+    </main>
+
+    <footer class="app-footer">
+        <span>Drag highlighted algebraic pieces onto a valid destination.</span>
+        <span id="move-counter">0 moves</span>
+    </footer>
+</div>
+</body>
+</html>

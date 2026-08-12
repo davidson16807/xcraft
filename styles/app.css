@@ -1,0 +1,412 @@
+:root {
+    color-scheme: light dark;
+}
+
+html, body {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+}
+
+body {
+    overflow-x: hidden;
+}
+
+#app {
+    --paper: #ffffff;
+    --ink: #000000;
+    --quiet: #666666;
+    --hairline: #d9d9d9;
+    --hover: #f4f4f4;
+    --target: #ececec;
+    --complete: #111111;
+    min-height: 100vh;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    display: flex;
+    flex-direction: column;
+    transition: background 120ms linear, color 120ms linear;
+}
+
+#app[data-theme="night"] {
+    --paper: #000000;
+    --ink: #ffffff;
+    --quiet: #a0a0a0;
+    --hairline: #333333;
+    --hover: #111111;
+    --target: #1b1b1b;
+    --complete: #ffffff;
+    color-scheme: dark;
+}
+
+button {
+    color: var(--ink) !important;
+}
+
+.app-header {
+    width: min(1120px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 18px 0 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border-bottom: 1px solid var(--hairline);
+}
+
+.brand {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    min-width: 0;
+}
+
+.brand-mark {
+    font-family: "KaTeX_Main", serif;
+    font-size: 1.35rem;
+    letter-spacing: -0.08em;
+}
+
+.brand-name {
+    font-weight: 650;
+    letter-spacing: 0.02em;
+}
+
+.level-meta {
+    color: var(--quiet);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.toolbar {
+    width: min(1120px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 12px 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.toolbar .btn {
+    background: transparent;
+    border-color: var(--hairline);
+    color: var(--ink);
+    box-shadow: none !important;
+}
+
+.toolbar .btn:hover:not(:disabled),
+.toolbar .btn:focus-visible {
+    background: var(--hover);
+    border-color: var(--ink);
+}
+
+.toolbar .btn:disabled {
+    opacity: 0.28;
+}
+
+#theme {
+    width: 42px;
+    font-size: 1.1rem;
+}
+
+.level-strip {
+    width: min(1120px, calc(100% - 32px));
+    margin: 2px auto 0;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 2px 0 10px;
+}
+
+.level-dot {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    border: 1px solid var(--hairline);
+    background: transparent;
+    color: var(--quiet) !important;
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.level-dot:hover,
+.level-dot:focus-visible {
+    border-color: var(--ink);
+    color: var(--ink) !important;
+}
+
+.level-dot.active {
+    border-color: var(--ink);
+    color: var(--ink) !important;
+    box-shadow: inset 0 0 0 1px var(--ink);
+}
+
+.level-dot.complete::after {
+    content: "";
+    display: block;
+    width: 4px;
+    height: 4px;
+    margin: -3px auto 0;
+    border-radius: 50%;
+    background: var(--complete);
+}
+
+main {
+    flex: 1;
+    width: min(1120px, calc(100% - 32px));
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.lesson-header {
+    padding: clamp(18px, 4vh, 42px) 0 8px;
+    text-align: center;
+}
+
+.lesson-title-row {
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: 10px;
+}
+
+#level-title {
+    margin: 0;
+    font-size: clamp(1.1rem, 2vw, 1.45rem);
+    font-weight: 650;
+}
+
+#solved-mark {
+    opacity: 0;
+    transform: translateY(2px);
+    transition: opacity 120ms linear;
+    font-size: 1rem;
+}
+
+#solved-mark.visible {
+    opacity: 1;
+}
+
+#level-concept {
+    margin: 8px auto 0;
+    max-width: 660px;
+    color: var(--quiet);
+    font-size: 0.95rem;
+}
+
+.goal {
+    margin-top: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: 8px;
+    color: var(--quiet);
+    font-size: 0.88rem;
+}
+
+#goal-math {
+    color: var(--ink);
+}
+
+.equation-stage {
+    flex: 1;
+    min-height: 360px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    position: relative;
+    padding: 42px 12px 90px;
+}
+
+.equation-row {
+    width: min(980px, 100%);
+    min-height: 190px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(18px, 4vw, 48px);
+    font-size: clamp(2rem, 6vw, 4.8rem);
+}
+
+.equation-side {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 140px;
+    padding: 22px 18px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background 80ms linear, border-color 80ms linear;
+}
+
+.equals-sign {
+    flex: 0 0 auto;
+}
+
+.expression-node,
+.expression-add,
+.expression-mul,
+.expression-group,
+.addend {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+.expression-add,
+.expression-mul {
+    gap: 0.06em;
+}
+
+.addend {
+    gap: 0.06em;
+    padding: 0.10em 0.07em;
+    border-radius: 0.12em;
+}
+
+.expression-group {
+    gap: 0.02em;
+}
+
+.math-operator,
+.math-paren {
+    display: inline-flex;
+}
+
+.expression-fraction {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    vertical-align: middle;
+    line-height: 1;
+    padding: 0 0.08em;
+}
+
+.fraction-numerator,
+.fraction-denominator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0.10em 0.16em;
+    font-size: 0.82em;
+}
+
+.fraction-numerator {
+    border-bottom: max(1px, 0.025em) solid currentColor;
+}
+
+.draggable-symbol {
+    cursor: grab;
+    border-radius: 0.12em;
+}
+
+.draggable-symbol:hover {
+    background: var(--hover);
+}
+
+.valid-drop {
+    background: var(--target);
+    outline: 1px solid var(--hairline);
+    outline-offset: 2px;
+}
+
+.equation-side.valid-drop {
+    border-color: var(--hairline);
+    outline: none;
+}
+
+.drag-ghost {
+    position: fixed;
+    z-index: 1000;
+    pointer-events: none;
+    transform: translate(-50%, -58%) scale(1.03);
+    padding: 8px 12px;
+    border: 1px solid var(--hairline);
+    border-radius: 8px;
+    background: var(--paper);
+    color: var(--ink);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+    font-size: clamp(1.8rem, 5vw, 3.7rem);
+    opacity: 0.93;
+}
+
+#app[data-theme="night"] .drag-ghost {
+    box-shadow: 0 6px 24px rgba(255,255,255,0.08);
+}
+
+.app-footer {
+    width: min(1120px, calc(100% - 32px));
+    margin: 0 auto;
+    border-top: 1px solid var(--hairline);
+    padding: 10px 0 18px;
+    color: var(--quiet);
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    font-size: 0.78rem;
+}
+
+.katex {
+    color: inherit;
+}
+
+@media (max-width: 640px) {
+    .app-header,
+    .toolbar,
+    .app-footer {
+        width: min(100% - 20px, 1120px);
+    }
+
+    main,
+    .level-strip {
+        width: min(100% - 20px, 1120px);
+    }
+
+    .brand-name {
+        display: none;
+    }
+
+    .toolbar {
+        align-items: stretch;
+    }
+
+    .toolbar-group {
+        flex: 1 1 auto;
+    }
+
+    .toolbar .btn:not(#theme) {
+        flex: 1 1 auto;
+    }
+
+    .equation-row {
+        gap: 10px;
+        min-height: 150px;
+    }
+
+    .equation-side {
+        min-height: 110px;
+        padding: 14px 8px;
+    }
+
+    .app-footer {
+        flex-direction: column;
+    }
+}

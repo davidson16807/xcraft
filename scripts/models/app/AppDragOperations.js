@@ -1,0 +1,39 @@
+'use strict';
+
+function AppDragOperations(equation_drags, history) {
+    return Object.freeze({
+        start: function(app, source_path, point) {
+            const drag_type = equation_drags.symbol(app.equation, source_path, point);
+            if (drag_type.initialize().candidates.length === 0) return app;
+            return app.with({
+                drag_type: drag_type,
+                drag_state: drag_type.initialize(),
+            });
+        },
+
+        move: function(app, point) {
+            if (app.drag_type.id === DragState.released) return app;
+            return app.with({ drag_state: app.drag_type.move(app.drag_state, point) });
+        },
+
+        drop: function(app, target_key) {
+            if (app.drag_type.id === DragState.released) return app;
+            const equation = app.drag_type.command(app.drag_state, target_key)(app.equation);
+            const released = equation_drags.release();
+            const committed = history.do(app, equation);
+            return committed.with({
+                drag_type: released,
+                drag_state: released.initialize(),
+            });
+        },
+
+        cancel: function(app) {
+            if (app.drag_type.id === DragState.released) return app;
+            const released = equation_drags.release();
+            return app.with({
+                drag_type: released,
+                drag_state: released.initialize(),
+            });
+        },
+    });
+}
