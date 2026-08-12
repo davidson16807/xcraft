@@ -3,7 +3,6 @@
 function AppHistoryTraversal(max_history_size) {
     const snapshot = app => Object.freeze({
         equation: app.equation,
-        move_count: app.move_count,
     });
 
     return Object.freeze({
@@ -15,7 +14,6 @@ function AppHistoryTraversal(max_history_size) {
                 equation: equation,
                 undo_history: undo,
                 redo_history: [],
-                move_count: app.move_count + 1,
             });
         },
 
@@ -25,7 +23,6 @@ function AppHistoryTraversal(max_history_size) {
             const previous = undo.pop();
             return app.with({
                 equation: previous.equation,
-                move_count: previous.move_count,
                 undo_history: undo,
                 redo_history: [...app.redo_history, snapshot(app)],
             });
@@ -37,7 +34,6 @@ function AppHistoryTraversal(max_history_size) {
             const next = redo.pop();
             return app.with({
                 equation: next.equation,
-                move_count: next.move_count,
                 undo_history: [...app.undo_history, snapshot(app)],
                 redo_history: redo,
             });

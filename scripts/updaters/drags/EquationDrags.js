@@ -1,6 +1,6 @@
 'use strict';
 
-function EquationDrags(algebra) {
+function EquationDrags(equation_ops) {
     function drag_value(source_path, start, current, candidates) {
         return Object.freeze({
             source_path: source_path,
@@ -12,13 +12,13 @@ function EquationDrags(algebra) {
 
     return Object.freeze({
         symbol: function(equation, source_path, start) {
-            const candidates = algebra.moves_for_source(equation, source_path);
+            const candidates = equation_ops.moves_for_source(equation, source_path);
             return Object.freeze({
                 id: DragState.symbol,
                 initialize: () => drag_value(source_path, start, start, candidates),
                 move: (state, point) => drag_value(source_path, state.start, point, state.candidates),
                 command: (state, target_key) => equation_input =>
-                    algebra.move(equation_input, state.source_path, target_key),
+                    equation_ops.move(equation_input, state.source_path, target_key),
             });
         },
 

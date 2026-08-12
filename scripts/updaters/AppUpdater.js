@@ -5,34 +5,27 @@
 Messages and prior state are its only inputs; it returns a new AppState.
 */
 function AppUpdater(dependencies) {
-    const levels = dependencies.levels;
-    const history = dependencies.history;
+    const app_history_traversal = dependencies.app_history_traversal;
     const drag_ops = dependencies.drag_ops;
     const equation_drags = dependencies.equation_drags;
 
-    function released(app) {
-        const drag_type = equation_drags.release();
-        return app.with({ drag_type: drag_type, drag_state: drag_type.initialize() });
-    }
-
+    // this function exists for future reference to allow level unlocking behavior
     function mark_completed(app) {
-        const level = levels[app.level_index];
+        const level = app.levels[app.level_index];
         if (!EquationMetrics.is_same_shape(app.equation, level.goal)) return app;
-        if (app.completed_levels.includes(app.level_index)) return app;
-        return app.with({ completed_levels: [...app.completed_levels, app.level_index] });
+        return app;
     }
 
     function load_level(app, index) {
-        const bounded = Math.max(0, Math.min(levels.length-1, index));
+        const bounded = Math.max(0, Math.min(app.levels.length-1, index));
         const drag_type = equation_drags.release();
         return app.with({
             level_index: bounded,
-            equation: levels[bounded].equation,
+            equation: app.levels[bounded].equation,
             drag_type: drag_type,
             drag_state: drag_type.initialize(),
             undo_history: [],
             redo_history: [],
-            move_count: 0,
         });
     }
 
@@ -44,13 +37,15 @@ function AppUpdater(dependencies) {
                 case 'drag_move':
                     return drag_ops.move(app, message.point);
                 case 'drag_drop':
-                    return mark_completed(drag_ops.drop(app, message.target_key));
+                    return drag_ops.drop(app, message.target_key);
                 case 'drag_cancel':
                     return drag_ops.cancel(app);
                 case 'undo':
-                    return mark_completed(released(history.undo(released(app))));
+                    drag_type = equation_drags.release();
+                    return app.with({ drag_type: drag_type, drag_state: drag_type.initialize() });
                 case 'redo':
-                    return mark_completed(released(history.redo(released(app))));
+                    drag_type = equation_drags.release();
+                    return app.with({ drag_type: drag_type, drag_state: drag_type.initialize() });
                 case 'restart':
                     return load_level(app, app.level_index);
                 case 'previous_level':

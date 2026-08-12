@@ -14,39 +14,45 @@ body {
 
 #app {
     --paper: #ffffff;
+    --offpaper: #f4f4f4;
     --ink: #000000;
+    --offink: #111111;
     --quiet: #666666;
     --hairline: #d9d9d9;
-    --hover: #f4f4f4;
     --target: #ececec;
-    --complete: #111111;
     min-height: 100vh;
     background: var(--paper);
     color: var(--ink);
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     display: flex;
     flex-direction: column;
-    transition: background 120ms linear, color 120ms linear;
 }
 
 #app[data-theme="night"] {
     --paper: #000000;
+    --offpaper: #111111;
     --ink: #ffffff;
+    --offink: #ffffff;
     --quiet: #a0a0a0;
     --hairline: #333333;
-    --hover: #111111;
     --target: #1b1b1b;
-    --complete: #ffffff;
     color-scheme: dark;
 }
 
-button {
+img {
+    filter: invert(50%);
+}
+
+banner{
     color: var(--ink) !important;
+}
+
+button {
+    color: var(--ink);
 }
 
 .app-header {
     width: min(1120px, calc(100% - 32px));
-    margin: 0 auto;
     padding: 18px 0 10px;
     display: flex;
     align-items: center;
@@ -81,7 +87,6 @@ button {
 
 .toolbar {
     width: min(1120px, calc(100% - 32px));
-    margin: 0 auto;
     padding: 12px 0;
     display: flex;
     flex-wrap: wrap;
@@ -96,21 +101,25 @@ button {
     gap: 6px;
 }
 
-.toolbar .btn {
-    background: transparent;
+.btn {
+    background-color: var(--ink);
+    color: var(--paper);
     border-color: var(--hairline);
-    color: var(--ink);
-    box-shadow: none !important;
+    box-shadow: none ;
 }
 
-.toolbar .btn:hover:not(:disabled),
-.toolbar .btn:focus-visible {
-    background: var(--hover);
-    border-color: var(--ink);
+.btn:hover:not(:disabled),
+.btn:focus-visible {
+    background-color: var(--ink);
+    color: var(--paper);
+    border-color: var(--hairline);
+    opacity: 0.6;
 }
 
-.toolbar .btn:disabled {
-    opacity: 0.28;
+.btn:disabled {
+    background-color: var(--ink);
+    color: var(--paper);
+    opacity: 0.8;
 }
 
 #theme {
@@ -134,7 +143,7 @@ button {
     border-radius: 999px;
     border: 1px solid var(--hairline);
     background: transparent;
-    color: var(--quiet) !important;
+    color: var(--quiet) ;
     font-size: 0.78rem;
     font-variant-numeric: tabular-nums;
 }
@@ -142,12 +151,12 @@ button {
 .level-dot:hover,
 .level-dot:focus-visible {
     border-color: var(--ink);
-    color: var(--ink) !important;
+    color: var(--ink) ;
 }
 
 .level-dot.active {
     border-color: var(--ink);
-    color: var(--ink) !important;
+    color: var(--ink) ;
     box-shadow: inset 0 0 0 1px var(--ink);
 }
 
@@ -158,7 +167,7 @@ button {
     height: 4px;
     margin: -3px auto 0;
     border-radius: 50%;
-    background: var(--complete);
+    background: var(--offink);
 }
 
 main {
@@ -319,7 +328,7 @@ main {
 }
 
 .draggable-symbol:hover {
-    background: var(--hover);
+    background: var(--offpaper);
 }
 
 .valid-drop {

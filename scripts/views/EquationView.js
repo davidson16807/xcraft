@@ -2,7 +2,7 @@
 
 function EquationView(dependencies) {
     const html = dependencies.html;
-    const algebra = dependencies.algebra;
+    const equation_ops = dependencies.equation_ops;
     const render = dependencies.render;
 
     function math(latex, class_name) {
@@ -169,7 +169,7 @@ function EquationView(dependencies) {
     return Object.freeze({
         draw: function(container, equation, drag_state) {
             const valid_targets = new Set(drag_state && drag_state.candidates || []);
-            const draggable_paths = new Set(algebra.draggable_paths(equation));
+            const draggable_paths = new Set(equation_ops.draggable_paths(equation));
 
             container.replaceChildren();
             const row = html.div({ class:'equation-row' }, [
