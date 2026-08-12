@@ -29,7 +29,7 @@ function assert(condition, message) {
 function assertShape(actual, expected, message) {
     assert(
         properties.is_same_shape(actual, expected),
-        `${message}\nexpected: ${properties.to_latex(expected)}\nactual:   ${properties.to_latex(actual)}`
+        `${message}\nexpected: ${latex.encode(expected)}\nactual:   ${latex.encode(actual)}`
     );
 }
 
@@ -134,7 +134,7 @@ function sameSolutionSamples(before, after) {
 
 function verifyAdvertisedMoves() {
     const queue = levels.map(level => ({ equation:level.equation, depth:0 }));
-    const visited = new Set(queue.map(item => properties.shape_key(item.equation)));
+    const visited = new Set(queue.map(item => hash.encode(item.equation)));
     let checked = 0;
 
     while (queue.length > 0) {
@@ -146,11 +146,11 @@ function verifyAdvertisedMoves() {
                 assert(
                     sameSolutionSamples(equation, updated),
                     `move changed sampled solution set: ${source} -> ${target}\n`+
-                    `${properties.to_latex(equation)} -> ${properties.to_latex(updated)}`
+                    `${latex.encode(equation)} -> ${latex.encode(updated)}`
                 );
                 checked++;
                 if (depth < 3) {
-                    const key = properties.shape_key(updated);
+                    const key = hash.encode(updated);
                     if (!visited.has(key) && visited.size < 5000) {
                         visited.add(key);
                         queue.push({ equation:updated, depth:depth+1 });

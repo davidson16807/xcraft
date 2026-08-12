@@ -5,8 +5,10 @@
 Constructors return deeply immutable values.  Transformations never modify
 an input expression; they return either the original reference or a new tree.
 */
-const Expressions = () => {
+const Expressions = (expression_hash) => {
     const freeze = Object.freeze;
+
+    const hash = expression_hash
 
     const constant = value => freeze({ type: 'constant', value: Number(value) });
     const variable = name => freeze({ type: 'variable', name: String(name) });
@@ -138,9 +140,9 @@ const Expressions = () => {
                 return { coefficient: coefficient, basis: null, key: '1' };
             }
             const basis = mul(basis_factors);
-            return { coefficient: coefficient, basis: basis, key: shape_key(basis) };
+            return { coefficient: coefficient, basis: basis, key: hash.encode(basis) };
         }
-        return { coefficient: 1, basis: expression, key: shape_key(expression) };
+        return { coefficient: 1, basis: expression, key: hash.encode(expression) };
     }
 
     function from_coefficient_and_basis(coefficient, basis) {
@@ -169,75 +171,6 @@ const Expressions = () => {
         const b = coefficient_and_basis(right);
         if (a.key !== b.key) return null;
         return from_coefficient_and_basis(a.coefficient + b.coefficient, a.basis);
-    }
-
-    function shape_key(expression) {
-        switch (expression.type) {
-            case 'constant': return `C(${expression.value})`;
-            case 'variable': return `V(${expression.name})`;
-            case 'group': return `G(${shape_key(expression.expression)})`;
-            case 'div': return `D(${shape_key(expression.numerator)},${shape_key(expression.denominator)})`;
-            case 'add':
-                return `A(${expression.terms.map(shape_key).sort().join(',')})`;
-            case 'mul':
-                return `M(${expression.factors.map(shape_key).sort().join(',')})`;
-            default: return '?';
-        }
-    }
-
-    function precedence(expression) {
-        switch (expression.type) {
-            case 'add': return 1;
-            case 'mul': return 2;
-            case 'div': return 2;
-            case 'group': return 4;
-            default: return 4;
-        }
-    }
-
-    function to_latex(expression, parent_precedence) {
-        const parent = parent_precedence == null? 0 : parent_precedence;
-        let body;
-        switch (expression.type) {
-            case 'constant':
-                body = String(expression.value);
-                break;
-            case 'variable':
-                body = expression.name;
-                break;
-            case 'add':
-                body = expression.terms.map((term, i) => {
-                    const mono = coefficient_and_basis(term);
-                    const negative = mono.coefficient < 0;
-                    const abs = negative?
-                        from_coefficient_and_basis(-mono.coefficient, mono.basis) : term;
-                    const latex = to_latex(abs, 1);
-                    if (i === 0) return negative? `-${latex}` : latex;
-                    return negative? `-${latex}` : `+${latex}`;
-                }).join('');
-                break;
-            case 'mul':
-                body = expression.factors.map((factor, i) => {
-                    const latex = to_latex(factor, 2);
-                    if (i === 0) return latex;
-                    const previous = expression.factors[i-1];
-                    const dot = previous.type === 'constant' && factor.type === 'constant'? '\\cdot ' : '';
-                    return dot + latex;
-                }).join('');
-                break;
-            case 'div':
-                body = `\\frac{${to_latex(expression.numerator, 0)}}{${to_latex(expression.denominator, 0)}}`;
-                break;
-            case 'group':
-                body = `\\left(${to_latex(expression.expression, 0)}\\right)`;
-                break;
-            default:
-                body = '?';
-        }
-        if (precedence(expression) < parent && expression.type !== 'group') {
-            return `\\left(${body}\\right)`;
-        }
-        return body;
     }
 
     function evaluate(expression, variables) {
@@ -275,8 +208,6 @@ const Expressions = () => {
         negate,
         scale_term,
         combine_like,
-        shape_key,
-        to_latex,
         evaluate,
         ungroup,
     });

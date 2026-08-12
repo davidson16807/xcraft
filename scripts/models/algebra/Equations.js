@@ -4,8 +4,9 @@
 Every successful operation in this namespace is an equivalence-preserving
 rewrite.  Unsupported drags return the original equation reference.
 */
-function Equations(expressions, equation_paths) {
+function Equations(expressions, expression_latex, equation_paths) {
     const paths = equation_paths;
+    const latex = expression_latex;
 
     function sign_and_absolute(expression) {
         const mono = expressions.coefficient_and_basis(expression);
@@ -20,7 +21,7 @@ function Equations(expressions, equation_paths) {
 
     function path_latex(equation, source_path) {
         const source = equation_paths.resolve(equation, source_path);
-        return source && expressions.to_latex(source);
+        return source && latex.encode(source);
     }
 
     function other_side(side) {
