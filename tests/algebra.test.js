@@ -10,7 +10,7 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/algebra/Equation.js',
     'scripts/models/algebra/Equations.js',
     'scripts/models/algebra/EquationProperties.js',
-    'scripts/models/algebra/ExpressionPaths.js',
+    'scripts/models/algebra/EquationPaths.js',
     'scripts/levels/Levels.js',
 ].forEach(file => {
     vm.runInThisContext(fs.readFileSync(path.join(root, file), 'utf8'), { filename:file });
@@ -18,7 +18,7 @@ const root = path.resolve(__dirname, '..');
 
 const expressions = Equations();
 const properties = EquationProperties(expressions);
-const paths = ExpressionPaths(expressions);
+const paths = EquationPaths(expressions);
 const algebra = Equations(expressions);
 const levels = Levels();
 

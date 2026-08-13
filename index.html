@@ -18,7 +18,7 @@
     <script src="./scripts/models/algebra/Expressions.js"></script>
     <script src="./scripts/models/algebra/ExpressionHash.js"></script>
     <script src="./scripts/models/algebra/ExpressionLatex.js"></script>
-    <script src="./scripts/models/algebra/ExpressionPaths.js"></script>
+    <script src="./scripts/models/algebra/EquationPaths.js"></script>
     <script src="./scripts/models/algebra/Equation.js"></script>
     <script src="./scripts/models/algebra/Equations.js"></script>
     <script src="./scripts/models/algebra/EquationHash.js"></script>
@@ -115,8 +115,8 @@
 
     const expression_hash = ExpressionHash();
     const expressions = Expressions(expression_hash);
-    const expression_paths = ExpressionPaths()
-    const equations = Equations(expressions, ExpressionLatex(), expression_paths);
+    const equation_paths = EquationPaths(expressions);
+    const equations = Equations(expressions, ExpressionLatex(), equation_paths);
     const equation_hash = EquationHash(expression_hash);
 
     const history = AppHistoryTraversal(Infinity);
@@ -132,7 +132,7 @@
     const equation_view = EquationView({
         html: Html(document),
         equations: equations,
-        expression_paths: expression_paths,
+        equation_paths: equation_paths,
         render: katex.render,
     });
 

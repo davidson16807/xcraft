@@ -1,12 +1,12 @@
 'use strict';
 // HUMAN VETTED
-// TODO: MOVE PATH JOINS TO ExpressionPaths
+// TODO: MOVE PATH JOINS TO EquationPaths
 
 function EquationView(dependencies) {
 
     const html = dependencies.html;
     const equations = dependencies.equations;
-    const paths = dependencies.expression_paths;
+    const paths = dependencies.equation_paths;
     const render = dependencies.render;
 
     function math(latex, class_name) {
