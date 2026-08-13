@@ -118,10 +118,10 @@
 
     const expression_shape = ExpressionShape();
     const expressions = Expressions();
-    const coefficient_basis = ExpressionsAndMonomials(expressions, expression_shape);
-    const expression_latex = ExpressionLatex(expressions, coefficient_basis);
+    const monomials = ExpressionsAndMonomials(expressions, expression_shape);
+    const expression_latex = ExpressionLatex(expressions, monomials);
     const equation_paths = EquationPaths(expressions);
-    const equations = Equations(expressions, coefficient_basis, expression_latex, equation_paths);
+    const equations = Equations(expressions, monomials, expression_latex, equation_paths);
     const equation_shape = EquationShape(expression_shape);
 
     const history = AppHistoryTraversal(Infinity);

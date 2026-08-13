@@ -22,11 +22,11 @@ const root = path.resolve(__dirname, '..');
 
 const expression_shape = ExpressionShape();
 const expressions = Expressions();
-const coefficient_basis = ExpressionsAndMonomials(expressions, expression_shape);
+const monomials = ExpressionsAndMonomials(expressions, expression_shape);
 const equation_shape = EquationShape(expression_shape);
-const expression_latex = ExpressionLatex(expressions, coefficient_basis);
+const expression_latex = ExpressionLatex(expressions, monomials);
 const paths = EquationPaths(expressions);
-const algebra = Equations(expressions, coefficient_basis, expression_latex, paths);
+const algebra = Equations(expressions, monomials, expression_latex, paths);
 const levels = Levels(expressions);
 
 function assert(condition, message) {
@@ -135,7 +135,7 @@ function solveLevel10() {
 function verifyCoefficientBasis() {
     const x = expressions.variable('x');
     const two_x = expressions.mul([expressions.constant(2), x]);
-    const decomposition = coefficient_basis.from_expression(two_x);
+    const decomposition = monomials.from_expression(two_x);
 
     assert(decomposition.coefficient === 2, 'coefficient/basis should extract numeric coefficient');
     assert(
@@ -143,7 +143,7 @@ function verifyCoefficientBasis() {
         'coefficient/basis should preserve the nonconstant basis'
     );
     assert(
-        coefficient_basis.combine_like(two_x, expressions.mul([expressions.constant(3), x])).contents[0].contents === 5,
+        monomials.combine_like(two_x, expressions.mul([expressions.constant(3), x])).contents[0].contents === 5,
         'coefficient/basis should combine like terms'
     );
 }

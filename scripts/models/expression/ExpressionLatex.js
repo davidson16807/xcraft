@@ -2,7 +2,7 @@
 // HUMAN VETTED
 
 const ExpressionLatex = (expressions, expressions_and_monomials) => {
-    const coefficient_basis = expressions_and_monomials;
+    const monomials = expressions_and_monomials;
 
     function precedence(expression) {
         switch (expression.type) {
@@ -52,10 +52,10 @@ const ExpressionLatex = (expressions, expressions_and_monomials) => {
 
             case 'add':
                 body = expression.contents.map((term, i) => {
-                    const mono = coefficient_basis.from_expression(term);
+                    const mono = monomials.from_expression(term);
                     const negative = mono.coefficient < 0;
                     const absolute = negative?
-                        coefficient_basis.to_expression(-mono.coefficient, mono.basis) : term;
+                        monomials.to_expression(-mono.coefficient, mono.basis) : term;
                     const term_latex = encode(absolute, 1);
                     if (i === 0) return negative? `-${term_latex}` : term_latex;
                     return negative? `-${term_latex}` : `+${term_latex}`;
