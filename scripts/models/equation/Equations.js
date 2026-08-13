@@ -11,11 +11,11 @@ function Equations(expressions, expressions_and_coefficient_basis, expression_la
     const latex = expression_latex;
 
     function sign_and_absolute(expression) {
-        const mono = coefficient_basis.coefficient_and_basis(expression);
+        const mono = coefficient_basis.from_expression(expression);
         if (mono.coefficient < 0) {
             return {
                 sign: -1,
-                absolute: coefficient_basis.from_coefficient_and_basis(-mono.coefficient, mono.basis),
+                absolute: coefficient_basis.to_expression(-mono.coefficient, mono.basis),
             };
         }
         return { sign: 1, absolute: expression };

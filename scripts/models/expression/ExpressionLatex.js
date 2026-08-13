@@ -52,10 +52,10 @@ const ExpressionLatex = (expressions, expressions_and_coefficient_basis) => {
 
             case 'add':
                 body = expression.contents.map((term, i) => {
-                    const mono = coefficient_basis.coefficient_and_basis(term);
+                    const mono = coefficient_basis.from_expression(term);
                     const negative = mono.coefficient < 0;
                     const absolute = negative?
-                        coefficient_basis.from_coefficient_and_basis(-mono.coefficient, mono.basis) : term;
+                        coefficient_basis.to_expression(-mono.coefficient, mono.basis) : term;
                     const term_latex = encode(absolute, 1);
                     if (i === 0) return negative? `-${term_latex}` : term_latex;
                     return negative? `-${term_latex}` : `+${term_latex}`;

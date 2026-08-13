@@ -135,7 +135,7 @@ function solveLevel10() {
 function verifyCoefficientBasis() {
     const x = expressions.variable('x');
     const two_x = expressions.mul([expressions.constant(2), x]);
-    const decomposition = coefficient_basis.coefficient_and_basis(two_x);
+    const decomposition = coefficient_basis.from_expression(two_x);
 
     assert(decomposition.coefficient === 2, 'coefficient/basis should extract numeric coefficient');
     assert(
