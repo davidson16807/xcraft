@@ -6,11 +6,11 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 [
-    'scripts/models/algebra/ExpressionHash.js',
     'scripts/models/algebra/Expression.js',
+    'scripts/models/algebra/ExpressionShape.js',
     'scripts/models/algebra/Expressions.js',
     'scripts/models/algebra/Equation.js',
-    'scripts/models/algebra/EquationHash.js',
+    'scripts/models/algebra/EquationShape.js',
     'scripts/models/algebra/ExpressionLatex.js',
     'scripts/models/algebra/EquationPaths.js',
     'scripts/models/algebra/Equations.js',
@@ -19,9 +19,9 @@ const root = path.resolve(__dirname, '..');
     vm.runInThisContext(fs.readFileSync(path.join(root, file), 'utf8'), { filename:file });
 });
 
-const expression_hash = ExpressionHash();
-const expressions = Expressions(expression_hash);
-const equation_hash = EquationHash(expression_hash);
+const expression_shape = ExpressionShape();
+const expressions = Expressions(expression_shape);
+const equation_shape = EquationShape(expression_shape);
 const expression_latex = ExpressionLatex(expressions);
 const paths = EquationPaths(expressions);
 const algebra = Equations(expressions, expression_latex, paths);
@@ -32,8 +32,8 @@ function assert(condition, message) {
 }
 
 function assertShape(actual, expected, message) {
-    const actual_shape = equation_hash.encode(actual);
-    const expected_shape = equation_hash.encode(expected);
+    const actual_shape = equation_shape.encode(actual);
+    const expected_shape = equation_shape.encode(expected);
     assert(
         actual_shape === expected_shape,
         `${message}\nexpected: ${expected_shape}\nactual:   ${actual_shape}`
@@ -63,13 +63,13 @@ function solveLevel2() {
 function solveLevel3() {
     let q = levels[2].equation;
     q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/d', 'path:R/n');
+    q = move(q, 'R/1', 'path:R/0');
     assertShape(q, levels[2].goal, 'level 3');
 }
 
 function solveLevel4() {
     let q = levels[3].equation;
-    q = move(q, 'L/d', 'side:R');
+    q = move(q, 'L/1', 'side:R');
     q = move(q, 'R/1', 'path:R/0');
     assertShape(q, levels[3].goal, 'level 4');
 }
@@ -78,7 +78,7 @@ function solveLevel5() {
     let q = levels[4].equation;
     q = move(q, 'L/0', 'path:L/1');
     q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/d', 'path:R/n');
+    q = move(q, 'R/1', 'path:R/0');
     assertShape(q, levels[4].goal, 'level 5');
 }
 
@@ -89,7 +89,7 @@ function solveLevel6() {
     q = move(q, 'L/1', 'side:R');
     q = move(q, 'R/1', 'path:R/0');
     q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/d', 'path:R/n');
+    q = move(q, 'R/1', 'path:R/0');
     assertShape(q, levels[5].goal, 'level 6');
 }
 
@@ -106,13 +106,13 @@ function solveLevel8() {
     q = move(q, 'L/1', 'side:R');
     q = move(q, 'R/1', 'path:R/0');
     q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/d', 'path:R/n');
+    q = move(q, 'R/1', 'path:R/0');
     assertShape(q, levels[7].goal, 'level 8');
 }
 
 function solveLevel9() {
     let q = levels[8].equation;
-    q = move(q, 'L/d', 'side:R');
+    q = move(q, 'L/1', 'side:R');
     q = move(q, 'R/1', 'path:R/0');
     q = move(q, 'L/1', 'side:R');
     q = move(q, 'R/1', 'path:R/0');
@@ -126,8 +126,28 @@ function solveLevel10() {
     q = move(q, 'L/1', 'side:R');
     q = move(q, 'R/1', 'path:R/0');
     q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/d', 'path:R/n');
+    q = move(q, 'R/1', 'path:R/0');
     assertShape(q, levels[9].goal, 'level 10');
+}
+
+function verifyExpressionRepresentation() {
+    levels.forEach(level => {
+        paths.all(level.equation).forEach(path => {
+            const expression = paths.resolve(level.equation, path);
+            assert(expression instanceof Expression, `AST node should be an Expression: ${path}`);
+            assert(expression.type !== 'div', `division should not be a primitive AST node: ${path}`);
+        });
+    });
+
+    const x = expressions.variable('x');
+    const two = expressions.constant(2);
+    const quotient = expressions.div(x, two);
+    assert(quotient.type === 'mul', 'division should construct multiplication by a reciprocal');
+    assert(expressions.is_reciprocal(quotient.contents[1]), 'division denominator should be reciprocal');
+    assert(expression_latex.encode(quotient) === '\\frac{x}{2}', 'reciprocal multiplication should render as a fraction');
+
+    const square = expressions.pow(x, 2);
+    assert(expression_latex.encode(square) === 'x^{2}', 'powers should render with an exponent');
 }
 
 function isSatisfied(equation, variables, tolerance) {
@@ -148,7 +168,7 @@ function sameSolutionSamples(before, after) {
 
 function verifyAdvertisedMoves() {
     const queue = levels.map(level => ({ equation:level.equation, depth:0 }));
-    const visited = new Set(queue.map(item => equation_hash.encode(item.equation)));
+    const visited = new Set(queue.map(item => equation_shape.encode(item.equation)));
     let checked = 0;
 
     while (queue.length > 0) {
@@ -160,11 +180,11 @@ function verifyAdvertisedMoves() {
                 assert(
                     sameSolutionSamples(equation, updated),
                     `move changed sampled solution set: ${source} -> ${target}\n`+
-                    `${equation_hash.encode(equation)} -> ${equation_hash.encode(updated)}`
+                    `${equation_shape.encode(equation)} -> ${equation_shape.encode(updated)}`
                 );
                 checked++;
                 if (depth < 3) {
-                    const key = equation_hash.encode(updated);
+                    const key = equation_shape.encode(updated);
                     if (!visited.has(key) && visited.size < 5000) {
                         visited.add(key);
                         queue.push({ equation:updated, depth:depth+1 });
@@ -177,6 +197,7 @@ function verifyAdvertisedMoves() {
     return checked;
 }
 
+verifyExpressionRepresentation();
 [
     solveLevel1, solveLevel2, solveLevel3, solveLevel4, solveLevel5,
     solveLevel6, solveLevel7, solveLevel8, solveLevel9, solveLevel10,

@@ -2,7 +2,8 @@
 
 /*
 Every successful operation in this namespace is an equivalence-preserving
-rewrite.  Unsupported drags return the original equation reference.
+rewrite under the nonzero-divisor assumptions supplied by the active level.
+Unsupported drags return the original equation reference.
 */
 function Equations(expressions, expression_latex, equation_paths) {
     const paths = equation_paths;
@@ -28,23 +29,19 @@ function Equations(expressions, expression_latex, equation_paths) {
         return side === 'L'? 'R' : 'L';
     }
 
-    function is_direct_child(path, parent_path) {
-        return paths.parent(path) === parent_path;
-    }
-
     function replace_two_children(equation, parent_path, source_index, target_index, replacement, identity_type) {
         const parent = paths.resolve(equation, parent_path);
-        const items = parent.type === 'add'? parent.contents.slice() : parent.contents.slice();
+        const items = parent.contents.slice();
         const low = Math.min(source_index, target_index);
         const high = Math.max(source_index, target_index);
         items.splice(high, 1);
         items.splice(low, 1, replacement);
 
         let updated;
-        if (identity_type === 'add' && replacement.type === 'constant' && replacement.value === 0) {
+        if (identity_type === 'add' && replacement.type === 'constant' && replacement.contents === 0) {
             items.splice(low, 1);
             updated = expressions.add(items);
-        } else if (identity_type === 'mul' && replacement.type === 'constant' && replacement.value === 1) {
+        } else if (identity_type === 'mul' && replacement.type === 'constant' && replacement.contents === 1) {
             items.splice(low, 1);
             updated = expressions.mul(items);
         } else {
@@ -78,33 +75,18 @@ function Equations(expressions, expression_latex, equation_paths) {
             );
         }
 
-        // ab = c  ->  b = c/a, restricted to known nonzero constants.
+        // ab = c  ->  b = c/a
+        // a/b = c is represented as a*b^-1 = c, so dragging b^-1 across
+        // uses the same rule and reciprocal(b^-1) simplifies back to b.
         if (
             source_root.type === 'mul' &&
             parent_path === source_root_path &&
-            source.type === 'constant' &&
-            source.value !== 0
+            !(source.type === 'constant' && source.contents === 0)
         ) {
             const index = Number(segment);
-            const new_source = expressions.remove_indexed(source_root, index);
-            const new_target = expressions.div(target_root, source);
-            return paths.with_side(
-                paths.with_side(equation, parsed.side, new_source),
-                target_side,
-                new_target
-            );
-        }
-
-        // a/b = c  ->  a = bc, restricted to known nonzero denominators.
-        if (
-            source_root.type === 'div' &&
-            parent_path === source_root_path &&
-            segment === 'd' &&
-            source.type === 'constant' &&
-            source.value !== 0
-        ) {
-            const new_source = expressions.ungroup(source_root.numerator);
-            const new_target = expressions.append_mul(target_root, source);
+            const remainder = expressions.remove_indexed(source_root, index);
+            const new_source = expressions.is_reciprocal(source)? expressions.ungroup(remainder) : remainder;
+            const new_target = expressions.append_mul(target_root, expressions.reciprocal(source));
             return paths.with_side(
                 paths.with_side(equation, parsed.side, new_source),
                 target_side,
@@ -140,40 +122,43 @@ function Equations(expressions, expression_latex, equation_paths) {
             );
         }
 
-        // 5 * 6 -> 30.  Numeric multiplication is intentionally explicit.
-        if (
-            parent.type === 'mul' &&
-            source.type === 'constant' &&
-            target.type === 'constant'
-        ) {
-            return replace_two_children(
-                equation,
-                source_parent_path,
-                Number(source_segment),
-                Number(target_segment),
-                expressions.constant(source.value * target.value),
-                'mul'
-            );
-        }
-
-        // 28/4 -> 7.  Either numerator or denominator may be dragged.
-        if (
-            parent.type === 'div' &&
-            source.type === 'constant' &&
-            target.type === 'constant' &&
-            ((source_segment === 'n' && target_segment === 'd') ||
-             (source_segment === 'd' && target_segment === 'n')) &&
-            parent.denominator.value !== 0
-        ) {
-            return paths.replace(
-                equation,
-                source_parent_path,
-                expressions.constant(parent.numerator.value / parent.denominator.value)
-            );
-        }
-
-        // 2(x+3) -> 2x+6 by dropping the numeric factor on the group.
         if (parent.type === 'mul') {
+            // 5 * 6 -> 30.  Numeric multiplication is intentionally explicit.
+            if (source.type === 'constant' && target.type === 'constant') {
+                return replace_two_children(
+                    equation,
+                    source_parent_path,
+                    Number(source_segment),
+                    Number(target_segment),
+                    expressions.constant(source.contents * target.contents),
+                    'mul'
+                );
+            }
+
+            // 28 * 4^-1 -> 7.  The reciprocal may be dragged in either direction.
+            const source_reciprocal = expressions.is_reciprocal(source)? source.contents[0] : null;
+            const target_reciprocal = expressions.is_reciprocal(target)? target.contents[0] : null;
+            const numerator = source.type === 'constant' && target_reciprocal && target_reciprocal.type === 'constant'?
+                source :
+                target.type === 'constant' && source_reciprocal && source_reciprocal.type === 'constant'?
+                    target : null;
+            const denominator = target_reciprocal && target_reciprocal.type === 'constant'?
+                target_reciprocal :
+                source_reciprocal && source_reciprocal.type === 'constant'?
+                    source_reciprocal : null;
+
+            if (numerator && denominator && denominator.contents !== 0) {
+                return replace_two_children(
+                    equation,
+                    source_parent_path,
+                    Number(source_segment),
+                    Number(target_segment),
+                    expressions.constant(numerator.contents / denominator.contents),
+                    'mul'
+                );
+            }
+
+            // 2(x+3) -> 2x+6 by dropping the numeric factor on the group.
             let scale = null;
             let grouped = null;
             let scale_index = null;
@@ -191,9 +176,9 @@ function Equations(expressions, expression_latex, equation_paths) {
                 group_index = Number(source_segment);
             }
 
-            if (scale && grouped && grouped.expression.type === 'add') {
+            if (scale && grouped && grouped.contents.type === 'add') {
                 const distributed = expressions.add(
-                    grouped.expression.contents.map(term => expressions.scale_term(scale, term))
+                    grouped.contents.contents.map(term => expressions.scale_term(scale, term))
                 );
                 const factors = parent.contents.slice();
                 const high = Math.max(scale_index, group_index);

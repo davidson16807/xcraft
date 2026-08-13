@@ -7,11 +7,10 @@ an input expression; they return either the original reference or a new tree.
 */
 const Expressions = (expression_shape) => {
     const freeze = Object.freeze;
+    const shape = expression_shape;
 
-    const hash = expression_shape;
-
-    const constant = value => freeze({ type: 'constant', value: Number(value) });
-    const variable = name => freeze({ type: 'variable', name: String(name) });
+    const constant = value => new Expression('constant', Number(value));
+    const variable = name => new Expression('variable', String(name));
 
     function add(terms) {
         const flat = [];
@@ -41,10 +40,23 @@ const Expressions = (expression_shape) => {
         return new Expression('mul', freeze(flat));
     }
 
-    const div = (numerator, denominator) =>
-        freeze({ type: 'div', numerator: numerator, denominator: denominator });
+    function pow(base, exponent) {
+        const exponent_expression = exponent instanceof Expression? exponent : constant(exponent);
+        return new Expression('pow', freeze([base, exponent_expression]));
+    }
 
-    const group = expression => freeze({ type: 'group', expression: expression });
+    function is_reciprocal(expression) {
+        return expression.type === 'pow' &&
+            expression.contents[1].type === 'constant' &&
+            expression.contents[1].contents === -1;
+    }
+
+    function reciprocal(expression) {
+        return is_reciprocal(expression)? expression.contents[0] : pow(expression, constant(-1));
+    }
+
+    const div = (numerator, denominator) => mul([numerator, reciprocal(denominator)]);
+    const group = expression => new Expression('group', expression);
 
     function append_add(left, right) {
         return left.type === 'add'? add([...left.contents, right]) : add([left, right]);
@@ -66,25 +78,25 @@ const Expressions = (expression_shape) => {
 
     function coefficient_and_basis(expression) {
         if (expression.type === 'constant') {
-            return { coefficient: expression.value, basis: null, key: '1' };
+            return { coefficient: expression.contents, basis: null, key: '1' };
         }
         if (expression.type === 'variable') {
-            return { coefficient: 1, basis: expression, key: `v:${expression.name}` };
+            return { coefficient: 1, basis: expression, key: `v:${expression.contents}` };
         }
         if (expression.type === 'mul') {
             let coefficient = 1;
             const basis_factors = [];
             expression.contents.forEach(factor => {
-                if (factor.type === 'constant') coefficient *= factor.value;
+                if (factor.type === 'constant') coefficient *= factor.contents;
                 else basis_factors.push(factor);
             });
             if (basis_factors.length === 0) {
                 return { coefficient: coefficient, basis: null, key: '1' };
             }
             const basis = mul(basis_factors);
-            return { coefficient: coefficient, basis: basis, key: hash.encode(basis) };
+            return { coefficient: coefficient, basis: basis, key: shape.encode(basis) };
         }
-        return { coefficient: 1, basis: expression, key: hash.encode(expression) };
+        return { coefficient: 1, basis: expression, key: shape.encode(expression) };
     }
 
     function from_coefficient_and_basis(coefficient, basis) {
@@ -103,7 +115,7 @@ const Expressions = (expression_shape) => {
         if (scale.type !== 'constant') return mul([scale, expression]);
         const monomial = coefficient_and_basis(expression);
         return from_coefficient_and_basis(
-            scale.value * monomial.coefficient,
+            scale.contents * monomial.coefficient,
             monomial.basis
         );
     }
@@ -117,18 +129,21 @@ const Expressions = (expression_shape) => {
 
     function evaluate(expression, variables) {
         switch (expression.type) {
-            case 'constant': return expression.value;
-            case 'variable': return variables[expression.name];
+            case 'constant': return expression.contents;
+            case 'variable': return variables[expression.contents];
             case 'add': return expression.contents.reduce((sum, term) => sum + evaluate(term, variables), 0);
             case 'mul': return expression.contents.reduce((product, factor) => product * evaluate(factor, variables), 1);
-            case 'div': return evaluate(expression.numerator, variables) / evaluate(expression.denominator, variables);
-            case 'group': return evaluate(expression.expression, variables);
+            case 'pow': return Math.pow(
+                evaluate(expression.contents[0], variables),
+                evaluate(expression.contents[1], variables)
+            );
+            case 'group': return evaluate(expression.contents, variables);
             default: return NaN;
         }
     }
 
     function ungroup(expression) {
-        return expression.type === 'group'? expression.expression : expression;
+        return expression.type === 'group'? expression.contents : expression;
     }
 
     return freeze({
@@ -136,6 +151,9 @@ const Expressions = (expression_shape) => {
         variable,
         add,
         mul,
+        pow,
+        reciprocal,
+        is_reciprocal,
         div,
         group,
         append_add,

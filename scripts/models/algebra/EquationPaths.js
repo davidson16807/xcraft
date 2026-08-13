@@ -6,20 +6,12 @@ const EquationPaths = (expressions) => {
         return `${path}/${index}`;
     }
 
-    function left(path) {
-        return `${path}:L`;
+    function base(path) {
+        return `${path}/b`;
     }
 
-    function right(path) {
-        return `${path}:R`;
-    }
-
-    function numerator(path) {
-        return `${path}/n`;
-    }
-
-    function denominator(path) {
-        return `${path}/d`;
+    function exponent(path) {
+        return `${path}/e`;
     }
 
     function group(path) {
@@ -45,7 +37,7 @@ const EquationPaths = (expressions) => {
         switch (expression.type) {
             case 'add': return expression.contents.map((_, i) => String(i));
             case 'mul': return expression.contents.map((_, i) => String(i));
-            case 'div': return ['n', 'd'];
+            case 'pow': return ['b', 'e'];
             case 'group': return ['g'];
             default: return [];
         }
@@ -59,8 +51,8 @@ const EquationPaths = (expressions) => {
         switch (expression.type) {
             case 'add': return expression.contents[Number(segment)];
             case 'mul': return expression.contents[Number(segment)];
-            case 'div': return segment === 'n'? expression.numerator : expression.denominator;
-            case 'group': return expression.expression;
+            case 'pow': return expression.contents[segment === 'b'? 0 : 1];
+            case 'group': return expression.contents;
             default: return undefined;
         }
     }
@@ -86,10 +78,10 @@ const EquationPaths = (expressions) => {
                 factors[Number(segment)] = replacement;
                 return expressions.mul(factors);
             }
-            case 'div':
-                return segment === 'n'?
-                    expressions.div(replacement, expression.denominator) :
-                    expressions.div(expression.numerator, replacement);
+            case 'pow':
+                return segment === 'b'?
+                    expressions.pow(replacement, expression.contents[1]) :
+                    expressions.pow(expression.contents[0], replacement);
             case 'group':
                 return expressions.group(replacement);
             default:
@@ -150,10 +142,8 @@ const EquationPaths = (expressions) => {
 
     return Object.freeze({
         nary,
-        left,
-        right,
-        numerator,
-        denominator,
+        base,
+        exponent,
         group,
 
         split,

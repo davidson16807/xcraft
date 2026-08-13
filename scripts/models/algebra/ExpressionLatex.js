@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 const ExpressionLatex = (expressions) => {
 
@@ -7,51 +6,86 @@ const ExpressionLatex = (expressions) => {
         switch (expression.type) {
             case 'add': return 1;
             case 'mul': return 2;
-            case 'div': return 2;
+            case 'pow': return 3;
             case 'group': return 4;
             default: return 4;
         }
     }
 
-    function encode (expression, parent_precedence) {
+    function encode_product(factors) {
+        return factors.map((factor, i) => {
+            const factor_latex = encode(factor, 2);
+            if (i === 0) return factor_latex;
+            const previous = factors[i-1];
+            const dot = previous.type === 'constant' && factor.type === 'constant'? '\\cdot ' : '';
+            return dot + factor_latex;
+        }).join('');
+    }
+
+    function encode_mul(expression) {
+        const numerator = [];
+        const denominator = [];
+
+        expression.contents.forEach(factor => {
+            if (expressions.is_reciprocal(factor)) denominator.push(factor.contents[0]);
+            else numerator.push(factor);
+        });
+
+        if (denominator.length === 0) return encode_product(numerator);
+
+        const numerator_latex = numerator.length === 0? '1' : encode_product(numerator);
+        const denominator_latex = encode_product(denominator);
+        return `\\frac{${numerator_latex}}{${denominator_latex}}`;
+    }
+
+    function encode(expression, parent_precedence) {
         const parent = parent_precedence == null? 0 : parent_precedence;
         let body;
+
         switch (expression.type) {
             case 'constant':
-                body = String(expression.value);
+                body = String(expression.contents);
                 break;
+
             case 'variable':
-                body = expression.name;
+                body = expression.contents;
                 break;
+
             case 'add':
                 body = expression.contents.map((term, i) => {
-                    const mono = coefficient_and_basis(term);
+                    const mono = expressions.coefficient_and_basis(term);
                     const negative = mono.coefficient < 0;
-                    const abs = negative?
-                        from_coefficient_and_basis(-mono.coefficient, mono.basis) : term;
-                    const latex = encode(abs, 1);
-                    if (i === 0) return negative? `-${latex}` : latex;
-                    return negative? `-${latex}` : `+${latex}`;
+                    const absolute = negative?
+                        expressions.from_coefficient_and_basis(-mono.coefficient, mono.basis) : term;
+                    const term_latex = encode(absolute, 1);
+                    if (i === 0) return negative? `-${term_latex}` : term_latex;
+                    return negative? `-${term_latex}` : `+${term_latex}`;
                 }).join('');
                 break;
+
             case 'mul':
-                body = expression.contents.map((factor, i) => {
-                    const latex = encode(factor, 2);
-                    if (i === 0) return latex;
-                    const previous = expression.contents[i-1];
-                    const dot = previous.type === 'constant' && factor.type === 'constant'? '\\cdot ' : '';
-                    return dot + latex;
-                }).join('');
+                body = encode_mul(expression);
                 break;
-            case 'div':
-                body = `\\frac{${encode(expression.numerator, 0)}}{${encode(expression.denominator, 0)}}`;
+
+            case 'pow': {
+                const base = expression.contents[0];
+                const exponent = expression.contents[1];
+                if (expressions.is_reciprocal(expression)) {
+                    body = `\\frac{1}{${encode(base, 0)}}`;
+                } else {
+                    body = `${encode(base, 3)}^{${encode(exponent, 0)}}`;
+                }
                 break;
+            }
+
             case 'group':
-                body = `\\left(${encode(expression.expression, 0)}\\right)`;
+                body = `\\left(${encode(expression.contents, 0)}\\right)`;
                 break;
+
             default:
                 body = '?';
         }
+
         if (precedence(expression) < parent && expression.type !== 'group') {
             return `\\left(${body}\\right)`;
         }

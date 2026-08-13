@@ -2,12 +2,12 @@
 // HUMAN VETTED
 
 const ExpressionShape = () => {
-    function encode (expression) {
+    function encode(expression) {
         switch (expression.type) {
-            case 'constant': return `C(${expression.value})`;
-            case 'variable': return `V(${expression.name})`;
-            case 'group': return `G(${encode(expression.expression)})`;
-            case 'div': return `D(${encode(expression.numerator)},${encode(expression.denominator)})`;
+            case 'constant': return `C(${expression.contents})`;
+            case 'variable': return `V(${expression.contents})`;
+            case 'group': return `G(${encode(expression.contents)})`;
+            case 'pow': return `P(${encode(expression.contents[0])},${encode(expression.contents[1])})`;
             case 'add':
                 return `A(${expression.contents.map(encode).sort().join(',')})`;
             case 'mul':

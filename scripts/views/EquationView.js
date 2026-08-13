@@ -1,12 +1,11 @@
 'use strict';
-// HUMAN VETTED
-// TODO: MOVE PATH JOINS TO EquationPaths
 
 function EquationView(dependencies) {
 
     const html = dependencies.html;
     const equations = dependencies.equations;
     const paths = dependencies.equation_paths;
+    const expressions = dependencies.expressions;
     const render = dependencies.render;
 
     function math(latex, class_name) {
@@ -32,16 +31,92 @@ function EquationView(dependencies) {
         return attrs;
     }
 
+    function append_product_factor(wrapper, expression, node, previous_expression) {
+        if (
+            previous_expression &&
+            previous_expression.type === 'constant' &&
+            expression.type === 'constant'
+        ) {
+            wrapper.appendChild(math('\\cdot', 'math-operator multiplication-dot'));
+        }
+        wrapper.appendChild(node);
+    }
+
+    function draw_reciprocal_factor(expression, path, draggable_paths, valid_targets) {
+        const wrapper = html.span(path_attributes(path, draggable_paths, valid_targets), []);
+        wrapper.classList.add('expression-reciprocal');
+        wrapper.appendChild(draw_expression(
+            expression.contents[0],
+            paths.base(path),
+            draggable_paths,
+            valid_targets
+        ));
+        return wrapper;
+    }
+
+    function draw_mul(expression, path, attributes, draggable_paths, valid_targets) {
+        const numerator = [];
+        const denominator = [];
+
+        expression.contents.forEach((factor, i) => {
+            const item = { factor:factor, path:paths.nary(path, i) };
+            if (expressions.is_reciprocal(factor)) denominator.push(item);
+            else numerator.push(item);
+        });
+
+        if (denominator.length === 0) {
+            const wrapper = html.span(attributes);
+            wrapper.classList.add('expression-mul');
+            numerator.forEach((item, i) => append_product_factor(
+                wrapper,
+                item.factor,
+                draw_expression(item.factor, item.path, draggable_paths, valid_targets),
+                i > 0? numerator[i-1].factor : null
+            ));
+            return wrapper;
+        }
+
+        const wrapper = html.span(attributes);
+        wrapper.classList.add('expression-mul', 'expression-fraction');
+
+        const numerator_node = html.span({ class:'fraction-numerator' }, []);
+        if (numerator.length === 0) {
+            numerator_node.appendChild(math('1'));
+        } else {
+            numerator.forEach((item, i) => append_product_factor(
+                numerator_node,
+                item.factor,
+                draw_expression(item.factor, item.path, draggable_paths, valid_targets),
+                i > 0? numerator[i-1].factor : null
+            ));
+        }
+
+        const denominator_node = html.span({ class:'fraction-denominator' }, []);
+        denominator.forEach((item, i) => {
+            const base = item.factor.contents[0];
+            append_product_factor(
+                denominator_node,
+                base,
+                draw_reciprocal_factor(item.factor, item.path, draggable_paths, valid_targets),
+                i > 0? denominator[i-1].factor.contents[0] : null
+            );
+        });
+
+        wrapper.appendChild(numerator_node);
+        wrapper.appendChild(denominator_node);
+        return wrapper;
+    }
+
     function draw_expression(expression, path, draggable_paths, valid_targets) {
         const attributes = path_attributes(path, draggable_paths, valid_targets);
         let wrapper;
 
         switch (expression.type) {
             case 'constant':
-                return html.span(attributes, [math(String(expression.value))]);
+                return html.span(attributes, [math(String(expression.contents))]);
 
             case 'variable':
-                return html.span(attributes, [math(expression.name)]);
+                return html.span(attributes, [math(expression.contents)]);
 
             case 'add':
                 wrapper = html.span(attributes);
@@ -68,36 +143,38 @@ function EquationView(dependencies) {
                 return wrapper;
 
             case 'mul':
+                return draw_mul(expression, path, attributes, draggable_paths, valid_targets);
+
+            case 'pow': {
+                const base = expression.contents[0];
+                const exponent = expression.contents[1];
+
+                if (expressions.is_reciprocal(expression)) {
+                    wrapper = html.span(attributes);
+                    wrapper.classList.add('expression-fraction');
+                    wrapper.appendChild(html.span({ class:'fraction-numerator' }, [math('1')]));
+                    wrapper.appendChild(html.span({ class:'fraction-denominator' }, [
+                        draw_expression(base, paths.base(path), draggable_paths, valid_targets)
+                    ]));
+                    return wrapper;
+                }
+
                 wrapper = html.span(attributes);
-                wrapper.classList.add('expression-mul');
-                expression.contents.forEach((factor, i) => {
-                    if (
-                        i > 0 &&
-                        expression.contents[i-1].type === 'constant' &&
-                        factor.type === 'constant'
-                    ) { 
-                        wrapper.appendChild(math('\\cdot', 'math-operator multiplication-dot'));
-                    }
-                    wrapper.appendChild(draw_expression(
-                        factor,
-                        paths.nary(path, i),
+                wrapper.classList.add('expression-power');
+                wrapper.appendChild(draw_expression(
+                    base,
+                    paths.base(path),
+                    draggable_paths,
+                    valid_targets
+                ));
+                wrapper.appendChild(html.node('sup', { class:'power-exponent' }, [
+                    draw_expression(
+                        exponent,
+                        paths.exponent(path),
                         draggable_paths,
                         valid_targets
-                    ));
-                });
-                return wrapper;
-
-            case 'div': {
-                wrapper = html.span(attributes);
-                wrapper.classList.add('expression-fraction');
-                const numerator = html.span({ class:'fraction-numerator' }, [
-                    draw_expression(expression.numerator, paths.numerator(path), draggable_paths, valid_targets)
-                ]);
-                const denominator = html.span({ class:'fraction-denominator' }, [
-                    draw_expression(expression.denominator, paths.denominator(path), draggable_paths, valid_targets)
-                ]);
-                wrapper.appendChild(numerator);
-                wrapper.appendChild(denominator);
+                    )
+                ]));
                 return wrapper;
             }
 
@@ -106,8 +183,8 @@ function EquationView(dependencies) {
                 wrapper.classList.add('expression-group');
                 wrapper.appendChild(math('(', 'math-paren'));
                 wrapper.appendChild(draw_expression(
-                    expression.expression,
-                    paths.group(path), 
+                    expression.contents,
+                    paths.group(path),
                     draggable_paths,
                     valid_targets
                 ));
@@ -123,8 +200,8 @@ function EquationView(dependencies) {
     draggable addend while child factors keep their own paths.
     */
     function draw_expression_contents(expression, path, draggable_paths, valid_targets) {
-        if (expression.type === 'constant') return math(String(expression.value));
-        if (expression.type === 'variable') return math(expression.name);
+        if (expression.type === 'constant') return math(String(expression.contents));
+        if (expression.type === 'variable') return math(expression.contents);
 
         const node = draw_expression(expression, path, draggable_paths, valid_targets);
         node.removeAttribute('data-path');
@@ -183,4 +260,3 @@ function EquationView(dependencies) {
     });
 
 }
-

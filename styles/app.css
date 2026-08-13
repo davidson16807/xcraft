@@ -214,6 +214,13 @@ main {
     font-size: 0.95rem;
 }
 
+#level-context {
+    margin: 4px auto 0;
+    max-width: 660px;
+    color: var(--quiet);
+    font-size: 0.82rem;
+}
+
 .goal {
     margin-top: 12px;
     display: flex;
@@ -272,6 +279,8 @@ main {
 .expression-add,
 .expression-mul,
 .expression-group,
+.expression-power,
+.expression-reciprocal,
 .addend {
     display: inline-flex;
     align-items: center;
@@ -297,6 +306,25 @@ main {
 .math-operator,
 .math-paren {
     display: inline-flex;
+}
+
+
+.expression-power {
+    align-items: flex-start;
+    gap: 0.02em;
+}
+
+.power-exponent {
+    display: inline-flex;
+    font-size: 0.62em;
+    line-height: 1;
+    margin-left: 0.03em;
+    transform: translateY(-0.18em);
+}
+
+.expression-reciprocal {
+    display: inline-flex;
+    align-items: center;
 }
 
 .expression-fraction {

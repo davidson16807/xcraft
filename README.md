@@ -53,14 +53,14 @@ A drag is never interpreted as arbitrary text editing. `Equations` accepts only 
 Implemented gestures include:
 
 - Drag an additive term to the opposite side of `=` to add its opposite there.
-- Drag a known nonzero numeric factor across `=` to divide the other side by it.
-- Drag a known nonzero numeric denominator across `=` to multiply the other side by it.
+- Drag a multiplicative factor across `=` to multiply the other side by its reciprocal.
+- Drag a reciprocal factor across `=` to multiply the other side by its base.
 - Drag like terms together to add coefficients.
 - Drag numeric factors together to multiply them.
-- Drag a constant numerator/denominator together to evaluate the quotient.
+- Drag a numeric factor and reciprocal numeric factor together to evaluate the quotient.
 - Drag a numeric factor onto a parenthesized sum to distribute it.
 
-Crossing a variable factor is intentionally not offered because dividing by an unknown can discard the zero case unless domain conditions are tracked explicitly.
+Division is not a primitive AST node.  `a/b` is represented as the product `a*b^-1`; the view renders reciprocal factors below a fraction bar.  Powers are represented explicitly so the same model can support exponent rules in later levels.  Levels that allow an unknown to become a divisor carry an explicit nonzero context assumption.
 
 ## Architecture
 

@@ -101,6 +101,7 @@
                 <span id="solved-mark" aria-label="Solved">✓</span>
             </div>
             <p id="level-concept"></p>
+            <p id="level-context" hidden></p>
         </section>
 
         <section id="equation" class="equation-stage" aria-label="Interactive equation"></section>
@@ -133,6 +134,7 @@
         html: Html(document),
         equations: equations,
         equation_paths: equation_paths,
+        expressions: expressions,
         render: katex.render,
     });
 
