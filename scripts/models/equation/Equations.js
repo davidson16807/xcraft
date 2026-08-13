@@ -5,10 +5,11 @@ Every successful operation in this namespace is an equivalence-preserving
 rewrite under the nonzero-divisor assumptions supplied by the active level.
 Unsupported drags return the original equation reference.
 */
-function Equations(expressions, monomial_expressions, expression_latex, expression_paths) {
-    const paths = expression_paths;
-    const monomials = monomial_expressions;
-    const latex = expression_latex;
+function Equations(dependencies) {
+    const expressions = dependencies.expressions;
+    const paths = dependencies.expression_paths;
+    const scales = dependencies.scale_expressions;
+    const latex = dependencies.expression_latex;
 
     function _other_side(side) {
         return side === 'L'? 'R' : 'L';
@@ -52,7 +53,7 @@ function Equations(expressions, monomial_expressions, expression_latex, expressi
         if (source_root.type === 'add' && parent_path === source_root_path) {
             const index = Number(segment);
             const new_source = expressions.remove_indexed(source_root, index);
-            const new_target = expressions.append_add(target_root, monomials.negate(source));
+            const new_target = expressions.append_add(target_root, scales.negate(source));
             return paths.with_side(
                 paths.with_side(equation, parsed.side, new_source),
                 target_side,
@@ -95,7 +96,7 @@ function Equations(expressions, monomial_expressions, expression_latex, expressi
 
         // 2x + 3x -> 5x, and 7 + (-3) -> 4.
         if (parent.type === 'add') {
-            const combined = monomials.combine(source, target);
+            const combined = scales.combine(source, target);
             if (combined == null) return equation;
             return _replace_two_children(
                 equation,
@@ -163,7 +164,7 @@ function Equations(expressions, monomial_expressions, expression_latex, expressi
 
             if (scale && grouped && grouped.contents.type === 'add') {
                 const distributed = expressions.add(
-                    grouped.contents.contents.map(term => monomials.scale(scale, term))
+                    grouped.contents.contents.map(term => scales.scale(scale, term))
                 );
                 const factors = parent.contents.slice();
                 const high = Math.max(scale_index, group_index);
@@ -212,7 +213,7 @@ function Equations(expressions, monomial_expressions, expression_latex, expressi
     }
 
     function path_latex(equation, source_path) {
-        const source = expression_paths.resolve(equation, source_path);
+        const source = paths.resolve(equation, source_path);
         return source && latex.encode(source);
     }
 

@@ -120,11 +120,14 @@
 
     const expression_shape = ExpressionShape();
     const expressions = Expressions();
-    const scales = Scales(expressions, expression_shape);
-    const scale_expressions = ScaleExpressions(expressions, scales);
-    const expression_latex = ExpressionLatex(expressions, scale_expressions);
+    const scale_expressions = ScaleExpressions(expressions, Scales(expressions, expression_shape));
     const expression_paths = ExpressionPaths(expressions);
-    const equations = Equations(expressions, scale_expressions, expression_latex, expression_paths);
+    const equations = Equations({
+        expressions: expressions, 
+        scale_expressions: scale_expressions, 
+        expression_latex: ExpressionLatex(expressions, scale_expressions), 
+        expression_paths: expression_paths
+    });
     const equation_shape = EquationShape(expression_shape);
 
     const history = AppHistoryTraversal(Infinity);
@@ -154,8 +157,8 @@
 
     const app_view = AppView({
         equation_view: equation_view,
-        render: katex.render,
         equation_shape: equation_shape,
+        render: katex.render,
     }, app_updater);
 
     const released = equation_drags.release();

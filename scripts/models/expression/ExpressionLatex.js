@@ -51,10 +51,8 @@ const ExpressionLatex = (expressions, scales) => {
 
             case 'add':
                 body = expression.contents.map((term, i) => {
-                    const scale = scales.from_expression(term);
-                    const negative = scale.coefficient < 0;
-                    const absolute = negative?
-                        scales.to_expression(scales.absolute(scale)) : term;
+                    const negative = scales.sign(term) < 0;
+                    const absolute = scales.absolute(term);
                     const term_latex = encode(absolute, 1);
                     if (i === 0) return negative? `-${term_latex}` : term_latex;
                     return negative? `-${term_latex}` : `+${term_latex}`;
