@@ -6,30 +6,37 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 [
+    'scripts/models/algebra/ExpressionHash.js',
+    'scripts/models/algebra/Expression.js',
     'scripts/models/algebra/Expressions.js',
     'scripts/models/algebra/Equation.js',
-    'scripts/models/algebra/Equations.js',
-    'scripts/models/algebra/EquationProperties.js',
+    'scripts/models/algebra/EquationHash.js',
+    'scripts/models/algebra/ExpressionLatex.js',
     'scripts/models/algebra/EquationPaths.js',
+    'scripts/models/algebra/Equations.js',
     'scripts/levels/Levels.js',
 ].forEach(file => {
     vm.runInThisContext(fs.readFileSync(path.join(root, file), 'utf8'), { filename:file });
 });
 
-const expressions = Equations();
-const properties = EquationProperties(expressions);
+const expression_hash = ExpressionHash();
+const expressions = Expressions(expression_hash);
+const equation_hash = EquationHash(expression_hash);
+const expression_latex = ExpressionLatex(expressions);
 const paths = EquationPaths(expressions);
-const algebra = Equations(expressions);
-const levels = Levels();
+const algebra = Equations(expressions, expression_latex, paths);
+const levels = Levels(expressions);
 
 function assert(condition, message) {
     if (!condition) throw new Error(message);
 }
 
 function assertShape(actual, expected, message) {
+    const actual_shape = equation_hash.encode(actual);
+    const expected_shape = equation_hash.encode(expected);
     assert(
-        properties.is_same_shape(actual, expected),
-        `${message}\nexpected: ${latex.encode(expected)}\nactual:   ${latex.encode(actual)}`
+        actual_shape === expected_shape,
+        `${message}\nexpected: ${expected_shape}\nactual:   ${actual_shape}`
     );
 }
 
@@ -123,10 +130,17 @@ function solveLevel10() {
     assertShape(q, levels[9].goal, 'level 10');
 }
 
+function isSatisfied(equation, variables, tolerance) {
+    const epsilon = tolerance == null? 1e-9 : tolerance;
+    const left = expressions.evaluate(equation.left, variables);
+    const right = expressions.evaluate(equation.right, variables);
+    return Number.isFinite(left) && Number.isFinite(right) && Math.abs(left - right) <= epsilon;
+}
+
 function sameSolutionSamples(before, after) {
     for (let x = -20; x <= 20; x++) {
-        const b = properties.is_satisfied(before, {x:x});
-        const a = properties.is_satisfied(after, {x:x});
+        const b = isSatisfied(before, {x:x});
+        const a = isSatisfied(after, {x:x});
         if (a !== b) return false;
     }
     return true;
@@ -134,7 +148,7 @@ function sameSolutionSamples(before, after) {
 
 function verifyAdvertisedMoves() {
     const queue = levels.map(level => ({ equation:level.equation, depth:0 }));
-    const visited = new Set(queue.map(item => hash.encode(item.equation)));
+    const visited = new Set(queue.map(item => equation_hash.encode(item.equation)));
     let checked = 0;
 
     while (queue.length > 0) {
@@ -146,11 +160,11 @@ function verifyAdvertisedMoves() {
                 assert(
                     sameSolutionSamples(equation, updated),
                     `move changed sampled solution set: ${source} -> ${target}\n`+
-                    `${latex.encode(equation)} -> ${latex.encode(updated)}`
+                    `${equation_hash.encode(equation)} -> ${equation_hash.encode(updated)}`
                 );
                 checked++;
                 if (depth < 3) {
-                    const key = hash.encode(updated);
+                    const key = equation_hash.encode(updated);
                     if (!visited.has(key) && visited.size < 5000) {
                         visited.add(key);
                         queue.push({ equation:updated, depth:depth+1 });
