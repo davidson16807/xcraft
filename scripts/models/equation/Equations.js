@@ -10,16 +10,11 @@ function Equations(expressions, monomial_expressions, expression_latex, expressi
     const monomials = monomial_expressions;
     const latex = expression_latex;
 
-    function path_latex(equation, source_path) {
-        const source = expression_paths.resolve(equation, source_path);
-        return source && latex.encode(source);
-    }
-
-    function other_side(side) {
+    function _other_side(side) {
         return side === 'L'? 'R' : 'L';
     }
 
-    function replace_two_children(equation, parent_path, source_index, target_index, replacement, identity_type) {
+    function _replace_two_children(equation, parent_path, source_index, target_index, replacement, identity_type) {
         const parent = paths.resolve(equation, parent_path);
         const items = parent.contents.slice();
         const low = Math.min(source_index, target_index);
@@ -40,7 +35,7 @@ function Equations(expressions, monomial_expressions, expression_latex, expressi
         return paths.replace(equation, parent_path, updated);
     }
 
-    function move_across(equation, source_path, target_side) {
+    function _move_across(equation, source_path, target_side) {
         const parsed = paths.split(source_path);
         if (parsed.side === target_side) return equation;
 
@@ -87,7 +82,7 @@ function Equations(expressions, monomial_expressions, expression_latex, expressi
         return equation;
     }
 
-    function combine_siblings(equation, source_path, target_path) {
+    function _combine_siblings(equation, source_path, target_path) {
         const source_parent_path = paths.parent(source_path);
         const target_parent_path = paths.parent(target_path);
         if (source_parent_path == null || source_parent_path !== target_parent_path) return equation;
@@ -102,7 +97,7 @@ function Equations(expressions, monomial_expressions, expression_latex, expressi
         if (parent.type === 'add') {
             const combined = monomials.combine(source, target);
             if (combined == null) return equation;
-            return replace_two_children(
+            return _replace_two_children(
                 equation,
                 source_parent_path,
                 Number(source_segment),
@@ -115,7 +110,7 @@ function Equations(expressions, monomial_expressions, expression_latex, expressi
         if (parent.type === 'mul') {
             // 5 * 6 -> 30.  Numeric multiplication is intentionally explicit.
             if (source.type === 'constant' && target.type === 'constant') {
-                return replace_two_children(
+                return _replace_two_children(
                     equation,
                     source_parent_path,
                     Number(source_segment),
@@ -138,7 +133,7 @@ function Equations(expressions, monomial_expressions, expression_latex, expressi
                     source_reciprocal : null;
 
             if (numerator && denominator && denominator.contents !== 0) {
-                return replace_two_children(
+                return _replace_two_children(
                     equation,
                     source_parent_path,
                     Number(source_segment),
@@ -191,7 +186,7 @@ function Equations(expressions, monomial_expressions, expression_latex, expressi
         if (source_path == null || target_key == null) return equation;
 
         if (target_key.startsWith('side:')) {
-            return move_across(equation, source_path, target_key.slice(5));
+            return _move_across(equation, source_path, target_key.slice(5));
         }
 
         if (!target_key.startsWith('path:')) return equation;
@@ -202,19 +197,25 @@ function Equations(expressions, monomial_expressions, expression_latex, expressi
             paths.is_ancestor(target_path, source_path)
         ) return equation;
 
-        return combine_siblings(equation, source_path, target_path);
+        return _combine_siblings(equation, source_path, target_path);
     }
 
     function moves_for_source(equation, source_path) {
         const parsed = paths.split(source_path);
         const candidates = [
-            `side:${other_side(parsed.side)}`,
+            `side:${_other_side(parsed.side)}`,
             ...paths.all(equation).map(path => `path:${path}`),
         ];
         return Object.freeze(candidates.filter(target_key =>
             move(equation, source_path, target_key) !== equation
         ));
     }
+
+    function path_latex(equation, source_path) {
+        const source = expression_paths.resolve(equation, source_path);
+        return source && latex.encode(source);
+    }
+
 
     function draggable_paths(equation) {
         return Object.freeze(paths.all(equation).filter(path =>
