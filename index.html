@@ -17,6 +17,7 @@
     <script src="./scripts/models/expression/Expression.js"></script>
     <script src="./scripts/models/expression/Expressions.js"></script>
     <script src="./scripts/models/expression/ExpressionShape.js"></script>
+    <script src="./scripts/models/expression/ExpressionsAndCoefficientBasis.js"></script>
     <script src="./scripts/models/expression/ExpressionLatex.js"></script>
     <script src="./scripts/models/equation/EquationPaths.js"></script>
     <script src="./scripts/models/equation/Equation.js"></script>
@@ -115,9 +116,11 @@
 (()=>{
 
     const expression_shape = ExpressionShape();
-    const expressions = Expressions(expression_shape);
+    const expressions = Expressions();
+    const coefficient_basis = ExpressionsAndCoefficientBasis(expressions, expression_shape);
+    const expression_latex = ExpressionLatex(expressions, coefficient_basis);
     const equation_paths = EquationPaths(expressions);
-    const equations = Equations(expressions, ExpressionLatex(expressions), equation_paths);
+    const equations = Equations(expressions, coefficient_basis, expression_latex, equation_paths);
     const equation_shape = EquationShape(expression_shape);
 
     const history = AppHistoryTraversal(Infinity);

@@ -1,7 +1,8 @@
 'use strict';
 // HUMAN VETTED
 
-const ExpressionLatex = (expressions) => {
+const ExpressionLatex = (expressions, expressions_and_coefficient_basis) => {
+    const coefficient_basis = expressions_and_coefficient_basis;
 
     function precedence(expression) {
         switch (expression.type) {
@@ -25,7 +26,9 @@ const ExpressionLatex = (expressions) => {
 
     function encode_mul(expression) {
         const numerator = expression.contents.filter(factor => !expressions.is_reciprocal(factor));
-        const denominator = expression.contents.filter(factor => expressions.is_reciprocal(factor));
+        const denominator = expression.contents
+            .filter(factor => expressions.is_reciprocal(factor))
+            .map(factor => factor.contents[0]);
 
         if (denominator.length === 0) return encode_product(numerator);
 
@@ -49,10 +52,10 @@ const ExpressionLatex = (expressions) => {
 
             case 'add':
                 body = expression.contents.map((term, i) => {
-                    const mono = expressions.coefficient_and_basis(term);
+                    const mono = coefficient_basis.coefficient_and_basis(term);
                     const negative = mono.coefficient < 0;
                     const absolute = negative?
-                        expressions.from_coefficient_and_basis(-mono.coefficient, mono.basis) : term;
+                        coefficient_basis.from_coefficient_and_basis(-mono.coefficient, mono.basis) : term;
                     const term_latex = encode(absolute, 1);
                     if (i === 0) return negative? `-${term_latex}` : term_latex;
                     return negative? `-${term_latex}` : `+${term_latex}`;

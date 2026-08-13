@@ -6,25 +6,27 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 [
-    'scripts/models/algebra/Expression.js',
-    'scripts/models/algebra/ExpressionShape.js',
-    'scripts/models/algebra/Expressions.js',
-    'scripts/models/algebra/Equation.js',
-    'scripts/models/algebra/EquationShape.js',
-    'scripts/models/algebra/ExpressionLatex.js',
-    'scripts/models/algebra/EquationPaths.js',
-    'scripts/models/algebra/Equations.js',
+    'scripts/models/expression/Expression.js',
+    'scripts/models/expression/ExpressionShape.js',
+    'scripts/models/expression/Expressions.js',
+    'scripts/models/expression/ExpressionsAndCoefficientBasis.js',
+    'scripts/models/equation/Equation.js',
+    'scripts/models/equation/EquationShape.js',
+    'scripts/models/expression/ExpressionLatex.js',
+    'scripts/models/equation/EquationPaths.js',
+    'scripts/models/equation/Equations.js',
     'scripts/levels/Levels.js',
 ].forEach(file => {
     vm.runInThisContext(fs.readFileSync(path.join(root, file), 'utf8'), { filename:file });
 });
 
 const expression_shape = ExpressionShape();
-const expressions = Expressions(expression_shape);
+const expressions = Expressions();
+const coefficient_basis = ExpressionsAndCoefficientBasis(expressions, expression_shape);
 const equation_shape = EquationShape(expression_shape);
-const expression_latex = ExpressionLatex(expressions);
+const expression_latex = ExpressionLatex(expressions, coefficient_basis);
 const paths = EquationPaths(expressions);
-const algebra = Equations(expressions, expression_latex, paths);
+const algebra = Equations(expressions, coefficient_basis, expression_latex, paths);
 const levels = Levels(expressions);
 
 function assert(condition, message) {
@@ -130,6 +132,22 @@ function solveLevel10() {
     assertShape(q, levels[9].goal, 'level 10');
 }
 
+function verifyCoefficientBasis() {
+    const x = expressions.variable('x');
+    const two_x = expressions.mul([expressions.constant(2), x]);
+    const decomposition = coefficient_basis.coefficient_and_basis(two_x);
+
+    assert(decomposition.coefficient === 2, 'coefficient/basis should extract numeric coefficient');
+    assert(
+        expression_shape.encode(decomposition.basis) === expression_shape.encode(x),
+        'coefficient/basis should preserve the nonconstant basis'
+    );
+    assert(
+        coefficient_basis.combine_like(two_x, expressions.mul([expressions.constant(3), x])).contents[0].contents === 5,
+        'coefficient/basis should combine like terms'
+    );
+}
+
 function verifyExpressionRepresentation() {
     levels.forEach(level => {
         paths.all(level.equation).forEach(path => {
@@ -197,6 +215,7 @@ function verifyAdvertisedMoves() {
     return checked;
 }
 
+verifyCoefficientBasis();
 verifyExpressionRepresentation();
 [
     solveLevel1, solveLevel2, solveLevel3, solveLevel4, solveLevel5,

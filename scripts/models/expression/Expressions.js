@@ -1,13 +1,13 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 `Expression` is the immutable model for algebraic expressions.
 Constructors return deeply immutable values.  Transformations never modify
 an input expression; they return either the original reference or a new tree.
 */
-const Expressions = (expression_shape) => {
+const Expressions = () => {
     const freeze = Object.freeze;
-    const shape = expression_shape;
 
     const constant = value => new Expression('constant', Number(value));
     const variable = name => new Expression('variable', String(name));
@@ -76,57 +76,6 @@ const Expressions = (expression_shape) => {
         return expression;
     }
 
-    function coefficient_and_basis(expression) {
-        if (expression.type === 'constant') {
-            return { coefficient: expression.contents, basis: null, key: '1' };
-        }
-        if (expression.type === 'variable') {
-            return { coefficient: 1, basis: expression, key: `v:${expression.contents}` };
-        }
-        if (expression.type === 'mul') {
-            let coefficient = 1;
-            const basis_factors = [];
-            expression.contents.forEach(factor => {
-                if (factor.type === 'constant') coefficient *= factor.contents;
-                else basis_factors.push(factor);
-            });
-            if (basis_factors.length === 0) {
-                return { coefficient: coefficient, basis: null, key: '1' };
-            }
-            const basis = mul(basis_factors);
-            return { coefficient: coefficient, basis: basis, key: shape.encode(basis) };
-        }
-        return { coefficient: 1, basis: expression, key: shape.encode(expression) };
-    }
-
-    function from_coefficient_and_basis(coefficient, basis) {
-        if (basis == null) return constant(coefficient);
-        if (coefficient === 0) return constant(0);
-        if (coefficient === 1) return basis;
-        return mul([constant(coefficient), basis]);
-    }
-
-    function negate(expression) {
-        const monomial = coefficient_and_basis(expression);
-        return from_coefficient_and_basis(-monomial.coefficient, monomial.basis);
-    }
-
-    function scale_term(scale, expression) {
-        if (scale.type !== 'constant') return mul([scale, expression]);
-        const monomial = coefficient_and_basis(expression);
-        return from_coefficient_and_basis(
-            scale.contents * monomial.coefficient,
-            monomial.basis
-        );
-    }
-
-    function combine_like(left, right) {
-        const a = coefficient_and_basis(left);
-        const b = coefficient_and_basis(right);
-        if (a.key !== b.key) return null;
-        return from_coefficient_and_basis(a.coefficient + b.coefficient, a.basis);
-    }
-
     function evaluate(expression, variables) {
         switch (expression.type) {
             case 'constant': return expression.contents;
@@ -159,11 +108,6 @@ const Expressions = (expression_shape) => {
         append_add,
         append_mul,
         remove_indexed,
-        coefficient_and_basis,
-        from_coefficient_and_basis,
-        negate,
-        scale_term,
-        combine_like,
         evaluate,
         ungroup,
     });

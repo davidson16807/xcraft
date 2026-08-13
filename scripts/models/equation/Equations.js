@@ -5,16 +5,17 @@ Every successful operation in this namespace is an equivalence-preserving
 rewrite under the nonzero-divisor assumptions supplied by the active level.
 Unsupported drags return the original equation reference.
 */
-function Equations(expressions, expression_latex, equation_paths) {
+function Equations(expressions, expressions_and_coefficient_basis, expression_latex, equation_paths) {
     const paths = equation_paths;
+    const coefficient_basis = expressions_and_coefficient_basis;
     const latex = expression_latex;
 
     function sign_and_absolute(expression) {
-        const mono = expressions.coefficient_and_basis(expression);
+        const mono = coefficient_basis.coefficient_and_basis(expression);
         if (mono.coefficient < 0) {
             return {
                 sign: -1,
-                absolute: expressions.from_coefficient_and_basis(-mono.coefficient, mono.basis),
+                absolute: coefficient_basis.from_coefficient_and_basis(-mono.coefficient, mono.basis),
             };
         }
         return { sign: 1, absolute: expression };
@@ -67,7 +68,7 @@ function Equations(expressions, expression_latex, equation_paths) {
         if (source_root.type === 'add' && parent_path === source_root_path) {
             const index = Number(segment);
             const new_source = expressions.remove_indexed(source_root, index);
-            const new_target = expressions.append_add(target_root, expressions.negate(source));
+            const new_target = expressions.append_add(target_root, coefficient_basis.negate(source));
             return paths.with_side(
                 paths.with_side(equation, parsed.side, new_source),
                 target_side,
@@ -110,7 +111,7 @@ function Equations(expressions, expression_latex, equation_paths) {
 
         // 2x + 3x -> 5x, and 7 + (-3) -> 4.
         if (parent.type === 'add') {
-            const combined = expressions.combine_like(source, target);
+            const combined = coefficient_basis.combine_like(source, target);
             if (combined == null) return equation;
             return replace_two_children(
                 equation,
@@ -178,7 +179,7 @@ function Equations(expressions, expression_latex, equation_paths) {
 
             if (scale && grouped && grouped.contents.type === 'add') {
                 const distributed = expressions.add(
-                    grouped.contents.contents.map(term => expressions.scale_term(scale, term))
+                    grouped.contents.contents.map(term => coefficient_basis.scale_term(scale, term))
                 );
                 const factors = parent.contents.slice();
                 const high = Math.max(scale_index, group_index);

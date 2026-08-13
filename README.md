@@ -67,8 +67,9 @@ Division is not a primitive AST node.  `a/b` is represented as the product `a*b^
 ```text
 scripts/
   models/
-    algebra/  immutable expression/equation trees + rewrite rules
-    app/      immutable AppState, history, drag-state transitions
+    expression/  immutable expression trees + expression operations/encodings
+    equation/    immutable equations + paths, shapes, and rewrite rules
+    app/         immutable AppState, history, drag-state transitions
   updaters/   messages -> new AppState
     drags/    drag interfaces
   views/      DOM rendering and event wiring only
