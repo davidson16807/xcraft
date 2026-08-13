@@ -5,20 +5,13 @@ Every successful operation in this namespace is an equivalence-preserving
 rewrite under the nonzero-divisor assumptions supplied by the active level.
 Unsupported drags return the original equation reference.
 */
-function Equations(expressions, expressions_and_monomials, expression_latex, equation_paths) {
+function Equations(expressions, monomial_expressions, expression_latex, equation_paths) {
     const paths = equation_paths;
-    const monomials = expressions_and_monomials;
+    const monomials = monomial_expressions;
     const latex = expression_latex;
 
     function sign_and_absolute(expression) {
-        const mono = monomials.from_expression(expression);
-        if (mono.coefficient < 0) {
-            return {
-                sign: -1,
-                absolute: monomials.to_expression(-mono.coefficient, mono.basis),
-            };
-        }
-        return { sign: 1, absolute: expression };
+        return { sign: monomials.sign(expression), absolute: monomials.absolute(expression) };
     }
 
     function path_latex(equation, source_path) {
@@ -111,7 +104,7 @@ function Equations(expressions, expressions_and_monomials, expression_latex, equ
 
         // 2x + 3x -> 5x, and 7 + (-3) -> 4.
         if (parent.type === 'add') {
-            const combined = monomials.combine_like(source, target);
+            const combined = monomials.combine(source, target);
             if (combined == null) return equation;
             return replace_two_children(
                 equation,
@@ -179,7 +172,7 @@ function Equations(expressions, expressions_and_monomials, expression_latex, equ
 
             if (scale && grouped && grouped.contents.type === 'add') {
                 const distributed = expressions.add(
-                    grouped.contents.contents.map(term => monomials.scale_term(scale, term))
+                    grouped.contents.contents.map(term => monomials.scale(scale, term))
                 );
                 const factors = parent.contents.slice();
                 const high = Math.max(scale_index, group_index);

@@ -1,7 +1,7 @@
 'use strict';
 // HUMAN VETTED
 
-class Monomial {
+class Scale {
     constructor(coefficient, basis, key) {
         this.coefficient = coefficient;
         this.basis = basis;
@@ -10,7 +10,7 @@ class Monomial {
     }
 
     with(attributes) {
-        return new Monomial(
+        return new Scale(
             attributes.coefficient  != null? attributes.coefficient  : this.coefficient,
             attributes.basis        != null? attributes.basis        : this.basis,
             attributes.key          != null? attributes.key          : this.key,

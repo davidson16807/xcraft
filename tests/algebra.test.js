@@ -9,7 +9,9 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/expression/Expression.js',
     'scripts/models/expression/ExpressionShape.js',
     'scripts/models/expression/Expressions.js',
-    'scripts/models/expression/ExpressionsAndMonomials.js',
+    'scripts/models/expression/Scale.js',
+    'scripts/models/expression/Scales.js',
+    'scripts/models/expression/ScaleExpressions.js',
     'scripts/models/equation/Equation.js',
     'scripts/models/equation/EquationShape.js',
     'scripts/models/expression/ExpressionLatex.js',
@@ -22,11 +24,12 @@ const root = path.resolve(__dirname, '..');
 
 const expression_shape = ExpressionShape();
 const expressions = Expressions();
-const monomials = ExpressionsAndMonomials(expressions, expression_shape);
+const scales = Scales(expressions, expression_shape);
+const scale_expressions = ScaleExpressions(expressions, scales);
 const equation_shape = EquationShape(expression_shape);
-const expression_latex = ExpressionLatex(expressions, monomials);
+const expression_latex = ExpressionLatex(expressions, scales);
 const paths = EquationPaths(expressions);
-const algebra = Equations(expressions, monomials, expression_latex, paths);
+const algebra = Equations(expressions, scale_expressions, expression_latex, paths);
 const levels = Levels(expressions);
 
 function assert(condition, message) {
@@ -135,7 +138,7 @@ function solveLevel10() {
 function verifyCoefficientBasis() {
     const x = expressions.variable('x');
     const two_x = expressions.mul([expressions.constant(2), x]);
-    const decomposition = monomials.from_expression(two_x);
+    const decomposition = scales.from_expression(two_x);
 
     assert(decomposition.coefficient === 2, 'coefficient/basis should extract numeric coefficient');
     assert(
@@ -143,7 +146,7 @@ function verifyCoefficientBasis() {
         'coefficient/basis should preserve the nonconstant basis'
     );
     assert(
-        monomials.combine_like(two_x, expressions.mul([expressions.constant(3), x])).contents[0].contents === 5,
+        scale_expressions.combine(two_x, expressions.mul([expressions.constant(3), x])).contents[0].contents === 5,
         'coefficient/basis should combine like terms'
     );
 }
@@ -190,7 +193,7 @@ function verifyAdvertisedMoves() {
     let checked = 0;
 
     while (queue.length > 0) {
-        const { equation, depth } = queue.shift();
+        const { equation, depth } = queue.scale();
         for (const source of paths.all(equation)) {
             for (const target of algebra.moves_for_source(equation, source)) {
                 const updated = algebra.move(equation, source, target);

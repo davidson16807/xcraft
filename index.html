@@ -17,9 +17,10 @@
     <script src="./scripts/models/expression/Expression.js"></script>
     <script src="./scripts/models/expression/Expressions.js"></script>
     <script src="./scripts/models/expression/ExpressionShape.js"></script>
-    <script src="./scripts/models/expression/ExpressionsAndMonomials.js"></script>
     <script src="./scripts/models/expression/ExpressionLatex.js"></script>
-    <script src="./scripts/models/expression/Monomial.js"></script>
+    <script src="./scripts/models/expression/Scale.js"></script>
+    <script src="./scripts/models/expression/Scales.js"></script>
+    <script src="./scripts/models/expression/ScaleExpressions.js"></script>
     <script src="./scripts/models/equation/EquationPaths.js"></script>
     <script src="./scripts/models/equation/Equation.js"></script>
     <script src="./scripts/models/equation/Equations.js"></script>
@@ -118,10 +119,11 @@
 
     const expression_shape = ExpressionShape();
     const expressions = Expressions();
-    const monomials = ExpressionsAndMonomials(expressions, expression_shape);
-    const expression_latex = ExpressionLatex(expressions, monomials);
+    const scales = Scales(expressions, expression_shape);
+    const scale_expressions = ScaleExpressions(expressions, scales);
+    const expression_latex = ExpressionLatex(expressions, scales);
     const equation_paths = EquationPaths(expressions);
-    const equations = Equations(expressions, monomials, expression_latex, equation_paths);
+    const equations = Equations(expressions, scale_expressions, expression_latex, equation_paths);
     const equation_shape = EquationShape(expression_shape);
 
     const history = AppHistoryTraversal(Infinity);
