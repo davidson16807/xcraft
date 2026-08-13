@@ -12,9 +12,15 @@ function AppDragOperations(drags, history) {
             });
         },
 
-        move: function(app, x,y) {
+        move: function(app, x,y, target_key) {
             if (app.drag_type.id === DragState.released) return app;
-            return app.with({ drag_state: app.drag_type.move(app.drag_state, {x:x,y:y}) });
+            return app.with({
+                drag_state: app.drag_type.move(
+                    app.drag_state,
+                    {x:x,y:y},
+                    target_key
+                )
+            });
         },
 
         drop: function(app, target_key) {

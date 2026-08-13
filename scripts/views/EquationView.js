@@ -6,6 +6,7 @@ function EquationView(dependencies) {
     const html = dependencies.html;
     const equations = dependencies.equations;
     const expression_view = dependencies.expression_view;
+    const expression_latex = dependencies.expression_latex;
     const render = dependencies.render;
 
     function math(latex, class_name) {
@@ -28,15 +29,40 @@ function EquationView(dependencies) {
         ]);
     }
 
-    function draw_ghost(equation, drag_state) {
-        if (!drag_state || !drag_state.source_path) return null;
+    function draw_ghost(latex, point, class_name) {
+        const node = html.div({ class:`drag-ghost ${class_name}` }, []);
+        render(latex, node, { throwOnError:false, output:'html' });
+        node.style.left = `${point.x}px`;
+        node.style.top = `${point.y}px`;
+        return node;
+    }
+
+    function draw_ghosts(equation, drag_state) {
+        if (!drag_state || !drag_state.source_path) return [];
+
+        const target_key = drag_state.target_key;
+        const is_balance_move =
+            target_key != null &&
+            target_key.startsWith('side:');
+
+        if (is_balance_move) {
+            const inverse = equations.opposite(equation, drag_state.source_path);
+            if (inverse != null) {
+                const latex = expression_latex.encode(inverse);
+                return [
+                    draw_ghost(latex, {
+                        x: drag_state.start.x + 40,
+                        y: drag_state.start.y + 40,
+                    }, 'drag-ghost-origin'),
+                    draw_ghost(latex, drag_state.current, 'drag-ghost-current'),
+                ];
+            }
+        }
+
         const latex = equations.path_latex(equation, drag_state.source_path);
-        if (!latex) return null;
-        const ghost = html.div({ class:'drag-ghost' }, []);
-        render(latex, ghost, { throwOnError:false, output:'html' });
-        ghost.style.left = `${drag_state.current.x}px`;
-        ghost.style.top = `${drag_state.current.y}px`;
-        return ghost;
+        return latex?
+            [draw_ghost(latex, drag_state.current, 'drag-ghost-current')] :
+            [];
     }
 
     return Object.freeze({
@@ -54,8 +80,9 @@ function EquationView(dependencies) {
                 ])
             );
 
-            const ghost = draw_ghost(equation, drag_state);
-            if (ghost) div_io.appendChild(ghost);
+            draw_ghosts(equation, drag_state).forEach(ghost =>
+                div_io.appendChild(ghost)
+            );
 
         },
 

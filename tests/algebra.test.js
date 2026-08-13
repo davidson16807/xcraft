@@ -29,7 +29,12 @@ const scale_expressions = ScaleExpressions(expressions, scales);
 const equation_shape = EquationShape(expression_shape);
 const expression_latex = ExpressionLatex(expressions, scales);
 const paths = ExpressionPaths(expressions);
-const algebra = Equations(expressions, scale_expressions, expression_latex, paths);
+const algebra = Equations({
+    expressions: expressions,
+    scale_expressions: scale_expressions,
+    expression_latex: expression_latex,
+    expression_paths: paths,
+});
 const levels = Levels(expressions);
 
 function assert(condition, message) {
@@ -151,6 +156,33 @@ function verifyCoefficientBasis() {
     );
 }
 
+function verifyOppositeOperations() {
+    const additive_inverse = algebra.opposite(levels[0].equation, 'L/1');
+    assert(
+        expression_shape.encode(additive_inverse) ===
+        expression_shape.encode(expressions.constant(-3)),
+        'moving +3 across equality should apply -3 to both sides'
+    );
+
+    const multiplicative_inverse = algebra.opposite(levels[2].equation, 'L/0');
+    assert(
+        expression_latex.encode(multiplicative_inverse) === '\\frac{1}{4}',
+        'moving a factor 4 across equality should apply its reciprocal to both sides'
+    );
+
+    const reciprocal_inverse = algebra.opposite(levels[3].equation, 'L/1');
+    assert(
+        expression_shape.encode(reciprocal_inverse) ===
+        expression_shape.encode(expressions.constant(6)),
+        'moving a reciprocal factor across equality should apply its base to both sides'
+    );
+
+    assert(
+        algebra.opposite(levels[6].equation, 'L/1/g/0') == null,
+        'nested/local expressions should not advertise a balance operation'
+    );
+}
+
 function verifyExpressionRepresentation() {
     levels.forEach(level => {
         paths.all(level.equation).forEach(path => {
@@ -219,6 +251,7 @@ function verifyAdvertisedMoves() {
 }
 
 verifyCoefficientBasis();
+verifyOppositeOperations();
 verifyExpressionRepresentation();
 [
     solveLevel1, solveLevel2, solveLevel3, solveLevel4, solveLevel5,

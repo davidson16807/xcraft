@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 const ExpressionPaths = (expressions) => {
 

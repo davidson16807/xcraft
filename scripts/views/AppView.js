@@ -102,7 +102,17 @@ function AppView(dependencies, app_updater) {
         });
 
         dom_io.addEventListener('pointermove', event => {
-            dispatch(app_updater.drag_move(app, event.clientX, event.clientY), dom_io);
+            const under_pointer = dom_io.elementFromPoint(event.clientX, event.clientY);
+            const target = under_pointer && under_pointer.closest('[data-valid-drop="1"]');
+            dispatch(
+                app_updater.drag_move(
+                    app,
+                    event.clientX,
+                    event.clientY,
+                    target? target.getAttribute('data-drop-key') : null
+                ),
+                dom_io
+            );
         }, { passive:true });
 
         dom_io.addEventListener('pointerup', event => {

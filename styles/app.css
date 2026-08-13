@@ -385,6 +385,15 @@ main {
     opacity: 0.93;
 }
 
+.drag-ghost-origin {
+    opacity: 0.72;
+    transform: translate(-50%, 50%) scale(0.94);
+}
+
+.drag-ghost-current {
+    opacity: 0.93;
+}
+
 #app[data-theme="night"] .drag-ghost {
     box-shadow: 0 6px 24px rgba(255,255,255,0.08);
 }

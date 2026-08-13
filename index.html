@@ -120,12 +120,14 @@
 
     const expression_shape = ExpressionShape();
     const expressions = Expressions();
-    const scale_expressions = ScaleExpressions(expressions, Scales(expressions, expression_shape));
+    const scales = Scales(expressions, expression_shape);
+    const scale_expressions = ScaleExpressions(expressions, scales);
+    const expression_latex = ExpressionLatex(expressions, scales);
     const expression_paths = ExpressionPaths(expressions);
     const equations = Equations({
-        expressions: expressions, 
-        scale_expressions: scale_expressions, 
-        expression_latex: ExpressionLatex(expressions, scale_expressions), 
+        expressions: expressions,
+        scale_expressions: scale_expressions,
+        expression_latex: expression_latex,
         expression_paths: expression_paths
     });
     const equation_shape = EquationShape(expression_shape);
@@ -152,6 +154,7 @@
         html: Html(document),
         equations: equations,
         expression_view: expression_view,
+        expression_latex: expression_latex,
         render: katex.render,
     });
 

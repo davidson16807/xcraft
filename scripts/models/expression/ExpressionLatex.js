@@ -79,7 +79,7 @@ const ExpressionLatex = (expressions, scales) => {
                 break;
 
             default:
-                body = '?';
+                body = '\\ldots';
         }
 
         if (precedence(expression) < parent && expression.type !== 'group') {
