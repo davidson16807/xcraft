@@ -15,7 +15,7 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/equation/Equation.js',
     'scripts/models/equation/EquationShape.js',
     'scripts/models/expression/ExpressionLatex.js',
-    'scripts/models/equation/EquationPaths.js',
+    'scripts/models/expression/ExpressionPaths.js',
     'scripts/models/equation/Equations.js',
     'scripts/levels/Levels.js',
 ].forEach(file => {
@@ -28,7 +28,7 @@ const scales = Scales(expressions, expression_shape);
 const scale_expressions = ScaleExpressions(expressions, scales);
 const equation_shape = EquationShape(expression_shape);
 const expression_latex = ExpressionLatex(expressions, scales);
-const paths = EquationPaths(expressions);
+const paths = ExpressionPaths(expressions);
 const algebra = Equations(expressions, scale_expressions, expression_latex, paths);
 const levels = Levels(expressions);
 
@@ -193,7 +193,7 @@ function verifyAdvertisedMoves() {
     let checked = 0;
 
     while (queue.length > 0) {
-        const { equation, depth } = queue.scale();
+        const { equation, depth } = queue.shift();
         for (const source of paths.all(equation)) {
             for (const target of algebra.moves_for_source(equation, source)) {
                 const updated = algebra.move(equation, source, target);
