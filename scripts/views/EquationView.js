@@ -31,80 +31,78 @@ function EquationView(dependencies) {
         return attrs;
     }
 
-    function append_product_factor(wrapper, expression, node, previous_expression) {
-        if (
+    function product_factor_nodes(expression, node, previous_expression) {
+        return (
             previous_expression &&
             previous_expression.type === 'constant' &&
             expression.type === 'constant'
-        ) {
-            wrapper.appendChild(math('\\cdot', 'math-operator multiplication-dot'));
-        }
-        wrapper.appendChild(node);
+        )? [math('\\cdot', 'math-operator multiplication-dot'), node] : [node];
     }
 
     function draw_reciprocal_factor(expression, path, draggable_paths, valid_targets) {
-        const wrapper = html.span(path_attributes(path, draggable_paths, valid_targets), []);
+        const wrapper = html.span(path_attributes(path, draggable_paths, valid_targets), [
+            draw_expression(
+                expression.contents[0],
+                paths.base(path),
+                draggable_paths,
+                valid_targets
+            )
+        ]);
         wrapper.classList.add('expression-reciprocal');
-        wrapper.appendChild(draw_expression(
-            expression.contents[0],
-            paths.base(path),
-            draggable_paths,
-            valid_targets
-        ));
         return wrapper;
     }
 
     function draw_mul(expression, path, attributes, draggable_paths, valid_targets) {
-        const numerator = [];
-        const denominator = [];
-
-        expression.contents.forEach((factor, i) => {
-            const item = { factor:factor, path:paths.nary(path, i) };
-            if (expressions.is_reciprocal(factor)) denominator.push(item);
-            else numerator.push(item);
-        });
+        const items =  expression.contents.map(
+            (factor, i) => ({ factor:factor, path:paths.nary(path, i) })
+        );
+        const numerator = items.filter(item => !expressions.is_reciprocal(item.factor));
+        const denominator = items.filter(item => expressions.is_reciprocal(item.factor));
 
         if (denominator.length === 0) {
-            const wrapper = html.span(attributes);
-            wrapper.classList.add('expression-mul');
-            numerator.forEach((item, i) => append_product_factor(
-                wrapper,
-                item.factor,
-                draw_expression(item.factor, item.path, draggable_paths, valid_targets),
-                i > 0? numerator[i-1].factor : null
-            ));
-            return wrapper;
-        }
 
-        const wrapper = html.span(attributes);
-        wrapper.classList.add('expression-mul', 'expression-fraction');
-
-        const numerator_node = html.span({ class:'fraction-numerator' }, []);
-        if (numerator.length === 0) {
-            numerator_node.appendChild(math('1'));
-        } else {
-            numerator.forEach((item, i) => append_product_factor(
-                numerator_node,
-                item.factor,
-                draw_expression(item.factor, item.path, draggable_paths, valid_targets),
-                i > 0? numerator[i-1].factor : null
-            ));
-        }
-
-        const denominator_node = html.span({ class:'fraction-denominator' }, []);
-        denominator.forEach((item, i) => {
-            const base = item.factor.contents[0];
-            append_product_factor(
-                denominator_node,
-                base,
-                draw_reciprocal_factor(item.factor, item.path, draggable_paths, valid_targets),
-                i > 0? denominator[i-1].factor.contents[0] : null
+            const wrapper = html.span(attributes, 
+                numerator.map((item, i) => 
+                    product_factor_nodes(
+                        item.factor,
+                        draw_expression(item.factor, item.path, draggable_paths, valid_targets),
+                        i > 0? numerator[i-1].factor : null
+                    )
+                ).flat()
             );
-        });
+            wrapper.classList.add('expression-mul');
+            return wrapper;
 
-        wrapper.appendChild(numerator_node);
-        wrapper.appendChild(denominator_node);
-        return wrapper;
+        } else {
+
+            const numerator_node = html.span({ class:'fraction-numerator' }, 
+                numerator.length === 0? 
+                    [math('1')]
+                  : numerator.map((item, i) => 
+                        product_factor_nodes(
+                            item.factor,
+                            draw_expression(item.factor, item.path, draggable_paths, valid_targets),
+                            i > 0? numerator[i-1].factor : null
+                        )
+                    ).flat()
+            );
+
+            const denominator_node = html.span({ class:'fraction-denominator' }, 
+                denominator.map((item, i) => {
+                    return product_factor_nodes(
+                        item.factor.contents[0],
+                        draw_reciprocal_factor(item.factor, item.path, draggable_paths, valid_targets),
+                        i > 0? denominator[i-1].factor.contents[0] : null
+                    );
+                }).flat()
+            );
+
+            const wrapper = html.span(attributes, [numerator_node, denominator_node]);
+            wrapper.classList.add('expression-mul', 'expression-fraction');
+            return wrapper;
+
+        }
+
     }
 
     function draw_expression(expression, path, draggable_paths, valid_targets) {
@@ -119,27 +117,27 @@ function EquationView(dependencies) {
                 return html.span(attributes, [math(expression.contents)]);
 
             case 'add':
-                wrapper = html.span(attributes);
+                wrapper = html.span(attributes, 
+                    expression.contents.map((term, i) => {
+                        const signed = equations.sign_and_absolute(term);
+                        const term_path = paths.nary(path, i);
+                        const term_wrapper = html.span(path_attributes(term_path, draggable_paths, valid_targets), 
+                            [
+                                ...(i > 0)? [math(signed.sign < 0? '-' : '+', 'math-operator')]
+                                 : signed.sign < 0? [math('-', 'math-operator')]
+                                 : [],
+                                draw_expression_contents(
+                                    signed.absolute,
+                                    term_path,
+                                    draggable_paths,
+                                    valid_targets
+                                )
+                            ]);
+                        term_wrapper.classList.add('addend');
+                        return term_wrapper;
+                    })
+                );
                 wrapper.classList.add('expression-add');
-                expression.contents.forEach((term, i) => {
-                    const signed = equations.sign_and_absolute(term);
-                    const term_path = paths.nary(path, i);
-                    const term_wrapper = html.span(path_attributes(term_path, draggable_paths, valid_targets), []);
-                    term_wrapper.classList.add('addend');
-                    if (i > 0) {
-                        term_wrapper.appendChild(math(signed.sign < 0? '-' : '+', 'math-operator'));
-                    } else if (signed.sign < 0) {
-                        term_wrapper.appendChild(math('-', 'math-operator'));
-                    }
-                    const absolute_node = draw_expression_contents(
-                        signed.absolute,
-                        term_path,
-                        draggable_paths,
-                        valid_targets
-                    );
-                    term_wrapper.appendChild(absolute_node);
-                    wrapper.appendChild(term_wrapper);
-                });
                 return wrapper;
 
             case 'mul':
@@ -150,45 +148,49 @@ function EquationView(dependencies) {
                 const exponent = expression.contents[1];
 
                 if (expressions.is_reciprocal(expression)) {
-                    wrapper = html.span(attributes);
+                    wrapper = html.span(attributes, [
+                        html.span({ class:'fraction-numerator' }, [math('1')]),
+                        html.span({ class:'fraction-denominator' }, [
+                            draw_expression(base, paths.base(path), draggable_paths, valid_targets)
+                        ]),
+                    ]);
                     wrapper.classList.add('expression-fraction');
-                    wrapper.appendChild(html.span({ class:'fraction-numerator' }, [math('1')]));
-                    wrapper.appendChild(html.span({ class:'fraction-denominator' }, [
-                        draw_expression(base, paths.base(path), draggable_paths, valid_targets)
-                    ]));
+                    return wrapper;
+                } else {
+                    wrapper = html.span(attributes, [
+                        draw_expression(
+                            base,
+                            paths.base(path),
+                            draggable_paths,
+                            valid_targets
+                        ),
+                        html.node('sup', { class:'power-exponent' }, [
+                            draw_expression(
+                                exponent,
+                                paths.exponent(path),
+                                draggable_paths,
+                                valid_targets
+                            )
+                        ]),
+                    ]);
+                    wrapper.classList.add('expression-power');
                     return wrapper;
                 }
 
-                wrapper = html.span(attributes);
-                wrapper.classList.add('expression-power');
-                wrapper.appendChild(draw_expression(
-                    base,
-                    paths.base(path),
-                    draggable_paths,
-                    valid_targets
-                ));
-                wrapper.appendChild(html.node('sup', { class:'power-exponent' }, [
-                    draw_expression(
-                        exponent,
-                        paths.exponent(path),
-                        draggable_paths,
-                        valid_targets
-                    )
-                ]));
-                return wrapper;
             }
 
             case 'group':
-                wrapper = html.span(attributes);
+                wrapper = html.span(attributes, [
+                    math('(', 'math-paren'),
+                    draw_expression(
+                        expression.contents,
+                        paths.group(path),
+                        draggable_paths,
+                        valid_targets
+                    ),
+                    math(')', 'math-paren')
+                ]);
                 wrapper.classList.add('expression-group');
-                wrapper.appendChild(math('(', 'math-paren'));
-                wrapper.appendChild(draw_expression(
-                    expression.contents,
-                    paths.group(path),
-                    draggable_paths,
-                    valid_targets
-                ));
-                wrapper.appendChild(math(')', 'math-paren'));
                 return wrapper;
         }
 
