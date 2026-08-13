@@ -8,7 +8,7 @@ an input expression; they return either the original reference or a new tree.
 const Expressions = (expression_hash) => {
     const freeze = Object.freeze;
 
-    const hash = expression_hash
+    const hash = expression_hash;
 
     const constant = value => freeze({ type: 'constant', value: Number(value) });
     const variable = name => freeze({ type: 'variable', name: String(name) });
@@ -45,64 +45,6 @@ const Expressions = (expression_hash) => {
         freeze({ type: 'div', numerator: numerator, denominator: denominator });
 
     const group = expression => freeze({ type: 'group', expression: expression });
-
-    function children(expression) {
-        switch (expression.type) {
-            case 'add': return expression.terms.map((_, i) => String(i));
-            case 'mul': return expression.factors.map((_, i) => String(i));
-            case 'div': return ['n', 'd'];
-            case 'group': return ['g'];
-            default: return [];
-        }
-    }
-
-    function child(expression, segment) {
-        switch (expression.type) {
-            case 'add': return expression.terms[Number(segment)];
-            case 'mul': return expression.factors[Number(segment)];
-            case 'div': return segment === 'n'? expression.numerator : expression.denominator;
-            case 'group': return expression.expression;
-            default: return undefined;
-        }
-    }
-
-    function replace_child(expression, segment, replacement) {
-        switch (expression.type) {
-            case 'add': {
-                const terms = expression.terms.slice();
-                terms[Number(segment)] = replacement;
-                return add(terms);
-            }
-            case 'mul': {
-                const factors = expression.factors.slice();
-                factors[Number(segment)] = replacement;
-                return mul(factors);
-            }
-            case 'div':
-                return segment === 'n'?
-                    div(replacement, expression.denominator) :
-                    div(expression.numerator, replacement);
-            case 'group':
-                return group(replacement);
-            default:
-                return expression;
-        }
-    }
-
-    function at(expression, segments) {
-        return segments.reduce((node, segment) => child(node, segment), expression);
-    }
-
-    function replace(expression, segments, replacement) {
-        if (segments.length === 0) return replacement;
-        const head = segments[0];
-        const tail = segments.slice(1);
-        const current_child = child(expression, head);
-        if (current_child == null) return expression;
-        const next_child = replace(current_child, tail, replacement);
-        if (next_child === current_child) return expression;
-        return replace_child(expression, head, next_child);
-    }
 
     function append_add(left, right) {
         return left.type === 'add'? add([...left.terms, right]) : add([left, right]);
@@ -196,10 +138,6 @@ const Expressions = (expression_hash) => {
         mul,
         div,
         group,
-        children,
-        child,
-        at,
-        replace,
         append_add,
         append_mul,
         remove_indexed,

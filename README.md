@@ -1,6 +1,6 @@
 <!-- HUMAN VETTED -->
 
-# eqcraft
+# xcraft
 
 A small browser game for building algebraic intuition. Symbols can be dragged and dropped to apply them to each side of an equation.
 

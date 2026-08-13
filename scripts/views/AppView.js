@@ -8,6 +8,19 @@ function AppView(dependencies, app_updater) {
 
     function draw(app, dom_io) {
 
+        katex.render("x", 
+            document.getElementById('logo'), 
+            {throwOnError: false })
+
+        document.getElementById('subtitle').replaceChildren([
+            'An introduction to algebra',
+            'Every change to both sides',
+            'There are no wrong moves',
+            'The search for x',
+            'Solve for x',
+            'Find x',
+        ][0]);
+
         const app_element = dom_io.getElementById('app');
         const equation_element = dom_io.getElementById('equation');
         const level_title = dom_io.getElementById('level-title');

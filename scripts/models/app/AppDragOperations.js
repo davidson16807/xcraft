@@ -1,10 +1,10 @@
 'use strict';
 // HUMAN VETTED
 
-function AppDragOperations(equation_drags, history) {
+function AppDragOperations(drags, history) {
     return Object.freeze({
         start: function(app, source_path, x,y) {
-            const drag_type = equation_drags.symbol(app.equation, source_path, {x:x,y:y});
+            const drag_type = drags.symbol(app.equation, source_path, {x:x,y:y});
             if (drag_type.initialize().candidates.length === 0) return app;
             return app.with({
                 drag_type: drag_type,
@@ -20,7 +20,7 @@ function AppDragOperations(equation_drags, history) {
         drop: function(app, target_key) {
             if (app.drag_type.id === DragState.released) return app;
             const equation = app.drag_type.command(app.drag_state, target_key)(app.equation);
-            const released = equation_drags.release();
+            const released = drags.release();
             const committed = history.do(app, equation);
             return committed.with({
                 drag_type: released,
@@ -30,7 +30,7 @@ function AppDragOperations(equation_drags, history) {
 
         cancel: function(app) {
             if (app.drag_type.id === DragState.released) return app;
-            const released = equation_drags.release();
+            const released = drags.release();
             return app.with({
                 drag_type: released,
                 drag_state: released.initialize(),

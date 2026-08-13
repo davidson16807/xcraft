@@ -1,10 +1,12 @@
 'use strict';
 // HUMAN VETTED
+// TODO: MOVE PATH JOINS TO ExpressionPaths
 
 function EquationView(dependencies) {
 
     const html = dependencies.html;
     const equations = dependencies.equations;
+    const paths = dependencies.expression_paths;
     const render = dependencies.render;
 
     function math(latex, class_name) {
@@ -46,7 +48,7 @@ function EquationView(dependencies) {
                 wrapper.classList.add('expression-add');
                 expression.terms.forEach((term, i) => {
                     const signed = equations.sign_and_absolute(term);
-                    const term_path = `${path}/${i}`;
+                    const term_path = paths.nary(path, i);
                     const term_wrapper = html.span(path_attributes(term_path, draggable_paths, valid_targets), []);
                     term_wrapper.classList.add('addend');
                     if (i > 0) {
@@ -78,7 +80,7 @@ function EquationView(dependencies) {
                     }
                     wrapper.appendChild(draw_expression(
                         factor,
-                        `${path}/${i}`,
+                        paths.nary(path, i),
                         draggable_paths,
                         valid_targets
                     ));
@@ -89,10 +91,10 @@ function EquationView(dependencies) {
                 wrapper = html.span(attributes);
                 wrapper.classList.add('expression-fraction');
                 const numerator = html.span({ class:'fraction-numerator' }, [
-                    draw_expression(expression.numerator, `${path}/n`, draggable_paths, valid_targets)
+                    draw_expression(expression.numerator, paths.numerator(path), draggable_paths, valid_targets)
                 ]);
                 const denominator = html.span({ class:'fraction-denominator' }, [
-                    draw_expression(expression.denominator, `${path}/d`, draggable_paths, valid_targets)
+                    draw_expression(expression.denominator, paths.denominator(path), draggable_paths, valid_targets)
                 ]);
                 wrapper.appendChild(numerator);
                 wrapper.appendChild(denominator);
@@ -105,7 +107,7 @@ function EquationView(dependencies) {
                 wrapper.appendChild(math('(', 'math-paren'));
                 wrapper.appendChild(draw_expression(
                     expression.expression,
-                    `${path}/g`,
+                    paths.group(path), 
                     draggable_paths,
                     valid_targets
                 ));
