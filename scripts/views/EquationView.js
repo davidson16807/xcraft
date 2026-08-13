@@ -14,9 +14,9 @@ function EquationView(dependencies) {
         return node;
     }
 
-    function path_attributes(path, draggable_paths, valid_targets) {
+    function path_attributes(path, draggable_paths, valid_targets, classes) {
         const attrs = {
-            class: 'expression-node',
+            class: 'expression-node ' + (classes || ''),
             'data-path': path,
             'data-drop-key': `path:${path}`,
         };
@@ -40,7 +40,7 @@ function EquationView(dependencies) {
     }
 
     function draw_reciprocal_factor(expression, path, draggable_paths, valid_targets) {
-        const wrapper = html.span(path_attributes(path, draggable_paths, valid_targets), [
+        return html.span(path_attributes(path, draggable_paths, valid_targets, 'expression-reciprocal'), [
             draw_expression(
                 expression.contents[0],
                 paths.base(path),
@@ -48,11 +48,9 @@ function EquationView(dependencies) {
                 valid_targets
             )
         ]);
-        wrapper.classList.add('expression-reciprocal');
-        return wrapper;
     }
 
-    function draw_mul(expression, path, attributes, draggable_paths, valid_targets) {
+    function draw_mul(expression, path, draggable_paths, valid_targets) {
         const items =  expression.contents.map(
             (factor, i) => ({ factor:factor, path:paths.nary(path, i) })
         );
@@ -61,7 +59,8 @@ function EquationView(dependencies) {
 
         if (denominator.length === 0) {
 
-            const wrapper = html.span(attributes, 
+            return html.span(
+                path_attributes(path, draggable_paths, valid_targets, 'expression-mul'), 
                 numerator.map((item, i) => 
                     product_factor_nodes(
                         item.factor,
@@ -70,8 +69,6 @@ function EquationView(dependencies) {
                     )
                 ).flat()
             );
-            wrapper.classList.add('expression-mul');
-            return wrapper;
 
         } else {
 
@@ -97,31 +94,30 @@ function EquationView(dependencies) {
                 }).flat()
             );
 
-            const wrapper = html.span(attributes, [numerator_node, denominator_node]);
-            wrapper.classList.add('expression-mul', 'expression-fraction');
-            return wrapper;
+            return html.span(
+                path_attributes(path, draggable_paths, valid_targets, 'expression-mul expression-fraction'), 
+                [numerator_node, denominator_node]
+            );
 
         }
 
     }
 
     function draw_expression(expression, path, draggable_paths, valid_targets) {
-        const attributes = path_attributes(path, draggable_paths, valid_targets);
-        let wrapper;
 
         switch (expression.type) {
             case 'constant':
-                return html.span(attributes, [math(String(expression.contents))]);
+                return html.span(path_attributes(path, draggable_paths, valid_targets), [math(String(expression.contents))]);
 
             case 'variable':
-                return html.span(attributes, [math(expression.contents)]);
+                return html.span(path_attributes(path, draggable_paths, valid_targets), [math(expression.contents)]);
 
             case 'add':
-                wrapper = html.span(attributes, 
+                return html.span(path_attributes(path, draggable_paths, valid_targets, 'expression-add'), 
                     expression.contents.map((term, i) => {
                         const signed = equations.sign_and_absolute(term);
                         const term_path = paths.nary(path, i);
-                        const term_wrapper = html.span(path_attributes(term_path, draggable_paths, valid_targets), 
+                        return html.span(path_attributes(term_path, draggable_paths, valid_targets, 'addend'), 
                             [
                                 ...(i > 0)? [math(signed.sign < 0? '-' : '+', 'math-operator')]
                                  : signed.sign < 0? [math('-', 'math-operator')]
@@ -133,65 +129,64 @@ function EquationView(dependencies) {
                                     valid_targets
                                 )
                             ]);
-                        term_wrapper.classList.add('addend');
-                        return term_wrapper;
                     })
                 );
-                wrapper.classList.add('expression-add');
-                return wrapper;
 
             case 'mul':
-                return draw_mul(expression, path, attributes, draggable_paths, valid_targets);
+                return draw_mul(expression, path, draggable_paths, valid_targets);
 
             case 'pow': {
                 const base = expression.contents[0];
                 const exponent = expression.contents[1];
 
                 if (expressions.is_reciprocal(expression)) {
-                    wrapper = html.span(attributes, [
-                        html.span({ class:'fraction-numerator' }, [math('1')]),
-                        html.span({ class:'fraction-denominator' }, [
-                            draw_expression(base, paths.base(path), draggable_paths, valid_targets)
-                        ]),
-                    ]);
-                    wrapper.classList.add('expression-fraction');
-                    return wrapper;
+                    return html.span(
+                        path_attributes(path, draggable_paths, valid_targets, 'expression-fraction'), 
+                        [
+                            html.span({ class:'fraction-numerator' }, [math('1')]),
+                            html.span({ class:'fraction-denominator' }, [
+                                draw_expression(base, paths.base(path), draggable_paths, valid_targets)
+                            ]),
+                        ]
+                    );
                 } else {
-                    wrapper = html.span(attributes, [
-                        draw_expression(
-                            base,
-                            paths.base(path),
-                            draggable_paths,
-                            valid_targets
-                        ),
-                        html.node('sup', { class:'power-exponent' }, [
+                    return html.span(
+                        path_attributes(path, draggable_paths, valid_targets, 'expression-power'), 
+                        [
                             draw_expression(
-                                exponent,
-                                paths.exponent(path),
+                                base,
+                                paths.base(path),
                                 draggable_paths,
                                 valid_targets
-                            )
-                        ]),
-                    ]);
-                    wrapper.classList.add('expression-power');
-                    return wrapper;
+                            ),
+                            html.node('sup', { class:'power-exponent' }, [
+                                draw_expression(
+                                    exponent,
+                                    paths.exponent(path),
+                                    draggable_paths,
+                                    valid_targets
+                                )
+                            ]),
+                        ]
+                    );
                 }
 
             }
 
             case 'group':
-                wrapper = html.span(attributes, [
-                    math('(', 'math-paren'),
-                    draw_expression(
-                        expression.contents,
-                        paths.group(path),
-                        draggable_paths,
-                        valid_targets
-                    ),
-                    math(')', 'math-paren')
-                ]);
-                wrapper.classList.add('expression-group');
-                return wrapper;
+                return html.span(
+                    path_attributes(path, draggable_paths, valid_targets, 'expression-group'), 
+                    [
+                        math('(', 'math-paren'),
+                        draw_expression(
+                            expression.contents,
+                            paths.group(path),
+                            draggable_paths,
+                            valid_targets
+                        ),
+                        math(')', 'math-paren')
+                    ]
+                );
         }
 
     }
