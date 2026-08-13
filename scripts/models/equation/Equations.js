@@ -110,6 +110,35 @@ function Equations(dependencies) {
         return equation;
     }
 
+    function swap(equation, path1, path2) {
+        if (path1 == null || path2 == null || path1 === path2) return equation;
+
+        const parent_path = paths.parent(path1);
+        if (parent_path == null || parent_path !== paths.parent(path2)) return equation;
+
+        const parent = paths.resolve(equation, parent_path);
+        if (parent == null || (parent.type !== 'add' && parent.type !== 'mul')) return equation;
+
+        const segment1 = paths.segment(path1);
+        const segment2 = paths.segment(path2);
+        if (!/^\d+$/.test(segment1) || !/^\d+$/.test(segment2)) return equation;
+
+        const index1 = Number(segment1);
+        const index2 = Number(segment2);
+        if (index1 >= parent.contents.length || index2 >= parent.contents.length) return equation;
+
+        if (parent.contents[index1] === parent.contents[index2]) return equation;
+
+        const contents = parent.contents.slice();
+        [contents[index1], contents[index2]] = [contents[index2], contents[index1]];
+
+        const replacement = parent.type === 'add'?
+            expressions.add(contents) :
+            expressions.mul(contents);
+
+        return paths.replace(equation, parent_path, replacement);
+    }
+
     function _combine_siblings(equation, source_path, target_path) {
         const source_parent_path = paths.parent(source_path);
         const target_parent_path = paths.parent(target_path);
@@ -225,7 +254,8 @@ function Equations(dependencies) {
             paths.is_ancestor(target_path, source_path)
         ) return equation;
 
-        return _combine_siblings(equation, source_path, target_path);
+        const combined = _combine_siblings(equation, source_path, target_path);
+        return combined !== equation? combined : swap(equation, source_path, target_path);
     }
 
     function moves_for_source(equation, source_path) {
@@ -253,6 +283,7 @@ function Equations(dependencies) {
 
     return Object.freeze({
         opposite,
+        swap,
         move,
         moves_for_source,
         draggable_paths,
