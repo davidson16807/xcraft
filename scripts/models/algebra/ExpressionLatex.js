@@ -1,7 +1,7 @@
 'use strict';
 // HUMAN VETTED
 
-const ExpressionLatex = () => {
+const ExpressionLatex = (expressions) => {
 
     function precedence(expression) {
         switch (expression.type) {

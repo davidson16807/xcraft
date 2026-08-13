@@ -1,7 +1,7 @@
 'use strict';
 // HUMAN VETTED
 
-const ExpressionHash = () => {
+const ExpressionShape = () => {
     function encode (expression) {
         switch (expression.type) {
             case 'constant': return `C(${expression.value})`;

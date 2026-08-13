@@ -16,12 +16,12 @@
     <script src="./scripts/dom/Html.js"></script>
     <script src="./scripts/models/algebra/Expression.js"></script>
     <script src="./scripts/models/algebra/Expressions.js"></script>
-    <script src="./scripts/models/algebra/ExpressionHash.js"></script>
+    <script src="./scripts/models/algebra/ExpressionShape.js"></script>
     <script src="./scripts/models/algebra/ExpressionLatex.js"></script>
     <script src="./scripts/models/algebra/EquationPaths.js"></script>
     <script src="./scripts/models/algebra/Equation.js"></script>
     <script src="./scripts/models/algebra/Equations.js"></script>
-    <script src="./scripts/models/algebra/EquationHash.js"></script>
+    <script src="./scripts/models/algebra/EquationShape.js"></script>
     <script src="./scripts/models/app/AppState.js"></script>
     <script src="./scripts/models/app/AppHistoryTraversal.js"></script>
     <script src="./scripts/updaters/drags/DragState.js"></script>
@@ -113,11 +113,11 @@
 
 (()=>{
 
-    const expression_hash = ExpressionHash();
-    const expressions = Expressions(expression_hash);
+    const expression_shape = ExpressionShape();
+    const expressions = Expressions(expression_shape);
     const equation_paths = EquationPaths(expressions);
-    const equations = Equations(expressions, ExpressionLatex(), equation_paths);
-    const equation_hash = EquationHash(expression_hash);
+    const equations = Equations(expressions, ExpressionLatex(expressions), equation_paths);
+    const equation_shape = EquationShape(expression_shape);
 
     const history = AppHistoryTraversal(Infinity);
 
@@ -126,7 +126,7 @@
         app_history_traversal: history,
         drag_ops: AppDragOperations(equation_drags, history),
         equation_drags: equation_drags,
-        equation_hash: equation_hash
+        equation_shape: equation_shape
     });
 
     const equation_view = EquationView({
@@ -139,7 +139,7 @@
     const app_view = AppView({
         equation_view: equation_view,
         render: katex.render,
-        equation_hash: equation_hash,
+        equation_shape: equation_shape,
     }, app_updater);
 
     const released = equation_drags.release();

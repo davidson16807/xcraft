@@ -5,10 +5,10 @@
 Constructors return deeply immutable values.  Transformations never modify
 an input expression; they return either the original reference or a new tree.
 */
-const Expressions = (expression_hash) => {
+const Expressions = (expression_shape) => {
     const freeze = Object.freeze;
 
-    const hash = expression_hash;
+    const hash = expression_shape;
 
     const constant = value => freeze({ type: 'constant', value: Number(value) });
     const variable = name => freeze({ type: 'variable', name: String(name) });
