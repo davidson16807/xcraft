@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 const ExpressionLatex = (expressions) => {
 
@@ -23,13 +24,8 @@ const ExpressionLatex = (expressions) => {
     }
 
     function encode_mul(expression) {
-        const numerator = [];
-        const denominator = [];
-
-        expression.contents.forEach(factor => {
-            if (expressions.is_reciprocal(factor)) denominator.push(factor.contents[0]);
-            else numerator.push(factor);
-        });
+        const numerator = expression.contents.filter(factor => !expressions.is_reciprocal(factor));
+        const denominator = expression.contents.filter(factor => expressions.is_reciprocal(factor));
 
         if (denominator.length === 0) return encode_product(numerator);
 

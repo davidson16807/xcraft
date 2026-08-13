@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 function AppView(dependencies, app_updater) {
     const equation_view = dependencies.equation_view;
