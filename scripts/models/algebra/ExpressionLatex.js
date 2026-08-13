@@ -24,7 +24,7 @@ const ExpressionLatex = () => {
                 body = expression.name;
                 break;
             case 'add':
-                body = expression.terms.map((term, i) => {
+                body = expression.contents.map((term, i) => {
                     const mono = coefficient_and_basis(term);
                     const negative = mono.coefficient < 0;
                     const abs = negative?
@@ -35,10 +35,10 @@ const ExpressionLatex = () => {
                 }).join('');
                 break;
             case 'mul':
-                body = expression.factors.map((factor, i) => {
+                body = expression.contents.map((factor, i) => {
                     const latex = encode(factor, 2);
                     if (i === 0) return latex;
-                    const previous = expression.factors[i-1];
+                    const previous = expression.contents[i-1];
                     const dot = previous.type === 'constant' && factor.type === 'constant'? '\\cdot ' : '';
                     return dot + latex;
                 }).join('');

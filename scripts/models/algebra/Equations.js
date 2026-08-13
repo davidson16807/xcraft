@@ -34,7 +34,7 @@ function Equations(expressions, expression_latex, equation_paths) {
 
     function replace_two_children(equation, parent_path, source_index, target_index, replacement, identity_type) {
         const parent = paths.resolve(equation, parent_path);
-        const items = parent.type === 'add'? parent.terms.slice() : parent.factors.slice();
+        const items = parent.type === 'add'? parent.contents.slice() : parent.contents.slice();
         const low = Math.min(source_index, target_index);
         const high = Math.max(source_index, target_index);
         items.splice(high, 1);
@@ -193,9 +193,9 @@ function Equations(expressions, expression_latex, equation_paths) {
 
             if (scale && grouped && grouped.expression.type === 'add') {
                 const distributed = expressions.add(
-                    grouped.expression.terms.map(term => expressions.scale_term(scale, term))
+                    grouped.expression.contents.map(term => expressions.scale_term(scale, term))
                 );
-                const factors = parent.factors.slice();
+                const factors = parent.contents.slice();
                 const high = Math.max(scale_index, group_index);
                 const low = Math.min(scale_index, group_index);
                 factors.splice(high, 1);

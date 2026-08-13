@@ -46,7 +46,7 @@ function EquationView(dependencies) {
             case 'add':
                 wrapper = html.span(attributes);
                 wrapper.classList.add('expression-add');
-                expression.terms.forEach((term, i) => {
+                expression.contents.forEach((term, i) => {
                     const signed = equations.sign_and_absolute(term);
                     const term_path = paths.nary(path, i);
                     const term_wrapper = html.span(path_attributes(term_path, draggable_paths, valid_targets), []);
@@ -70,10 +70,10 @@ function EquationView(dependencies) {
             case 'mul':
                 wrapper = html.span(attributes);
                 wrapper.classList.add('expression-mul');
-                expression.factors.forEach((factor, i) => {
+                expression.contents.forEach((factor, i) => {
                     if (
                         i > 0 &&
-                        expression.factors[i-1].type === 'constant' &&
+                        expression.contents[i-1].type === 'constant' &&
                         factor.type === 'constant'
                     ) { 
                         wrapper.appendChild(math('\\cdot', 'math-operator multiplication-dot'));

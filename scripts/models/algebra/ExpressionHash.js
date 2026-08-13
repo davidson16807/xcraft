@@ -9,9 +9,9 @@ const ExpressionHash = () => {
             case 'group': return `G(${encode(expression.expression)})`;
             case 'div': return `D(${encode(expression.numerator)},${encode(expression.denominator)})`;
             case 'add':
-                return `A(${expression.terms.map(encode).sort().join(',')})`;
+                return `A(${expression.contents.map(encode).sort().join(',')})`;
             case 'mul':
-                return `M(${expression.factors.map(encode).sort().join(',')})`;
+                return `M(${expression.contents.map(encode).sort().join(',')})`;
             default: return '?';
         }
     }

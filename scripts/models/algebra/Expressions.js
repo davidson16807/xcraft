@@ -17,28 +17,28 @@ const Expressions = (expression_hash) => {
         const flat = [];
         terms.forEach(term => {
             if (term.type === 'add') {
-                term.terms.forEach(x => flat.push(x));
+                term.contents.forEach(x => flat.push(x));
             } else {
                 flat.push(term);
             }
         });
         if (flat.length === 0) return constant(0);
         if (flat.length === 1) return flat[0];
-        return freeze({ type: 'add', terms: freeze(flat) });
+        return new Expression('add', freeze(flat));
     }
 
     function mul(factors) {
         const flat = [];
         factors.forEach(factor => {
             if (factor.type === 'mul') {
-                factor.factors.forEach(x => flat.push(x));
+                factor.contents.forEach(x => flat.push(x));
             } else {
                 flat.push(factor);
             }
         });
         if (flat.length === 0) return constant(1);
         if (flat.length === 1) return flat[0];
-        return freeze({ type: 'mul', factors: freeze(flat) });
+        return new Expression('mul', freeze(flat));
     }
 
     const div = (numerator, denominator) =>
@@ -47,19 +47,19 @@ const Expressions = (expression_hash) => {
     const group = expression => freeze({ type: 'group', expression: expression });
 
     function append_add(left, right) {
-        return left.type === 'add'? add([...left.terms, right]) : add([left, right]);
+        return left.type === 'add'? add([...left.contents, right]) : add([left, right]);
     }
 
     function append_mul(left, right) {
-        return left.type === 'mul'? mul([...left.factors, right]) : mul([left, right]);
+        return left.type === 'mul'? mul([...left.contents, right]) : mul([left, right]);
     }
 
     function remove_indexed(expression, index) {
         if (expression.type === 'add') {
-            return add(expression.terms.filter((_, i) => i !== index));
+            return add(expression.contents.filter((_, i) => i !== index));
         }
         if (expression.type === 'mul') {
-            return mul(expression.factors.filter((_, i) => i !== index));
+            return mul(expression.contents.filter((_, i) => i !== index));
         }
         return expression;
     }
@@ -74,7 +74,7 @@ const Expressions = (expression_hash) => {
         if (expression.type === 'mul') {
             let coefficient = 1;
             const basis_factors = [];
-            expression.factors.forEach(factor => {
+            expression.contents.forEach(factor => {
                 if (factor.type === 'constant') coefficient *= factor.value;
                 else basis_factors.push(factor);
             });
@@ -119,8 +119,8 @@ const Expressions = (expression_hash) => {
         switch (expression.type) {
             case 'constant': return expression.value;
             case 'variable': return variables[expression.name];
-            case 'add': return expression.terms.reduce((sum, term) => sum + evaluate(term, variables), 0);
-            case 'mul': return expression.factors.reduce((product, factor) => product * evaluate(factor, variables), 1);
+            case 'add': return expression.contents.reduce((sum, term) => sum + evaluate(term, variables), 0);
+            case 'mul': return expression.contents.reduce((product, factor) => product * evaluate(factor, variables), 1);
             case 'div': return evaluate(expression.numerator, variables) / evaluate(expression.denominator, variables);
             case 'group': return evaluate(expression.expression, variables);
             default: return NaN;

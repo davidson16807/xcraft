@@ -43,8 +43,8 @@ const ExpressionPaths = () => {
 
     function _children(expression) {
         switch (expression.type) {
-            case 'add': return expression.terms.map((_, i) => String(i));
-            case 'mul': return expression.factors.map((_, i) => String(i));
+            case 'add': return expression.contents.map((_, i) => String(i));
+            case 'mul': return expression.contents.map((_, i) => String(i));
             case 'div': return ['n', 'd'];
             case 'group': return ['g'];
             default: return [];
@@ -57,8 +57,8 @@ const ExpressionPaths = () => {
 
     function _child(expression, segment) {
         switch (expression.type) {
-            case 'add': return expression.terms[Number(segment)];
-            case 'mul': return expression.factors[Number(segment)];
+            case 'add': return expression.contents[Number(segment)];
+            case 'mul': return expression.contents[Number(segment)];
             case 'div': return segment === 'n'? expression.numerator : expression.denominator;
             case 'group': return expression.expression;
             default: return undefined;
@@ -77,12 +77,12 @@ const ExpressionPaths = () => {
     function _replace_child(expression, segment, replacement) {
         switch (expression.type) {
             case 'add': {
-                const terms = expression.terms.slice();
+                const terms = expression.contents.slice();
                 terms[Number(segment)] = replacement;
                 return expressions.add(terms);
             }
             case 'mul': {
-                const factors = expression.factors.slice();
+                const factors = expression.contents.slice();
                 factors[Number(segment)] = replacement;
                 return expressions.mul(factors);
             }
