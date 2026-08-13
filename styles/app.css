@@ -355,7 +355,7 @@ main {
     border-radius: 0.12em;
 }
 
-.draggable-symbol:hover {
+.draggable-symbol:hover:not(:has(.draggable-symbol:hover)) {
     background: var(--offpaper);
 }
 
