@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 Operates on expressions that can be expressed as scales.

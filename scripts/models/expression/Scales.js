@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 Decomposes expressions into a numeric coefficient and algebraic basis.

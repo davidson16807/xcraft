@@ -1,6 +1,6 @@
 'use strict';
 
-const EquationPaths = (expressions) => {
+const ExpressionPaths = (expressions) => {
 
     function nary(path, index) {
         return `${path}/${index}`;

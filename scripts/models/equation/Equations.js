@@ -5,17 +5,13 @@ Every successful operation in this namespace is an equivalence-preserving
 rewrite under the nonzero-divisor assumptions supplied by the active level.
 Unsupported drags return the original equation reference.
 */
-function Equations(expressions, monomial_expressions, expression_latex, equation_paths) {
-    const paths = equation_paths;
+function Equations(expressions, monomial_expressions, expression_latex, expression_paths) {
+    const paths = expression_paths;
     const monomials = monomial_expressions;
     const latex = expression_latex;
 
-    function sign_and_absolute(expression) {
-        return { sign: monomials.sign(expression), absolute: monomials.absolute(expression) };
-    }
-
     function path_latex(equation, source_path) {
-        const source = equation_paths.resolve(equation, source_path);
+        const source = expression_paths.resolve(equation, source_path);
         return source && latex.encode(source);
     }
 
@@ -230,7 +226,6 @@ function Equations(expressions, monomial_expressions, expression_latex, equation
         move,
         moves_for_source,
         draggable_paths,
-        sign_and_absolute,
         path_latex,
     });
 }

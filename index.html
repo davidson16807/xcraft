@@ -18,22 +18,23 @@
     <script src="./scripts/models/expression/Expressions.js"></script>
     <script src="./scripts/models/expression/ExpressionShape.js"></script>
     <script src="./scripts/models/expression/ExpressionLatex.js"></script>
+    <script src="./scripts/models/expression/ExpressionPaths.js"></script>
     <script src="./scripts/models/expression/Scale.js"></script>
     <script src="./scripts/models/expression/Scales.js"></script>
     <script src="./scripts/models/expression/ScaleExpressions.js"></script>
-    <script src="./scripts/models/equation/EquationPaths.js"></script>
     <script src="./scripts/models/equation/Equation.js"></script>
     <script src="./scripts/models/equation/Equations.js"></script>
     <script src="./scripts/models/equation/EquationShape.js"></script>
     <script src="./scripts/models/app/AppState.js"></script>
     <script src="./scripts/models/app/AppHistoryTraversal.js"></script>
+    <script src="./scripts/models/app/AppDragOperations.js"></script>
     <script src="./scripts/updaters/drags/DragState.js"></script>
     <script src="./scripts/updaters/drags/EquationDrags.js"></script>
-    <script src="./scripts/models/app/AppDragOperations.js"></script>
-    <script src="./scripts/levels/Levels.js"></script>
     <script src="./scripts/updaters/AppUpdater.js"></script>
+    <script src="./scripts/views/ExpressionView.js"></script>
     <script src="./scripts/views/EquationView.js"></script>
     <script src="./scripts/views/AppView.js"></script>
+    <script src="./scripts/levels/Levels.js"></script>
 </head>
 
 <body>
@@ -121,9 +122,9 @@
     const expressions = Expressions();
     const scales = Scales(expressions, expression_shape);
     const scale_expressions = ScaleExpressions(expressions, scales);
-    const expression_latex = ExpressionLatex(expressions, scales);
-    const equation_paths = EquationPaths(expressions);
-    const equations = Equations(expressions, scale_expressions, expression_latex, equation_paths);
+    const expression_latex = ExpressionLatex(expressions, scale_expressions);
+    const expression_paths = ExpressionPaths(expressions);
+    const equations = Equations(expressions, scale_expressions, expression_latex, expression_paths);
     const equation_shape = EquationShape(expression_shape);
 
     const history = AppHistoryTraversal(Infinity);
@@ -136,11 +137,18 @@
         equation_shape: equation_shape
     });
 
+    const expression_view = ExpressionView({
+        html: Html(document),
+        expressions: expressions,
+        expression_paths: expression_paths,
+        scale_expressions: scale_expressions,
+        render: katex.render,
+    });
+
     const equation_view = EquationView({
         html: Html(document),
         equations: equations,
-        equation_paths: equation_paths,
-        expressions: expressions,
+        expression_view: expression_view,
         render: katex.render,
     });
 
