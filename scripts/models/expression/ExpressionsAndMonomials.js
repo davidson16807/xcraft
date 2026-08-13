@@ -1,5 +1,22 @@
 'use strict';
 
+class Monomial {
+    constructor(coefficient, basis, key) {
+        this.coefficient = coefficient;
+        this.basis = basis;
+        this.key = key;
+        Object.freeze(this);
+    }
+
+    with(attributes) {
+        return new Monomial(
+            attributes.coefficient  != null? attributes.coefficient  : this.coefficient,
+            attributes.basis        != null? attributes.basis        : this.basis,
+            attributes.key          != null? attributes.key          : this.key,
+        );
+    }
+}
+
 /*
 Decomposes expressions into a numeric coefficient and algebraic basis.
 Operations in this namespace preserve that representation without making it
@@ -11,18 +28,18 @@ const ExpressionsAndMonomials = (expressions, expression_shape) => {
     function from_expression(expression) {
         switch(expression.type){
         case 'constant':
-            return { coefficient: expression.contents, basis: null, key: '1' };
+            return new Monomial(expression.contents, null, '1');
         case 'variable':
-            return { coefficient: 1, basis: expression, key: shape.encode(expression) };
+            return new Monomial(1, expression, shape.encode(expression));
         case 'mul':
-            const coefficient = expression.contents.reduce((product, factor) => factor.type==='constant'? product *= factor.contents : 0, 1);
+            const coefficient = expression.contents.reduce((product, factor) => factor.type==='constant'? product * factor.contents : 0, 1);
             const basis_factors = expression.contents.filter((coefficient, factor) => factor.type!=='constant');
             const basis = expressions.mul(basis_factors);
             return (basis_factors.length === 0)? 
-                { coefficient: coefficient, basis: null, key: '1' }
-              : { coefficient: coefficient, basis: basis, key: shape.encode(basis) };
+                new Monomial(coefficient, null, '1')
+              : new Monomial(coefficient, basis, shape.encode(basis));
         default:
-            return { coefficient: 1, basis: expression, key: shape.encode(expression) };
+            return new Monomial(1, expression, shape.encode(expression));
         }
     }
 
