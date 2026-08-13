@@ -1,8 +1,8 @@
 'use strict';
 // HUMAN VETTED
 
-const ExpressionLatex = (expressions, expressions_and_coefficient_basis) => {
-    const coefficient_basis = expressions_and_coefficient_basis;
+const ExpressionLatex = (expressions, expressions_and_monomials) => {
+    const coefficient_basis = expressions_and_monomials;
 
     function precedence(expression) {
         switch (expression.type) {

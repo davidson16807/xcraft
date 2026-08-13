@@ -9,7 +9,7 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/expression/Expression.js',
     'scripts/models/expression/ExpressionShape.js',
     'scripts/models/expression/Expressions.js',
-    'scripts/models/expression/ExpressionsAndCoefficientBasis.js',
+    'scripts/models/expression/ExpressionsAndMonomials.js',
     'scripts/models/equation/Equation.js',
     'scripts/models/equation/EquationShape.js',
     'scripts/models/expression/ExpressionLatex.js',
@@ -22,7 +22,7 @@ const root = path.resolve(__dirname, '..');
 
 const expression_shape = ExpressionShape();
 const expressions = Expressions();
-const coefficient_basis = ExpressionsAndCoefficientBasis(expressions, expression_shape);
+const coefficient_basis = ExpressionsAndMonomials(expressions, expression_shape);
 const equation_shape = EquationShape(expression_shape);
 const expression_latex = ExpressionLatex(expressions, coefficient_basis);
 const paths = EquationPaths(expressions);

@@ -5,9 +5,9 @@ Every successful operation in this namespace is an equivalence-preserving
 rewrite under the nonzero-divisor assumptions supplied by the active level.
 Unsupported drags return the original equation reference.
 */
-function Equations(expressions, expressions_and_coefficient_basis, expression_latex, equation_paths) {
+function Equations(expressions, expressions_and_monomials, expression_latex, equation_paths) {
     const paths = equation_paths;
-    const coefficient_basis = expressions_and_coefficient_basis;
+    const coefficient_basis = expressions_and_monomials;
     const latex = expression_latex;
 
     function sign_and_absolute(expression) {

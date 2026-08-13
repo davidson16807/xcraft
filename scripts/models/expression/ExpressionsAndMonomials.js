@@ -5,7 +5,7 @@ Decomposes expressions into a numeric coefficient and algebraic basis.
 Operations in this namespace preserve that representation without making it
 part of the Expression value itself.
 */
-const ExpressionsAndCoefficientBasis = (expressions, expression_shape) => {
+const ExpressionsAndMonomials = (expressions, expression_shape) => {
     const shape = expression_shape;
 
     function from_expression(expression) {
