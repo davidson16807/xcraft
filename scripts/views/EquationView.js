@@ -5,8 +5,8 @@ function EquationView(dependencies) {
 
     const html = dependencies.html;
     const equations = dependencies.equations;
+    const paths = dependencies.expression_paths;
     const expression_view = dependencies.expression_view;
-    const expression_latex = dependencies.expression_latex;
     const render = dependencies.render;
 
     function math(latex, class_name) {
@@ -29,9 +29,11 @@ function EquationView(dependencies) {
         ]);
     }
 
-    function draw_ghost(latex, point, class_name) {
-        const node = html.div({ class:`drag-ghost ${class_name}` }, []);
-        render(latex, node, { throwOnError:false, output:'html' });
+    function draw_ghost(expression, point, class_name) {
+        const node = html.div(
+            { class:`drag-ghost ${class_name}` },
+            [expression_view.draw(expression)]
+        );
         node.style.left = `${point.x}px`;
         node.style.top = `${point.y}px`;
         return node;
@@ -48,20 +50,19 @@ function EquationView(dependencies) {
         if (is_balance_move) {
             const inverse = equations.opposite(equation, drag_state.source_path);
             if (inverse != null) {
-                const latex = expression_latex.encode(inverse);
                 return [
-                    draw_ghost(latex, {
+                    draw_ghost(inverse, {
                         x: drag_state.start.x + 40,
                         y: drag_state.start.y + 40,
                     }, 'drag-ghost-origin'),
-                    draw_ghost(latex, drag_state.current, 'drag-ghost-current'),
+                    draw_ghost(inverse, drag_state.current, 'drag-ghost-current'),
                 ];
             }
         }
 
-        const latex = equations.path_latex(equation, drag_state.source_path);
-        return latex?
-            [draw_ghost(latex, drag_state.current, 'drag-ghost-current')] :
+        const source = paths.resolve(equation, drag_state.source_path);
+        return source?
+            [draw_ghost(source, drag_state.current, 'drag-ghost-current')] :
             [];
     }
 

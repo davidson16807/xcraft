@@ -17,7 +17,6 @@
     <script src="./scripts/models/expression/Expression.js"></script>
     <script src="./scripts/models/expression/Expressions.js"></script>
     <script src="./scripts/models/expression/ExpressionShape.js"></script>
-    <script src="./scripts/models/expression/ExpressionLatex.js"></script>
     <script src="./scripts/models/expression/ExpressionPaths.js"></script>
     <script src="./scripts/models/expression/Scale.js"></script>
     <script src="./scripts/models/expression/Scales.js"></script>
@@ -122,12 +121,10 @@
     const expressions = Expressions();
     const scales = Scales(expressions, expression_shape);
     const scale_expressions = ScaleExpressions(expressions, scales);
-    const expression_latex = ExpressionLatex(expressions, scale_expressions);
     const expression_paths = ExpressionPaths(expressions);
     const equations = Equations({
         expressions: expressions,
         scale_expressions: scale_expressions,
-        expression_latex: expression_latex,
         expression_paths: expression_paths
     });
     const equation_shape = EquationShape(expression_shape);
@@ -153,8 +150,8 @@
     const equation_view = EquationView({
         html: Html(document),
         equations: equations,
+        expression_paths: expression_paths,
         expression_view: expression_view,
-        expression_latex: expression_latex,
         render: katex.render,
     });
 

@@ -14,7 +14,6 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/expression/ScaleExpressions.js',
     'scripts/models/equation/Equation.js',
     'scripts/models/equation/EquationShape.js',
-    'scripts/models/expression/ExpressionLatex.js',
     'scripts/models/expression/ExpressionPaths.js',
     'scripts/models/equation/Equations.js',
     'scripts/levels/Levels.js',
@@ -27,12 +26,10 @@ const expressions = Expressions();
 const scales = Scales(expressions, expression_shape);
 const scale_expressions = ScaleExpressions(expressions, scales);
 const equation_shape = EquationShape(expression_shape);
-const expression_latex = ExpressionLatex(expressions, scale_expressions);
 const paths = ExpressionPaths(expressions);
 const algebra = Equations({
     expressions: expressions,
     scale_expressions: scale_expressions,
-    expression_latex: expression_latex,
     expression_paths: paths,
 });
 const levels = Levels(expressions);
@@ -166,7 +163,8 @@ function verifyOppositeOperations() {
 
     const multiplicative_inverse = algebra.opposite(levels[2].equation, 'L/0');
     assert(
-        expression_latex.encode(multiplicative_inverse) === '\\frac{1}{4}',
+        expression_shape.encode(multiplicative_inverse) ===
+        expression_shape.encode(expressions.reciprocal(expressions.constant(4))),
         'moving a factor 4 across equality should apply its reciprocal to both sides'
     );
 
@@ -245,7 +243,7 @@ function verifyCommutativeSwaps() {
     );
 }
 
-function verifyViewDerivedParenthesesAndTopLevelBalance() {
+function verifyTopLevelBalance() {
     const x = expressions.variable('x');
     const two = expressions.constant(2);
     const five = expressions.constant(5);
@@ -270,17 +268,6 @@ function verifyViewDerivedParenthesesAndTopLevelBalance() {
         'moving -2 should apply +2 to the other side'
     );
 
-    // Parentheses are now formatting inferred from structure.
-    const product = expressions.mul([two, expressions.add([x, five])]);
-    assert(
-        expression_latex.encode(product) === '2\\left(x+5\\right)',
-        'a sum used as a product factor should receive view/formatting parentheses'
-    );
-    const fraction = expressions.div(expressions.add([x, five]), two);
-    assert(
-        expression_latex.encode(fraction) === '\\frac{x+5}{2}',
-        'a fraction bar should group a lone numerator without redundant parentheses'
-    );
 }
 
 function verifyExpressionRepresentation() {
@@ -298,10 +285,8 @@ function verifyExpressionRepresentation() {
     const quotient = expressions.div(x, two);
     assert(quotient.type === 'mul', 'division should construct multiplication by a reciprocal');
     assert(expressions.is_reciprocal(quotient.contents[1]), 'division denominator should be reciprocal');
-    assert(expression_latex.encode(quotient) === '\\frac{x}{2}', 'reciprocal multiplication should render as a fraction');
-
     const square = expressions.pow(x, 2);
-    assert(expression_latex.encode(square) === 'x^{2}', 'powers should render with an exponent');
+    assert(square.type === 'pow', 'powers should use the power expression type');
 }
 
 function isSatisfied(equation, variables, tolerance) {
@@ -354,7 +339,7 @@ function verifyAdvertisedMoves() {
 verifyCoefficientBasis();
 verifyOppositeOperations();
 verifyCommutativeSwaps();
-verifyViewDerivedParenthesesAndTopLevelBalance();
+verifyTopLevelBalance();
 verifyExpressionRepresentation();
 [
     solveLevel1, solveLevel2, solveLevel3, solveLevel4, solveLevel5,

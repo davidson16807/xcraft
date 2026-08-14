@@ -9,7 +9,6 @@ function Equations(dependencies) {
     const expressions = dependencies.expressions;
     const paths = dependencies.expression_paths;
     const scales = dependencies.scale_expressions;
-    const latex = dependencies.expression_latex;
 
     function _other_side(side) {
         return side === 'L'? 'R' : 'L';
@@ -269,11 +268,6 @@ function Equations(dependencies) {
         ));
     }
 
-    function path_latex(equation, source_path) {
-        const source = paths.resolve(equation, source_path);
-        return source && latex.encode(source);
-    }
-
 
     function draggable_paths(equation) {
         return Object.freeze(paths.all(equation).filter(path =>
@@ -287,6 +281,5 @@ function Equations(dependencies) {
         move,
         moves_for_source,
         draggable_paths,
-        path_latex,
     });
 }

@@ -9,6 +9,8 @@ function ExpressionView(dependencies) {
     const scales = dependencies.scale_expressions;
     const render = dependencies.render;
 
+    const empty_paths = new Set();
+
     function math(latex, class_name) {
         const node = html.span({ class: class_name || 'math-atom' }, []);
         render(latex, node, { throwOnError: false, output: 'html' });
@@ -30,9 +32,11 @@ function ExpressionView(dependencies) {
     function path_attributes(path, draggable_paths, valid_targets, classes) {
         const attrs = {
             class: 'expression-node ' + (classes || ''),
-            'data-path': path,
-            'data-drop-key': `path:${path}`,
         };
+        if (path == null) return attrs;
+
+        attrs['data-path'] = path;
+        attrs['data-drop-key'] = `path:${path}`;
         if (draggable_paths.has(path)) {
             attrs.class += ' draggable-symbol';
             attrs['data-draggable'] = '1';
@@ -140,6 +144,8 @@ function ExpressionView(dependencies) {
     }
 
     function draw(expression, path, draggable_paths, valid_targets, parent_precedence, is_power_base) {
+        draggable_paths = draggable_paths || empty_paths;
+        valid_targets = valid_targets || empty_paths;
         const parent = parent_precedence == null? 0 : parent_precedence;
         let node;
 

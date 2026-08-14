@@ -4,15 +4,15 @@
 const ExpressionPaths = (expressions) => {
 
     function nary(path, index) {
-        return `${path}/${index}`;
+        return path == null? null : `${path}/${index}`;
     }
 
     function base(path) {
-        return `${path}/b`;
+        return path == null? null : `${path}/b`;
     }
 
     function exponent(path) {
-        return `${path}/e`;
+        return path == null? null : `${path}/e`;
     }
 
     function split(path) {
