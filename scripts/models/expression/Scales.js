@@ -35,7 +35,7 @@ const Scales = (expressions, expression_shape) => {
         if (scale.basis == null) return expressions.constant(scale.coefficient);
         if (scale.coefficient === 0) return expressions.constant(0);
         if (scale.coefficient === 1) return scale.basis;
-        return expressions.mul([
+        else return expressions.mul([
             expressions.constant(scale.coefficient),
             scale.basis
         ]);

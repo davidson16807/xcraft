@@ -12,43 +12,26 @@ const Expressions = () => {
     const constant = value => new Expression('constant', Number(value));
     const variable = name => new Expression('variable', String(name));
 
-    function add(terms) {
+    const group = (label, identity) => (terms) => {
         const flat = [];
         terms.forEach(term => {
-            if (term.type === 'add') {
+            if (term.type === label) {
                 term.contents.forEach(x => flat.push(x));
             } else {
                 flat.push(term);
             }
         });
-        if (flat.length === 0) return constant(0);
+        if (flat.length === 0) return constant(identity);
         if (flat.length === 1) return flat[0];
-        return new Expression('add', freeze(flat));
+        else return new Expression(label, freeze(flat));
     }
 
-    function mul(factors) {
-        const flat = [];
-        factors.forEach(factor => {
-            if (factor.type === 'mul') {
-                factor.contents.forEach(x => flat.push(x));
-            } else {
-                flat.push(factor);
-            }
-        });
-        if (flat.length === 0) return constant(1);
-        if (flat.length === 1) return flat[0];
-        return new Expression('mul', freeze(flat));
-    }
+    const add = group('add', 0);
+    const mul = group('mul', 1);
 
     function pow(base, exponent) {
         const exponent_expression = exponent instanceof Expression? exponent : constant(exponent);
         return new Expression('pow', freeze([base, exponent_expression]));
-    }
-
-    function is_reciprocal(expression) {
-        return expression.type === 'pow' &&
-            expression.contents[1].type === 'constant' &&
-            expression.contents[1].contents === -1;
     }
 
     function reciprocal(expression) {
@@ -96,6 +79,12 @@ const Expressions = () => {
             case 'pow': return 3;
             default: return 4;
         }
+    }
+
+    function is_reciprocal(expression) {
+        return expression.type === 'pow' &&
+            expression.contents[1].type === 'constant' &&
+            expression.contents[1].contents === -1;
     }
 
     return freeze({
