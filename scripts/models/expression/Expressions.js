@@ -2,37 +2,108 @@
 // HUMAN VETTED
 
 /*
-`Expression` is the immutable model for algebraic expressions.
-Constructors return deeply immutable values.  Transformations never modify
-an input expression; they return either the original reference or a new tree.
+In math, a "monoid" is a structure featuring an operation that has an identity and is everywhere associative.
+`Monoid` manages expressions that only require awareness of a single operation with these properties.
+so `Monoid` can swap, append, and remove but not invert, combine, or distribute,
+since expressing those either requires other properties or knowledge of operations outside the monoid.
+
+label           String
+is_commutative  Boolean
+identity        Expression
+evaluator       (Expression->T) -> (Expression->T)
+                e.g. subevaluate => expression => expression.contents.reduce((accumulator, item) => accumulator + subevaluate(item, variables), 0)
 */
-const Expressions = () => {
-    const freeze = Object.freeze;
-
-    const constant = value => new Expression('constant', Number(value));
-    const variable = name => new Expression('variable', String(name));
-
-    const group = (label, identity) => (terms) => {
+const MonoidStructure = (label, identity, is_commutative, evaluator) => {
+    function create(contents) {
         const flat = [];
-        terms.forEach(term => {
+        contents.forEach(term => {
             if (term.type === label) {
                 term.contents.forEach(x => flat.push(x));
             } else {
                 flat.push(term);
             }
         });
-        if (flat.length === 0) return constant(identity);
+        if (flat.length === 0) return identity;
         if (flat.length === 1) return flat[0];
-        else return new Expression(label, freeze(flat));
+        else return new Expression(label, Object.freeze(flat));
     }
 
-    const add = group('add', 0);
-    const mul = group('mul', 1);
-
-    function pow(base, exponent) {
-        const exponent_expression = exponent instanceof Expression? exponent : constant(exponent);
-        return new Expression('pow', freeze([base, exponent_expression]));
+    function swap(expression, index1, index2) {
+        if (!is_commutative) { return expression; }
+        const contents = expression.contents.slice();
+        [contents[index1], contents[index2]] = [contents[index2], contents[index1]];
+        return new Expression(expression.type, contents);
     }
+
+    function append(left, right) {
+        return left.type === label? create([...left.contents, right]) : create([left, right]);
+    }
+
+    function remove(expression, index) {
+        return expression.type !== label? expression : create(expression.contents.filter((_, i) => i !== index));
+    }
+
+    return Object.freeze({
+        label,
+        create,
+        swap,
+        append,
+        remove,
+        evaluator, 
+    });
+}
+
+const PowerStructure = (label) => {
+    function create(base, exponent) {
+        const exponent_expression = exponent instanceof Expression? exponent : Expression('constant',exponent);
+        return new Expression(label, Object.freeze([base, exponent_expression]));
+    }
+
+    function evaluator(subevaluate) {
+        return expression => Math.pow(
+            subevaluate(expression.contents[0]),
+            subevaluate(expression.contents[1])
+        );
+    }
+
+    function swap(expression, index1, index2) {
+        if (!is_commutative) { return expression; }
+        const contents = expression.contents.slice();
+        [contents[index1], contents[index2]] = [contents[index2], contents[index1]];
+        const replacement = new Expression(expression.type, contents);
+    }
+
+    function append(left, right) {
+        return expression;
+    }
+
+    function remove(expression, index) {
+        return expression;
+    }
+
+    return Object.freeze({
+        label,
+        create,
+        swap,
+        append,
+        remove,
+        evaluator, 
+    });
+}
+
+/*
+`Expression` is the immutable model for algebraic expressions.
+Constructors return deeply immutable values.  Transformations never modify
+an input expression; they return either the original reference or a new tree.
+*/
+const Expressions = (structures) => {
+
+    const constant = value => new Expression('constant', Number(value));
+    const variable = name => new Expression('variable', String(name));
+
+    const add = structures['add'].create;
+    const mul = structures['mul'].create;
+    const pow = structures['pow'].create;
 
     function reciprocal(expression) {
         return is_reciprocal(expression)? expression.contents[0] : pow(expression, constant(-1));
@@ -40,37 +111,30 @@ const Expressions = () => {
 
     const div = (numerator, denominator) => mul([numerator, reciprocal(denominator)]);
 
-    function append_add(left, right) {
-        return left.type === 'add'? add([...left.contents, right]) : add([left, right]);
+    function append(type, left, right) {
+        const structure = structures[type];
+        if (structure == null) return expression;
+        return left.type === type? structure.create([...left.contents, right]) : structure.create([left, right]);
     }
 
-    function append_mul(left, right) {
-        return left.type === 'mul'? mul([...left.contents, right]) : mul([left, right]);
+    function remove(expression, index) {
+        const structure = structures[expression.type];
+        if (structure == null) return expression;
+        return structure.remove(expression, index);
     }
 
-    function remove_indexed(expression, index) {
-        if (expression.type === 'add') {
-            return add(expression.contents.filter((_, i) => i !== index));
-        }
-        if (expression.type === 'mul') {
-            return mul(expression.contents.filter((_, i) => i !== index));
-        }
-        return expression;
-    }
-
-    function evaluate(expression, variables) {
+    const evaluator = variables => expression => {
+        const subevaluate = expression => evaluator(variables);
+        const structure = structures[expression.type];
+        if (structure != null) { return structure.evaluator(subevaluate)(expression); }
         switch (expression.type) {
             case 'constant': return expression.contents;
             case 'variable': return variables[expression.contents];
-            case 'add': return expression.contents.reduce((sum, term) => sum + evaluate(term, variables), 0);
-            case 'mul': return expression.contents.reduce((product, factor) => product * evaluate(factor, variables), 1);
-            case 'pow': return Math.pow(
-                evaluate(expression.contents[0], variables),
-                evaluate(expression.contents[1], variables)
-            );
             default: return NaN;
         }
     }
+
+    const evaluate = (expression, variables) => evaluator(variables)(expression);
 
     function precedence(expression) {
         switch (expression.type) {
@@ -87,7 +151,7 @@ const Expressions = () => {
             expression.contents[1].contents === -1;
     }
 
-    return freeze({
+    return Object.freeze({
         constant,
         variable,
         add,
@@ -96,10 +160,9 @@ const Expressions = () => {
         reciprocal,
         is_reciprocal,
         div,
-        append_add,
-        append_mul,
-        remove_indexed,
-        evaluate,
+        append,
+        remove,
         precedence,
+        evaluate,
     });
 };

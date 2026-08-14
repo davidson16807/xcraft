@@ -36,12 +36,6 @@ function Equations(dependencies) {
         return paths.replace(equation, parent_path, new Expression(type, items));
     }
 
-    // TODO: this feels kinda dumb
-    const _group_append_for_tag = {
-        'add': expressions.append_add,
-        'mul': expressions.append_mul,
-    }
-
     function _balance(equation, source_path, target_side) {
         const parsed = paths.split(source_path);
         if (parsed.side === target_side) return equation;
@@ -60,15 +54,12 @@ function Equations(dependencies) {
         const index = Number(segment);
         if (inverse == null) return equation;
 
-        const group_append = _group_append_for_tag[source_root.type];
-        if (group_append == null) return equation;
-
         // a + b = c  ->  a = c - b
         // ab = c  ->  b = c/a
         // a/b = c is represented as a*b^-1 = c, so dragging b^-1 across
         // uses the same inverse operation and reciprocal(b^-1) becomes b.
-        const new_source = expressions.remove_indexed(source_root, index);
-        const new_target = group_append(target_root, inverse);
+        const new_source = expressions.remove(source_root, index);
+        const new_target = expressions.append(source_root.type, target_root, inverse);
         let left, right;
         [left,right] = target_side==='L'? [new_target, new_source] : [new_source, new_target];
         return equation.with({left: left, right: right});
