@@ -2,24 +2,12 @@
 // HUMAN VETTED
 
 function AppView(dependencies, app_updater) {
-    const equation_view = dependencies.equation_view;
+    const html = dependencies.html;
     const render = dependencies.render;
+    const equation_view = dependencies.equation_view;
     const equation_shape = dependencies.equation_shape;
 
     function draw(app, dom_io) {
-
-        katex.render("x", 
-            document.getElementById('logo'), 
-            {throwOnError: false })
-
-        document.getElementById('subtitle').replaceChildren([
-            'An introduction to algebra',
-            'Every change to both sides',
-            'There are no wrong moves',
-            'The search for x',
-            'Solve for x',
-            'Find x',
-        ][0]);
 
         const app_element = dom_io.getElementById('app');
         const equation_element = dom_io.getElementById('equation');
@@ -55,17 +43,14 @@ function AppView(dependencies, app_updater) {
         theme_button.setAttribute('aria-label', app.theme === 'day'? 'Use night mode' : 'Use day mode');
         solved_mark.classList.toggle('visible', solved);
 
-        level_strip.replaceChildren();
-        app.levels.forEach((level, i) => {
-            const button = dom_io.createElement('button');
-            button.type = 'button';
-            button.className = 'level-dot';
-            if (i === app.level_index) button.classList.add('active');
-            button.setAttribute('data-level-index', i);
-            button.setAttribute('aria-label', `Level ${i+1}: ${level.title}`);
-            button.textContent = String(i+1);
-            level_strip.appendChild(button);
-        });
+        level_strip.replaceChildren(
+            ...app.levels.map((level, i) => 
+                html.button({ 
+                    'class': 'level-dot' + i === app.level_index? ' active':'', 
+                    'data-level-index':i, 
+                    'aria-label': `Level ${i+1}: ${level.title}`
+                }, [], String(i+1))
+        ));
 
         equation_view.draw(
             app.equation,

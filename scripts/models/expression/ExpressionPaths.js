@@ -3,6 +3,14 @@
 
 const ExpressionPaths = (expressions) => {
 
+    function domain(path) {
+        return path.split(':')[0];
+    }
+
+    function path(path) {
+        return path.split(':')[1];
+    }
+
     function nary(path, index) {
         return path == null? null : `${path}/${index}`;
     }
@@ -134,6 +142,8 @@ const ExpressionPaths = (expressions) => {
     }
 
     return Object.freeze({
+        domain,
+        path,
         nary,
         base,
         exponent,

@@ -117,6 +117,18 @@
 
 (()=>{
 
+    katex.render("x", 
+        document.getElementById('logo'), 
+        {throwOnError: false })
+
+    const subtitles = [
+        'An introduction to algebra',
+        'Every change to both sides',
+        'There are no wrong moves',
+        'The search for x',
+    ];
+    document.getElementById('subtitle').replaceChildren(subtitles[Math.floor(Math.random()*subtitles.length)]);
+
     const expression_shape = ExpressionShape();
     const expressions = Expressions();
     const scales = Scales(expressions, expression_shape);
@@ -139,26 +151,29 @@
         equation_shape: equation_shape
     });
 
+    const html = Html(document);
+
     const expression_view = ExpressionView({
-        html: Html(document),
+        html: html,
+        render: katex.render,
         expressions: expressions,
         expression_paths: expression_paths,
         scale_expressions: scale_expressions,
-        render: katex.render,
     });
 
     const equation_view = EquationView({
-        html: Html(document),
+        html: html,
+        render: katex.render,
         equations: equations,
         expression_paths: expression_paths,
         expression_view: expression_view,
-        render: katex.render,
     });
 
     const app_view = AppView({
+        html: html,
+        render: katex.render,
         equation_view: equation_view,
         equation_shape: equation_shape,
-        render: katex.render,
     }, app_updater);
 
     const released = equation_drags.release();

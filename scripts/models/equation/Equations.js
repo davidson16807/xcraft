@@ -14,35 +14,6 @@ function Equations(dependencies) {
         return side === 'L'? 'R' : 'L';
     }
 
-    function opposite(equation, source_path) {
-        if (source_path == null) return null;
-
-        const parsed = paths.split(source_path);
-        const source = paths.resolve(equation, source_path);
-        if (source == null) return null;
-
-        const source_root_path = parsed.side;
-        const source_root = paths.resolve(equation, source_root_path);
-        const parent_path = paths.parent(source_path);
-
-        // a + b = c applies -b to both sides.
-        if (source_root.type === 'add' && parent_path === source_root_path) {
-            return scales.negate(source);
-        }
-
-        // ab = c applies a^-1 to both sides.  A reciprocal factor is its
-        // own inverse operation in the expected way: (a^-1)^-1 -> a.
-        if (
-            source_root.type === 'mul' &&
-            parent_path === source_root_path &&
-            !(source.type === 'constant' && source.contents === 0)
-        ) {
-            return expressions.reciprocal(source);
-        }
-
-        return null;
-    }
-
     function _replace_two_children(equation, parent_path, source_index, target_index, replacement, identity_type) {
         const parent = paths.resolve(equation, parent_path);
         const items = parent.contents.slice();
@@ -64,7 +35,7 @@ function Equations(dependencies) {
         return paths.replace(equation, parent_path, updated);
     }
 
-    function _move_across(equation, source_path, target_side) {
+    function _balance(equation, source_path, target_side) {
         const parsed = paths.split(source_path);
         if (parsed.side === target_side) return equation;
 
@@ -109,7 +80,7 @@ function Equations(dependencies) {
         return equation;
     }
 
-    function swap(equation, path1, path2) {
+    function _swap(equation, path1, path2) {
         if (path1 == null || path2 == null || path1 === path2) return equation;
 
         const parent_path = paths.parent(path1);
@@ -138,7 +109,7 @@ function Equations(dependencies) {
         return paths.replace(equation, parent_path, replacement);
     }
 
-    function _combine_siblings(equation, source_path, target_path) {
+    function _combine(equation, source_path, target_path) {
         const source_parent_path = paths.parent(source_path);
         const target_parent_path = paths.parent(target_path);
         if (source_parent_path == null || source_parent_path !== target_parent_path) return equation;
@@ -150,20 +121,24 @@ function Equations(dependencies) {
         const target_segment = paths.segment(target_path);
 
         // 2x + 3x -> 5x, and 7 + (-3) -> 4.
-        if (parent.type === 'add') {
-            const combined = scales.combine(source, target);
-            if (combined == null) return equation;
-            return _replace_two_children(
-                equation,
-                source_parent_path,
-                Number(source_segment),
-                Number(target_segment),
-                combined,
-                'add'
-            );
-        }
+        switch(parent.type){
 
-        if (parent.type === 'mul') {
+        case 'add':
+            const combined = scales.combine(source, target);
+            return (combined == null? 
+                equation
+              : _replace_two_children(
+                    equation,
+                    source_parent_path,
+                    Number(source_segment),
+                    Number(target_segment),
+                    combined,
+                    'add'
+                )
+            );
+
+        case 'mul':
+
             // 5 * 6 -> 30.  Numeric multiplication is intentionally explicit.
             if (source.type === 'constant' && target.type === 'constant') {
                 return _replace_two_children(
@@ -233,28 +208,32 @@ function Equations(dependencies) {
                     expressions.mul(factors)
                 );
             }
-        }
 
-        return equation;
+        default:
+            return equation
+        }
     }
 
     function move(equation, source_path, target_key) {
         if (source_path == null || target_key == null) return equation;
 
-        if (target_key.startsWith('side:')) {
-            return _move_across(equation, source_path, target_key.slice(5));
+        switch(paths.domain(target_key))
+        {
+        case 'side':
+            return _balance(equation, source_path, target_key.slice(5));
+        case 'path':
+            const target_path = paths.path(target_key);
+            if (
+                source_path === target_path ||
+                paths.is_ancestor(source_path, target_path) ||
+                paths.is_ancestor(target_path, source_path)
+            ) return equation;
+            const combined = _combine(equation, source_path, target_path);
+            return combined !== equation? combined : _swap(equation, source_path, target_path);
+        default:
+            return equation;
         }
 
-        if (!target_key.startsWith('path:')) return equation;
-        const target_path = target_key.slice(5);
-        if (
-            source_path === target_path ||
-            paths.is_ancestor(source_path, target_path) ||
-            paths.is_ancestor(target_path, source_path)
-        ) return equation;
-
-        const combined = _combine_siblings(equation, source_path, target_path);
-        return combined !== equation? combined : swap(equation, source_path, target_path);
     }
 
     function moves_for_source(equation, source_path) {
@@ -275,9 +254,38 @@ function Equations(dependencies) {
         ));
     }
 
+
+    function opposite(equation, source_path) {
+        if (source_path == null) return null;
+
+        const parsed = paths.split(source_path);
+        const source = paths.resolve(equation, source_path);
+        if (source == null) return null;
+
+        const source_root_path = parsed.side;
+        const source_root = paths.resolve(equation, source_root_path);
+        const parent_path = paths.parent(source_path);
+
+        // a + b = c applies -b to both sides.
+        if (source_root.type === 'add' && parent_path === source_root_path) {
+            return scales.negate(source);
+        }
+
+        // ab = c applies a^-1 to both sides.  A reciprocal factor is its
+        // own inverse operation in the expected way: (a^-1)^-1 -> a.
+        if (
+            source_root.type === 'mul' &&
+            parent_path === source_root_path &&
+            !(source.type === 'constant' && source.contents === 0)
+        ) {
+            return expressions.reciprocal(source);
+        }
+
+        return null;
+    }
+
     return Object.freeze({
         opposite,
-        swap,
         move,
         moves_for_source,
         draggable_paths,

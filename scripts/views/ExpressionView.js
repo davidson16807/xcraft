@@ -17,7 +17,7 @@ function ExpressionView(dependencies) {
         return node;
     }
 
-    function parenthesize_if_needed(node, expression, parent_precedence, is_power_base) {
+    function maybe_parenthesize(node, expression, parent_precedence, is_power_base) {
         const needs_parentheses =
             expressions.precedence(expression) < parent_precedence ||
             (is_power_base && expression.type === 'pow');
@@ -143,7 +143,7 @@ function ExpressionView(dependencies) {
         return node;
     }
 
-    function draw(expression, path, draggable_paths, valid_targets, parent_precedence, is_power_base) {
+    function _draw(expression, path, draggable_paths, valid_targets, parent_precedence, is_power_base) {
         draggable_paths = draggable_paths || empty_paths;
         valid_targets = valid_targets || empty_paths;
         const parent = parent_precedence == null? 0 : parent_precedence;
@@ -151,15 +151,15 @@ function ExpressionView(dependencies) {
 
         switch (expression.type) {
             case 'constant':
-                node = html.span(path_attributes(path, draggable_paths, valid_targets), [math(String(expression.contents))]);
+                return html.span(path_attributes(path, draggable_paths, valid_targets), [math(String(expression.contents))]);
                 break;
 
             case 'variable':
-                node = html.span(path_attributes(path, draggable_paths, valid_targets), [math(expression.contents)]);
+                return html.span(path_attributes(path, draggable_paths, valid_targets), [math(expression.contents)]);
                 break;
 
             case 'add':
-                node = html.span(path_attributes(path, draggable_paths, valid_targets, 'expression-add'),
+                return html.span(path_attributes(path, draggable_paths, valid_targets, 'expression-add'),
                     expression.contents.map((term, i) => {
                         const sign = scales.sign(term);
                         const absolute = scales.absolute(term);
@@ -181,7 +181,7 @@ function ExpressionView(dependencies) {
                 break;
 
             case 'mul':
-                node = draw_mul(expression, path, draggable_paths, valid_targets);
+                return draw_mul(expression, path, draggable_paths, valid_targets);
                 break;
 
             case 'pow': {
@@ -189,7 +189,7 @@ function ExpressionView(dependencies) {
                 const exponent = expression.contents[1];
 
                 if (expressions.is_reciprocal(expression)) {
-                    node = html.span(
+                    return html.span(
                         path_attributes(path, draggable_paths, valid_targets, 'expression-fraction'),
                         [
                             html.span({ class:'fraction-numerator' }, [math('1')]),
@@ -199,7 +199,7 @@ function ExpressionView(dependencies) {
                         ]
                     );
                 } else {
-                    node = html.span(
+                    return html.span(
                         path_attributes(path, draggable_paths, valid_targets, 'expression-power'),
                         [
                             draw(
@@ -226,10 +226,18 @@ function ExpressionView(dependencies) {
             }
 
             default:
-                node = html.span(path_attributes(path, draggable_paths, valid_targets), [math('?')]);
+                return html.span(path_attributes(path, draggable_paths, valid_targets), [math('?')]);
         }
 
-        return parenthesize_if_needed(node, expression, parent, !!is_power_base);
+        return node;
+    }
+
+    function draw(expression, path, draggable_paths, valid_targets, parent_precedence, is_power_base)
+    {
+        return maybe_parenthesize(
+            _draw(expression, path, draggable_paths, valid_targets, parent_precedence, is_power_base), 
+            expression, parent, !!is_power_base
+        );
     }
 
     return Object.freeze({ draw: draw });
