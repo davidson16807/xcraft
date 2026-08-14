@@ -27,7 +27,7 @@ const expressions = Expressions();
 const scales = Scales(expressions, expression_shape);
 const scale_expressions = ScaleExpressions(expressions, scales);
 const equation_shape = EquationShape(expression_shape);
-const expression_latex = ExpressionLatex(expressions, scales);
+const expression_latex = ExpressionLatex(expressions, scale_expressions);
 const paths = ExpressionPaths(expressions);
 const algebra = Equations({
     expressions: expressions,
@@ -178,7 +178,7 @@ function verifyOppositeOperations() {
     );
 
     assert(
-        algebra.opposite(levels[6].equation, 'L/1/g/0') == null,
+        algebra.opposite(levels[6].equation, 'L/1/0') == null,
         'nested/local expressions should not advertise a balance operation'
     );
 }
@@ -236,12 +236,50 @@ function verifyCommutativeSwaps() {
     );
 
     const nested = new Equation(
-        expressions.add([x, expressions.group(expressions.add([y, three]))]),
+        expressions.add([x, expressions.mul([y, three])]),
         expressions.constant(0)
     );
     assert(
-        algebra.swap(nested, 'L/0', 'L/1/g/0') === nested,
+        algebra.swap(nested, 'L/0', 'L/1/0') === nested,
         'expressions with different parents should not be swappable'
+    );
+}
+
+function verifyViewDerivedParenthesesAndTopLevelBalance() {
+    const x = expressions.variable('x');
+    const two = expressions.constant(2);
+    const five = expressions.constant(5);
+
+    // What is displayed as (x-2)=5 is structurally just an addition at the
+    // root, so -2 is immediately eligible for a balanced operation.
+    const equation = new Equation(
+        expressions.add([x, expressions.constant(-2)]),
+        five
+    );
+    const inverse = algebra.opposite(equation, 'L/1');
+    assert(
+        expression_shape.encode(inverse) === expression_shape.encode(two),
+        'a visually parenthesized root sum should expose its top-level addends'
+    );
+    const moved = algebra.move(equation, 'L/1', 'side:R');
+    assert(moved !== equation, 'top-level -2 should move across equality');
+    assert(
+        equation_shape.encode(moved) === equation_shape.encode(
+            new Equation(x, expressions.add([five, two]))
+        ),
+        'moving -2 should apply +2 to the other side'
+    );
+
+    // Parentheses are now formatting inferred from structure.
+    const product = expressions.mul([two, expressions.add([x, five])]);
+    assert(
+        expression_latex.encode(product) === '2\\left(x+5\\right)',
+        'a sum used as a product factor should receive view/formatting parentheses'
+    );
+    const fraction = expressions.div(expressions.add([x, five]), two);
+    assert(
+        expression_latex.encode(fraction) === '\\frac{x+5}{2}',
+        'a fraction bar should group a lone numerator without redundant parentheses'
     );
 }
 
@@ -251,6 +289,7 @@ function verifyExpressionRepresentation() {
             const expression = paths.resolve(level.equation, path);
             assert(expression instanceof Expression, `AST node should be an Expression: ${path}`);
             assert(expression.type !== 'div', `division should not be a primitive AST node: ${path}`);
+            assert(expression.type !== 'group', `parentheses should not be a primitive AST node: ${path}`);
         });
     });
 
@@ -315,6 +354,7 @@ function verifyAdvertisedMoves() {
 verifyCoefficientBasis();
 verifyOppositeOperations();
 verifyCommutativeSwaps();
+verifyViewDerivedParenthesesAndTopLevelBalance();
 verifyExpressionRepresentation();
 [
     solveLevel1, solveLevel2, solveLevel3, solveLevel4, solveLevel5,

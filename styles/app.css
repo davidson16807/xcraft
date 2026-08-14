@@ -278,7 +278,6 @@ main {
 .expression-node,
 .expression-add,
 .expression-mul,
-.expression-group,
 .expression-power,
 .expression-reciprocal,
 .addend {
@@ -299,9 +298,6 @@ main {
     border-radius: 0.12em;
 }
 
-.expression-group {
-    gap: 0.02em;
-}
 
 .math-operator,
 .math-paren {

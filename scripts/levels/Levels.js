@@ -7,7 +7,6 @@ function Levels(expressions) {
     const a = expressions.add;
     const m = expressions.mul;
     const d = expressions.div;
-    const g = expressions.group;
     const nonzero_context = 'Assume x is nonzero whenever it appears as a divisor.';
     const e = (left, right) => new Equation(left, right);
     const x = () => v('x');
@@ -56,28 +55,28 @@ function Levels(expressions) {
         {
             title: 'Distribution',
             concept: 'Drag a factor onto parentheses to distribute it.',
-            equation: e(m([c(2), g(a([x(), c(3)]))]), c(14)),
+            equation: e(m([c(2), a([x(), c(3)])]), c(14)),
             goal: e(a([m([c(2), x()]), c(6)]), c(14)),
         },
         {
             title: 'Distribute and solve',
             concept: 'Compose distribution, collection, balance, and division.',
             context: nonzero_context,
-            equation: e(a([m([c(3), g(a([x(), c(-2)]))]), c(4)]), c(19)),
+            equation: e(a([m([c(3), a([x(), c(-2)])]), c(4)]), c(19)),
             goal: e(x(), c(7)),
         },
         {
             title: 'A fraction',
             concept: 'Clear a constant denominator, then rebalance.',
             context: nonzero_context,
-            equation: e(d(g(a([x(), c(2)])), c(3)), c(5)),
+            equation: e(d(a([x(), c(2)]), c(3)), c(5)),
             goal: e(x(), c(13)),
         },
         {
             title: 'Challenge',
             concept: 'Use several earlier ideas in whatever valid order you find.',
             context: nonzero_context,
-            equation: e(a([m([c(2), g(a([x(), c(4)]))]), m([c(3), x()])]), c(28)),
+            equation: e(a([m([c(2), a([x(), c(4)])]), m([c(3), x()])]), c(28)),
             goal: e(x(), c(4)),
         },
     ];

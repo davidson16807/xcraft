@@ -122,7 +122,7 @@
     const expressions = Expressions();
     const scales = Scales(expressions, expression_shape);
     const scale_expressions = ScaleExpressions(expressions, scales);
-    const expression_latex = ExpressionLatex(expressions, scales);
+    const expression_latex = ExpressionLatex(expressions, scale_expressions);
     const expression_paths = ExpressionPaths(expressions);
     const equations = Equations({
         expressions: expressions,

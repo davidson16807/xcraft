@@ -56,7 +56,6 @@ const Expressions = () => {
     }
 
     const div = (numerator, denominator) => mul([numerator, reciprocal(denominator)]);
-    const group = expression => new Expression('group', expression);
 
     function append_add(left, right) {
         return left.type === 'add'? add([...left.contents, right]) : add([left, right]);
@@ -86,13 +85,17 @@ const Expressions = () => {
                 evaluate(expression.contents[0], variables),
                 evaluate(expression.contents[1], variables)
             );
-            case 'group': return evaluate(expression.contents, variables);
             default: return NaN;
         }
     }
 
-    function ungroup(expression) {
-        return expression.type === 'group'? expression.contents : expression;
+    function precedence(expression) {
+        switch (expression.type) {
+            case 'add': return 1;
+            case 'mul': return 2;
+            case 'pow': return 3;
+            default: return 4;
+        }
     }
 
     return freeze({
@@ -104,11 +107,10 @@ const Expressions = () => {
         reciprocal,
         is_reciprocal,
         div,
-        group,
         append_add,
         append_mul,
         remove_indexed,
         evaluate,
-        ungroup,
+        precedence,
     });
 };

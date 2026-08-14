@@ -60,15 +60,15 @@ Implemented gestures include:
 - Drag a numeric factor and reciprocal numeric factor together to evaluate the quotient.
 - Drag a numeric factor onto a parenthesized sum to distribute it.
 
-Division is not a primitive AST node.  `a/b` is represented as the product `a*b^-1`; the view renders reciprocal factors below a fraction bar.  Powers are represented explicitly so the same model can support exponent rules in later levels.  Levels that allow an unknown to become a divisor carry an explicit nonzero context assumption.
+Division and grouping are not primitive AST nodes.  `a/b` is represented as the product `a*b^-1`; the view renders reciprocal factors below a fraction bar. Parentheses are inferred by the view/LaTeX encoder from expression structure and precedence. Powers are represented explicitly so the same model can support exponent rules in later levels. Levels that allow an unknown to become a divisor carry an explicit nonzero context assumption.
 
 ## Architecture
 
 ```text
 scripts/
   models/
-    expression/  immutable expression trees + expression operations/encodings
-    equation/    immutable equations + paths, shapes, and rewrite rules
+    expression/  immutable expression trees + operations, paths, and encodings
+    equation/    immutable equations + shapes and rewrite rules
     app/         immutable AppState, history, drag-state transitions
   updaters/   messages -> new AppState
     drags/    drag interfaces

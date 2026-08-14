@@ -98,7 +98,7 @@ function Equations(dependencies) {
         if (source_root.type === 'mul' && parent_path === source_root_path) {
             const index = Number(segment);
             const remainder = expressions.remove_indexed(source_root, index);
-            const new_source = expressions.is_reciprocal(source)? expressions.ungroup(remainder) : remainder;
+            const new_source = remainder;
             const new_target = expressions.append_mul(target_root, inverse);
             return paths.with_side(
                 paths.with_side(equation, parsed.side, new_source),
@@ -200,34 +200,34 @@ function Equations(dependencies) {
                 );
             }
 
-            // 2(x+3) -> 2x+6 by dropping the numeric factor on the group.
+            // 2(x+3) -> 2x+6 by dropping the numeric factor on the sum.
             let scale = null;
-            let grouped = null;
+            let sum = null;
             let scale_index = null;
-            let group_index = null;
+            let sum_index = null;
 
-            if (source.type === 'constant' && target.type === 'group') {
+            if (source.type === 'constant' && target.type === 'add') {
                 scale = source;
-                grouped = target;
+                sum = target;
                 scale_index = Number(source_segment);
-                group_index = Number(target_segment);
-            } else if (target.type === 'constant' && source.type === 'group') {
+                sum_index = Number(target_segment);
+            } else if (target.type === 'constant' && source.type === 'add') {
                 scale = target;
-                grouped = source;
+                sum = source;
                 scale_index = Number(target_segment);
-                group_index = Number(source_segment);
+                sum_index = Number(source_segment);
             }
 
-            if (scale && grouped && grouped.contents.type === 'add') {
+            if (scale && sum) {
                 const distributed = expressions.add(
-                    grouped.contents.contents.map(term => scales.scale(scale, term))
+                    sum.contents.map(term => scales.scale(scale, term))
                 );
                 const factors = parent.contents.slice();
-                const high = Math.max(scale_index, group_index);
-                const low = Math.min(scale_index, group_index);
+                const high = Math.max(scale_index, sum_index);
+                const low = Math.min(scale_index, sum_index);
                 factors.splice(high, 1);
                 factors.splice(low, 1);
-                factors.splice(Math.min(group_index, factors.length), 0, distributed);
+                factors.splice(Math.min(sum_index, factors.length), 0, distributed);
                 return paths.replace(
                     equation,
                     source_parent_path,
