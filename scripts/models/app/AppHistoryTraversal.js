@@ -1,5 +1,5 @@
 'use strict';
-// HUMAN VETTED
+// HUMAN WRITTEN
 
 function AppHistoryTraversal(max_history_size) {
 

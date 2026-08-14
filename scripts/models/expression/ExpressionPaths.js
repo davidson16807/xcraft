@@ -111,12 +111,6 @@ const ExpressionPaths = (expressions) => {
             equation.with({ right: updated });
     }
 
-    function with_side(equation, side, expression) {
-        return side === 'L'?
-            equation.with({ left: expression }) :
-            equation.with({ right: expression });
-    }
-
     function all_expression_paths(expression, root_path) {
         const output = [root_path];
         function visit(node, path) {
@@ -152,7 +146,6 @@ const ExpressionPaths = (expressions) => {
         segment,
         resolve,
         replace,
-        with_side,
         all,
         is_ancestor,
     });

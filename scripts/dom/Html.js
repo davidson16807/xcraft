@@ -1,5 +1,5 @@
 'use strict';
-// HUMAN VETTED
+// HUMAN WRITTEN
 
 /*
 `Html` is a simple convenience wrapper that is namely meant to create html elements.

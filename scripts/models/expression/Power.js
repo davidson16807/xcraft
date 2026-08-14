@@ -11,9 +11,9 @@ class Power {
 
     with(attributes) {
         return new Power(
-            attributes.base  != null? attributes.base  : this.base,
-            attributes.power        != null? attributes.power        : this.power,
-            attributes.key          != null? attributes.key          : this.key,
+            attributes.base   != null? attributes.base   : this.base,
+            attributes.power  != null? attributes.power  : this.power,
+            attributes.key    != null? attributes.key    : this.key,
         );
     }
 }

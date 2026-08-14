@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 Every successful operation in this namespace is an equivalence-preserving
@@ -11,11 +12,13 @@ function Equations(dependencies) {
     const scales = dependencies.scale_expressions;
     const powers = dependencies.power_expressions;
 
-    function _other_side(side) {
-        return side === 'L'? 'R' : 'L';
-    }
+    const _group_identity_for_tag = {
+        'add': 0,
+        'mul': 1,
+    };
 
-    function _replace_two_children(equation, parent_path, source_index, target_index, replacement, identity_type) {
+    /* remove source and replace target with `replacement` */
+    function _replace_two_children(equation, parent_path, source_index, target_index, replacement, type) {
         const parent = paths.resolve(equation, parent_path);
         const items = parent.contents.slice();
         const low = Math.min(source_index, target_index);
@@ -23,17 +26,20 @@ function Equations(dependencies) {
         items.splice(high, 1);
         items.splice(low, 1, replacement);
 
-        let updated;
-        if (identity_type === 'add' && replacement.type === 'constant' && replacement.contents === 0) {
+        const identity = _group_identity_for_tag[type];
+        if (identity == null) return equation;
+
+        if (replacement.type === 'constant' && replacement.contents === identity) {
             items.splice(low, 1);
-            updated = expressions.add(items);
-        } else if (identity_type === 'mul' && replacement.type === 'constant' && replacement.contents === 1) {
-            items.splice(low, 1);
-            updated = expressions.mul(items);
-        } else {
-            updated = identity_type === 'add'? expressions.add(items) : expressions.mul(items);
         }
-        return paths.replace(equation, parent_path, updated);
+
+        return paths.replace(equation, parent_path, new Expression(type, items));
+    }
+
+    // TODO: this feels kinda dumb
+    const _group_append_for_tag = {
+        'add': expressions.append_add,
+        'mul': expressions.append_mul,
     }
 
     function _balance(equation, source_path, target_side) {
@@ -47,38 +53,26 @@ function Equations(dependencies) {
         const source_root = paths.resolve(equation, source_root_path);
         const target_root = paths.resolve(equation, target_side);
         const parent_path = paths.parent(source_path);
+        if (parent_path !== source_root_path) return equation;
+
         const segment = paths.segment(source_path);
-        const inverse = opposite(equation, source_path);
+        const inverse = invert(equation, source_path);
+        const index = Number(segment);
         if (inverse == null) return equation;
 
-        // a + b = c  ->  a = c - b
-        if (source_root.type === 'add' && parent_path === source_root_path) {
-            const index = Number(segment);
-            const new_source = expressions.remove_indexed(source_root, index);
-            const new_target = expressions.append_add(target_root, inverse);
-            return paths.with_side(
-                paths.with_side(equation, parsed.side, new_source),
-                target_side,
-                new_target
-            );
-        }
+        const group_append = _group_append_for_tag[source_root.type];
+        if (group_append == null) return equation;
 
+        // a + b = c  ->  a = c - b
         // ab = c  ->  b = c/a
         // a/b = c is represented as a*b^-1 = c, so dragging b^-1 across
         // uses the same inverse operation and reciprocal(b^-1) becomes b.
-        if (source_root.type === 'mul' && parent_path === source_root_path) {
-            const index = Number(segment);
-            const remainder = expressions.remove_indexed(source_root, index);
-            const new_source = remainder;
-            const new_target = expressions.append_mul(target_root, inverse);
-            return paths.with_side(
-                paths.with_side(equation, parsed.side, new_source),
-                target_side,
-                new_target
-            );
-        }
+        const new_source = expressions.remove_indexed(source_root, index);
+        const new_target = group_append(target_root, inverse);
+        let left, right;
+        [left,right] = target_side==='L'? [new_target, new_source] : [new_source, new_target];
+        return equation.with({left: left, right: right});
 
-        return equation;
     }
 
     function _swap(equation, path1, path2) {
@@ -110,51 +104,37 @@ function Equations(dependencies) {
         return paths.replace(equation, parent_path, replacement);
     }
 
+    const _group_expressions_for_tag = {
+        'add': scales,
+        'mul': powers,
+    };
+
     function _combine(equation, source_path, target_path) {
         const source_parent_path = paths.parent(source_path);
         const target_parent_path = paths.parent(target_path);
         if (source_parent_path == null || source_parent_path !== target_parent_path) return equation;
 
         const parent = paths.resolve(equation, source_parent_path);
-        const source = paths.resolve(equation, source_path);
-        const target = paths.resolve(equation, target_path);
-        const source_segment = paths.segment(source_path);
-        const target_segment = paths.segment(target_path);
+        const group_expressions = _group_expressions_for_tag[parent.type];
+        if (group_expressions == null) return equation;
 
-        switch(parent.type) {
-        case 'add': {
-            // 2x + 3x -> 5x, and 7 + (-3) -> 4.
-            const combined = scales.combine(source, target);
-            return combined == null?
-                equation
-              : _replace_two_children(
-                    equation,
-                    source_parent_path,
-                    Number(source_segment),
-                    Number(target_segment),
-                    combined,
-                    'add'
-                );
-        }
+        // 2x + 3x -> 5x, and 7 + (-3) -> 4.
+        // x^2 * x^3 -> x^5, x * x -> x^2, and numeric products.
+        const combined = group_expressions.combine(
+            paths.resolve(equation, source_path), 
+            paths.resolve(equation, target_path)
+        );
+        if (combined == null) return equation;
 
-        case 'mul': {
-            // x^2 * x^3 -> x^5, x * x -> x^2, and numeric products.
-            const combined = powers.combine(source, target);
-            return combined == null?
-                equation
-              : _replace_two_children(
-                    equation,
-                    source_parent_path,
-                    Number(source_segment),
-                    Number(target_segment),
-                    combined,
-                    'mul'
-                );
-        }
+        return _replace_two_children(
+            equation,
+            source_parent_path,
+            Number(paths.segment(source_path)),
+            Number(paths.segment(target_path)),
+            combined,
+            parent.type
+        );
 
-        default:
-            return equation;
-        }
     }
 
     function _distribute(equation, source_path, target_path) {
@@ -167,21 +147,14 @@ function Equations(dependencies) {
 
         const source = paths.resolve(equation, source_path);
         const target = paths.resolve(equation, target_path);
-        const source_segment = paths.segment(source_path);
-        const target_segment = paths.segment(target_path);
 
-        let scale = null;
-        let sum = null;
+        const scale_sum = {
+            'constant add': [source,target],
+            'add constant': [target,source],
+        }[[source.type, target.type].join(' ')];
 
-        if (source.type === 'constant' && target.type === 'add') {
-            scale = source;
-            sum = target;
-        } else if (target.type === 'constant' && source.type === 'add') {
-            scale = target;
-            sum = source;
-        }
-
-        if (scale == null || sum == null) return equation;
+        if (scale_sum == null) return equation;
+        let scale, sum; [scale,sum] = scale_sum;
 
         const distributed = expressions.add(
             sum.contents.map(term => scales.scale(scale, term))
@@ -190,8 +163,8 @@ function Equations(dependencies) {
         return _replace_two_children(
             equation,
             source_parent_path,
-            Number(source_segment),
-            Number(target_segment),
+            Number(paths.segment(source_path)),
+            Number(paths.segment(target_path)),
             distributed,
             'mul'
         );
@@ -223,8 +196,9 @@ function Equations(dependencies) {
 
     function moves_for_source(equation, source_path) {
         const parsed = paths.split(source_path);
+        const other_side = parsed.side === 'L'? 'R' : 'L';
         const candidates = [
-            `side:${_other_side(parsed.side)}`,
+            `side:${other_side}`,
             ...paths.all(equation).map(path => `path:${path}`),
         ];
         return Object.freeze(candidates.filter(target_key =>
@@ -240,7 +214,7 @@ function Equations(dependencies) {
     }
 
 
-    function opposite(equation, source_path) {
+    function invert(equation, source_path) {
         if (source_path == null) return null;
 
         const parsed = paths.split(source_path);
@@ -270,7 +244,7 @@ function Equations(dependencies) {
     }
 
     return Object.freeze({
-        opposite,
+        invert,
         move,
         moves_for_source,
         draggable_paths,

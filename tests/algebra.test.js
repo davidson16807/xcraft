@@ -216,21 +216,21 @@ function verifyPowerBase() {
 }
 
 function verifyOppositeOperations() {
-    const additive_inverse = algebra.opposite(levels[0].equation, 'L/1');
+    const additive_inverse = algebra.invert(levels[0].equation, 'L/1');
     assert(
         expression_shape.encode(additive_inverse) ===
         expression_shape.encode(expressions.constant(-3)),
         'moving +3 across equality should apply -3 to both sides'
     );
 
-    const multiplicative_inverse = algebra.opposite(levels[2].equation, 'L/0');
+    const multiplicative_inverse = algebra.invert(levels[2].equation, 'L/0');
     assert(
         expression_shape.encode(multiplicative_inverse) ===
         expression_shape.encode(expressions.reciprocal(expressions.constant(4))),
         'moving a factor 4 across equality should apply its reciprocal to both sides'
     );
 
-    const reciprocal_inverse = algebra.opposite(levels[3].equation, 'L/1');
+    const reciprocal_inverse = algebra.invert(levels[3].equation, 'L/1');
     assert(
         expression_shape.encode(reciprocal_inverse) ===
         expression_shape.encode(expressions.constant(6)),
@@ -238,7 +238,7 @@ function verifyOppositeOperations() {
     );
 
     assert(
-        algebra.opposite(levels[6].equation, 'L/1/0') == null,
+        algebra.invert(levels[6].equation, 'L/1/0') == null,
         'nested/local expressions should not advertise a balance operation'
     );
 }
@@ -294,7 +294,7 @@ function verifyTopLevelBalance() {
         expressions.add([x, expressions.constant(-2)]),
         five
     );
-    const inverse = algebra.opposite(equation, 'L/1');
+    const inverse = algebra.invert(equation, 'L/1');
     assert(
         expression_shape.encode(inverse) === expression_shape.encode(two),
         'a visually parenthesized root sum should expose its top-level addends'

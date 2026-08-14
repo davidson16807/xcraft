@@ -48,7 +48,7 @@ function EquationView(dependencies) {
             target_key.startsWith('side:');
 
         if (is_balance_move) {
-            const inverse = equations.opposite(equation, drag_state.source_path);
+            const inverse = equations.invert(equation, drag_state.source_path);
             if (inverse != null) {
                 return [
                     draw_ghost(inverse, {
