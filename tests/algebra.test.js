@@ -12,6 +12,9 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/expression/Scale.js',
     'scripts/models/expression/Scales.js',
     'scripts/models/expression/ScaleExpressions.js',
+    'scripts/models/expression/Power.js',
+    'scripts/models/expression/Powers.js',
+    'scripts/models/expression/PowerExpressions.js',
     'scripts/models/equation/Equation.js',
     'scripts/models/equation/EquationShape.js',
     'scripts/models/expression/ExpressionPaths.js',
@@ -25,11 +28,14 @@ const expression_shape = ExpressionShape();
 const expressions = Expressions();
 const scales = Scales(expressions, expression_shape);
 const scale_expressions = ScaleExpressions(expressions, scales);
+const powers = Powers(expressions, expression_shape);
+const power_expressions = PowerExpressions(expressions, powers);
 const equation_shape = EquationShape(expression_shape);
 const paths = ExpressionPaths(expressions);
 const algebra = Equations({
     expressions: expressions,
     scale_expressions: scale_expressions,
+    power_expressions: power_expressions,
     expression_paths: paths,
 });
 const levels = Levels(expressions);
@@ -150,6 +156,62 @@ function verifyCoefficientBasis() {
     assert(
         scale_expressions.combine(two_x, expressions.mul([expressions.constant(3), x])).contents[0].contents === 5,
         'coefficient/basis should combine like terms'
+    );
+}
+
+function verifyPowerBase() {
+    const x = expressions.variable('x');
+    const y = expressions.variable('y');
+
+    const x3 = expressions.pow(x, 3);
+    const decomposition = powers.from_expression(x3);
+    assert(decomposition.power === 3, 'power/base should extract a numeric power');
+    assert(
+        expression_shape.encode(decomposition.base) === expression_shape.encode(x),
+        'power/base should preserve the base'
+    );
+
+    const x5 = power_expressions.combine(expressions.pow(x, 2), expressions.pow(x, 3));
+    assert(
+        expression_shape.encode(x5) === expression_shape.encode(expressions.pow(x, 5)),
+        'like bases should combine by adding powers'
+    );
+
+    const x2 = power_expressions.combine(x, x);
+    assert(
+        expression_shape.encode(x2) === expression_shape.encode(expressions.pow(x, 2)),
+        'implicit first powers should combine'
+    );
+
+    assert(
+        power_expressions.combine(x, y) == null,
+        'different algebraic bases should not combine'
+    );
+
+    const thirty = power_expressions.combine(expressions.constant(5), expressions.constant(6));
+    assert(
+        thirty.type === 'constant' && thirty.contents === 30,
+        'numeric factors should still multiply explicitly'
+    );
+
+    const seven = power_expressions.combine(
+        expressions.constant(28),
+        expressions.reciprocal(expressions.constant(4))
+    );
+    assert(
+        seven.type === 'constant' && seven.contents === 7,
+        'numeric reciprocal factors should still evaluate explicitly'
+    );
+
+    const product = new Equation(
+        expressions.mul([expressions.pow(x, 2), expressions.pow(x, 3)]),
+        expressions.constant(0)
+    );
+    const combined_product = algebra.move(product, 'L/0', 'path:L/1');
+    assert(
+        expression_shape.encode(combined_product.left) ===
+        expression_shape.encode(expressions.pow(x, 5)),
+        'equation multiplication should combine like bases through PowerExpressions'
     );
 }
 
@@ -315,6 +377,7 @@ function verifyAdvertisedMoves() {
 }
 
 verifyCoefficientBasis();
+verifyPowerBase();
 verifyOppositeOperations();
 verifyCommutativeSwaps();
 verifyTopLevelBalance();

@@ -9,6 +9,7 @@ function Equations(dependencies) {
     const expressions = dependencies.expressions;
     const paths = dependencies.expression_paths;
     const scales = dependencies.scale_expressions;
+    const powers = dependencies.power_expressions;
 
     function _other_side(side) {
         return side === 'L'? 'R' : 'L';
@@ -120,12 +121,11 @@ function Equations(dependencies) {
         const source_segment = paths.segment(source_path);
         const target_segment = paths.segment(target_path);
 
-        // 2x + 3x -> 5x, and 7 + (-3) -> 4.
-        switch(parent.type){
-
-        case 'add':
+        switch(parent.type) {
+        case 'add': {
+            // 2x + 3x -> 5x, and 7 + (-3) -> 4.
             const combined = scales.combine(source, target);
-            return (combined == null? 
+            return combined == null?
                 equation
               : _replace_two_children(
                     equation,
@@ -134,84 +134,67 @@ function Equations(dependencies) {
                     Number(target_segment),
                     combined,
                     'add'
-                )
-            );
+                );
+        }
 
-        case 'mul':
-
-            // 5 * 6 -> 30.  Numeric multiplication is intentionally explicit.
-            if (source.type === 'constant' && target.type === 'constant') {
-                return _replace_two_children(
+        case 'mul': {
+            // x^2 * x^3 -> x^5, x * x -> x^2, and numeric products.
+            const combined = powers.combine(source, target);
+            return combined == null?
+                equation
+              : _replace_two_children(
                     equation,
                     source_parent_path,
                     Number(source_segment),
                     Number(target_segment),
-                    expressions.constant(source.contents * target.contents),
+                    combined,
                     'mul'
                 );
-            }
-
-            // 28 * 4^-1 -> 7.  The reciprocal may be dragged in either direction.
-            const source_reciprocal = expressions.is_reciprocal(source)? source.contents[0] : null;
-            const target_reciprocal = expressions.is_reciprocal(target)? target.contents[0] : null;
-            const numerator = source.type === 'constant' && target_reciprocal && target_reciprocal.type === 'constant'?
-                source :
-                target.type === 'constant' && source_reciprocal && source_reciprocal.type === 'constant'?
-                    target : null;
-            const denominator = target_reciprocal && target_reciprocal.type === 'constant'?
-                target_reciprocal :
-                source_reciprocal && source_reciprocal.type === 'constant'?
-                    source_reciprocal : null;
-
-            if (numerator && denominator && denominator.contents !== 0) {
-                return _replace_two_children(
-                    equation,
-                    source_parent_path,
-                    Number(source_segment),
-                    Number(target_segment),
-                    expressions.constant(numerator.contents / denominator.contents),
-                    'mul'
-                );
-            }
-
-            // 2(x+3) -> 2x+6 by dropping the numeric factor on the sum.
-            let scale = null;
-            let sum = null;
-            let scale_index = null;
-            let sum_index = null;
-
-            if (source.type === 'constant' && target.type === 'add') {
-                scale = source;
-                sum = target;
-                scale_index = Number(source_segment);
-                sum_index = Number(target_segment);
-            } else if (target.type === 'constant' && source.type === 'add') {
-                scale = target;
-                sum = source;
-                scale_index = Number(target_segment);
-                sum_index = Number(source_segment);
-            }
-
-            if (scale && sum) {
-                const distributed = expressions.add(
-                    sum.contents.map(term => scales.scale(scale, term))
-                );
-                const factors = parent.contents.slice();
-                const high = Math.max(scale_index, sum_index);
-                const low = Math.min(scale_index, sum_index);
-                factors.splice(high, 1);
-                factors.splice(low, 1);
-                factors.splice(Math.min(sum_index, factors.length), 0, distributed);
-                return paths.replace(
-                    equation,
-                    source_parent_path,
-                    expressions.mul(factors)
-                );
-            }
+        }
 
         default:
-            return equation
+            return equation;
         }
+    }
+
+    function _distribute(equation, source_path, target_path) {
+        const source_parent_path = paths.parent(source_path);
+        const target_parent_path = paths.parent(target_path);
+        if (source_parent_path == null || source_parent_path !== target_parent_path) return equation;
+
+        const parent = paths.resolve(equation, source_parent_path);
+        if (parent == null || parent.type !== 'mul') return equation;
+
+        const source = paths.resolve(equation, source_path);
+        const target = paths.resolve(equation, target_path);
+        const source_segment = paths.segment(source_path);
+        const target_segment = paths.segment(target_path);
+
+        let scale = null;
+        let sum = null;
+
+        if (source.type === 'constant' && target.type === 'add') {
+            scale = source;
+            sum = target;
+        } else if (target.type === 'constant' && source.type === 'add') {
+            scale = target;
+            sum = source;
+        }
+
+        if (scale == null || sum == null) return equation;
+
+        const distributed = expressions.add(
+            sum.contents.map(term => scales.scale(scale, term))
+        );
+
+        return _replace_two_children(
+            equation,
+            source_parent_path,
+            Number(source_segment),
+            Number(target_segment),
+            distributed,
+            'mul'
+        );
     }
 
     function move(equation, source_path, target_key) {
@@ -229,7 +212,9 @@ function Equations(dependencies) {
                 paths.is_ancestor(target_path, source_path)
             ) return equation;
             const combined = _combine(equation, source_path, target_path);
-            return combined !== equation? combined : _swap(equation, source_path, target_path);
+            if (combined !== equation) return combined;
+            const distributed = _distribute(equation, source_path, target_path);
+            return distributed !== equation? distributed : _swap(equation, source_path, target_path);
         default:
             return equation;
         }

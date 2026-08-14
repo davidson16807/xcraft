@@ -21,6 +21,9 @@
     <script src="./scripts/models/expression/Scale.js"></script>
     <script src="./scripts/models/expression/Scales.js"></script>
     <script src="./scripts/models/expression/ScaleExpressions.js"></script>
+    <script src="./scripts/models/expression/Power.js"></script>
+    <script src="./scripts/models/expression/Powers.js"></script>
+    <script src="./scripts/models/expression/PowerExpressions.js"></script>
     <script src="./scripts/models/equation/Equation.js"></script>
     <script src="./scripts/models/equation/Equations.js"></script>
     <script src="./scripts/models/equation/EquationShape.js"></script>
@@ -133,10 +136,13 @@
     const expressions = Expressions();
     const scales = Scales(expressions, expression_shape);
     const scale_expressions = ScaleExpressions(expressions, scales);
+    const powers = Powers(expressions, expression_shape);
+    const power_expressions = PowerExpressions(expressions, powers);
     const expression_paths = ExpressionPaths(expressions);
     const equations = Equations({
         expressions: expressions,
         scale_expressions: scale_expressions,
+        power_expressions: power_expressions,
         expression_paths: expression_paths
     });
     const equation_shape = EquationShape(expression_shape);
