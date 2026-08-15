@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 const fs = require('fs');
 const vm = require('vm');
@@ -7,6 +6,8 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 [
+    'scripts/models/structure/MonoidStructure.js',
+    'scripts/models/structure/PowerStructure.js',
     'scripts/models/expression/Expression.js',
     'scripts/models/expression/ExpressionShape.js',
     'scripts/models/expression/Expressions.js',
@@ -20,6 +21,7 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/equation/EquationShape.js',
     'scripts/models/expression/ExpressionPaths.js',
     'scripts/models/equation/Equations.js',
+    'scripts/models/equation/EquationDragOperations.js',
     'scripts/levels/Levels.js',
 ].forEach(file => {
     vm.runInThisContext(
@@ -56,11 +58,14 @@ const powers = Powers(expressions, expression_shape);
 const power_expressions = PowerExpressions(expressions, powers);
 const equation_shape = EquationShape(expression_shape);
 const paths = ExpressionPaths(expressions);
-const algebra = Equations({
-    expressions: expressions,
-    scale_expressions: scale_expressions,
-    power_expressions: power_expressions,
+const algebra = EquationDragOperations({
     expression_paths: paths,
+    equations: Equations({
+        expressions: expressions,
+        scale_expressions: scale_expressions,
+        power_expressions: power_expressions,
+        expression_paths: paths,
+    }),
 });
 const levels = Levels(expressions);
 
@@ -90,28 +95,28 @@ function move(equation, source, target) {
 function solveLevel1() {
     let q = levels[0].equation;
     q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'R/0', 'path:R/1');
     assertShape(q, levels[0].goal, 'level 1');
 }
 
 function solveLevel2() {
     let q = levels[1].equation;
     q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'R/0', 'path:R/1');
     assertShape(q, levels[1].goal, 'level 2');
 }
 
 function solveLevel3() {
     let q = levels[2].equation;
     q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'R/0', 'path:R/1');
     assertShape(q, levels[2].goal, 'level 3');
 }
 
 function solveLevel4() {
     let q = levels[3].equation;
     q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'R/0', 'path:R/1');
     assertShape(q, levels[3].goal, 'level 4');
 }
 
@@ -119,18 +124,17 @@ function solveLevel5() {
     let q = levels[4].equation;
     q = move(q, 'L/0', 'path:L/1');
     q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'R/0', 'path:R/1');
     assertShape(q, levels[4].goal, 'level 5');
 }
 
 function solveLevel6() {
     let q = levels[5].equation;
-    q = move(q, 'R/0', 'side:L');
-    q = move(q, 'L/0', 'path:L/2');
     q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'R/0', 'side:L');
+    q = move(q, 'L/0', 'path:L/1');
     q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'R/0', 'path:R/1');
     assertShape(q, levels[5].goal, 'level 6');
 }
 
@@ -143,31 +147,29 @@ function solveLevel7() {
 function solveLevel8() {
     let q = levels[7].equation;
     q = move(q, 'L/0/0', 'path:L/0/1');
-    q = move(q, 'L/1', 'path:L/2');
     q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/1', 'side:R');
     q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'R/0', 'path:R/1');
     assertShape(q, levels[7].goal, 'level 8');
 }
 
 function solveLevel9() {
     let q = levels[8].equation;
     q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
     q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'R/0', 'path:R/1');
     assertShape(q, levels[8].goal, 'level 9');
 }
 
 function solveLevel10() {
     let q = levels[9].equation;
     q = move(q, 'L/0/0', 'path:L/0/1');
-    q = move(q, 'L/0', 'path:L/2');
+    q = move(q, 'L/0', 'path:L/1');
+    q = move(q, 'L/0', 'path:L/1');
     q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
     q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'R/0', 'path:R/1');
     assertShape(q, levels[9].goal, 'level 10');
 }
 
@@ -428,8 +430,8 @@ function assertEquationsEquivalent(before, after, property, context, where) {
     stats.semantic_cases++;
 }
 
-function assertEquationMoveTransforms(before, source, target, expected, property, context, where) {
-    const advertised = algebra.moves_for_source(before, source);
+function assertEquationMoveTransforms(before, source, target, expected, property, context, where, source_operation) {
+    const advertised = algebra.moves_for_source(before, source, source_operation);
     assert(
         advertised.includes(target),
         `${property}: expected balance move was not advertised\n`+
@@ -437,7 +439,7 @@ function assertEquationMoveTransforms(before, source, target, expected, property
         `advertised: ${advertised.join(', ')}`
     );
 
-    const updated = algebra.move(before, source, target);
+    const updated = algebra.move(before, source, target, source_operation);
     assert(
         updated !== before,
         `${property}: advertised balance move returned the original equation\n${context}`
@@ -595,6 +597,41 @@ function additiveInverse() {
             );
         }
     }
+}
+
+// -----------------------------------------------------------------------------
+// Additive balance at a parentless root
+// a = b  <->  0 = b - a
+// -----------------------------------------------------------------------------
+
+function additiveRootBalance() {
+    forEachPair((a, b) => {
+        if (a.type === 'add' || a.type === 'mul') return;
+        const where = variables => allDefined([a, b], variables);
+        if (!hasAdmissibleAssignment(where)) return;
+
+        const before = new Equation(a, b);
+        const expected = new Equation(
+            zero,
+            expressions.append('add', b, scale_expressions.negate(a))
+        );
+        const context = `a = ${describeCase(a)}\nb = ${describeCase(b)}`;
+
+        assert(
+            algebra.root_operations(before, 'L').includes('add'),
+            `additive root balance: + handle was not available\n${context}`
+        );
+        assertEquationMoveTransforms(
+            before,
+            'L',
+            'side:R',
+            expected,
+            'additive root balance',
+            context,
+            where,
+            'add'
+        );
+    });
 }
 
 // -----------------------------------------------------------------------------
@@ -848,6 +885,60 @@ function divisionDefinition() {
 }
 
 // -----------------------------------------------------------------------------
+// Multiplicative balance at a parentless root
+// a = b  <->  1 = b a^-1, for a != 0
+// -----------------------------------------------------------------------------
+
+function multiplicativeRootBalance() {
+    forEachPair((a, b) => {
+        if (a.type === 'add' || a.type === 'mul') return;
+        const where = variables =>
+            isDefinedNonzero(a, variables) && isDefined(b, variables);
+        if (!hasAdmissibleAssignment(where)) return;
+
+        const before = new Equation(a, b);
+        const expected = new Equation(
+            one,
+            expressions.append('mul', b, expressions.reciprocal(a))
+        );
+        const context = `a = ${describeCase(a)}\nb = ${describeCase(b)}`;
+
+        assert(
+            algebra.root_operations(before, 'L').includes('mul'),
+            `multiplicative root balance: × handle was not available\n${context}`
+        );
+        assertEquationMoveTransforms(
+            before,
+            'L',
+            'side:R',
+            expected,
+            'multiplicative root balance',
+            context,
+            where,
+            'mul'
+        );
+    });
+
+    const zero_equation = new Equation(zero, x);
+    assert(
+        !algebra.root_operations(zero_equation, 'L').includes('mul'),
+        'multiplicative root balance: literal zero must not expose a × handle'
+    );
+
+    const sum_equation = new Equation(expressions.add([x, one]), zero);
+    assert(
+        algebra.root_operations(sum_equation, 'L').length === 0,
+        'root operation handles should not replace ordinary addend drags'
+    );
+
+    const product_equation = new Equation(expressions.mul([expressions.constant(2), x]), zero);
+    assert(
+        algebra.root_operations(product_equation, 'L').length === 0,
+        'root operation handles should not replace ordinary factor drags'
+    );
+}
+
+// -----------------------------------------------------------------------------
 // Multiplicative balance
 // ax = b  <->  x = b a^-1, for a != 0
 // x a^-1 = b  <->  x = ba, for a != 0
@@ -1039,6 +1130,7 @@ function distributivity() {
     additiveAssociativity,
     additiveIdentity,
     additiveInverse,
+    additiveRootBalance,
     multiplicativeClosure,
     multiplicativeCommutativity,
     multiplicativeAssociativity,
@@ -1048,6 +1140,7 @@ function distributivity() {
     inverseOfProduct,
     multiplicativeCancellation,
     divisionDefinition,
+    multiplicativeRootBalance,
     multiplicativeBalance,
     distributivity,
 ].forEach(test => test());

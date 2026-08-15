@@ -1,10 +1,9 @@
 'use strict';
-// HUMAN VETTED
 
 function AppDragOperations(drags, history) {
     return Object.freeze({
-        start: function(app, source_path, x,y) {
-            const drag_type = drags.symbol(app.equation, source_path, {x:x,y:y});
+        start: function(app, source_path, source_operation, x,y) {
+            const drag_type = drags.symbol(app.equation, source_path, source_operation, {x:x,y:y});
             if (drag_type.initialize().candidates.length === 0) return app;
             return app.with({
                 drag_type: drag_type,

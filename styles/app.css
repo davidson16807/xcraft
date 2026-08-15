@@ -355,6 +355,62 @@ main {
     background: var(--offpaper);
 }
 
+.root-operation-source {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 0.12em;
+}
+
+.root-operation-source:hover > .expression-node,
+.root-operation-source:focus-within > .expression-node {
+    background: var(--offpaper);
+    border-radius: 0.12em;
+}
+
+.root-operation-highlights {
+    position: absolute;
+    right: 100%;
+    top: 50%;
+    display: flex;
+    align-items: center;
+    gap: 0.08em;
+    padding-right: 0.10em;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-50%);
+    transition: opacity 80ms linear;
+}
+
+.root-operation-source:hover .root-operation-highlights,
+.root-operation-source:focus-within .root-operation-highlights {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.root-operation-highlight {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0.7em;
+    min-height: 0.9em;
+    padding: 0.02em 0.08em;
+}
+
+.root-operation-highlight:hover,
+.root-operation-highlight:focus-visible {
+    background: var(--offpaper);
+    outline: 1px solid var(--hairline);
+    outline-offset: 1px;
+}
+
+@media (hover: none) {
+    .root-operation-highlights {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
+
 .valid-drop {
     background: var(--target);
     outline: 1px solid var(--hairline);

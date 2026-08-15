@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 function EquationView(dependencies) {
 
@@ -15,7 +14,7 @@ function EquationView(dependencies) {
         return node;
     }
 
-    function draw_side(expression, side, draggable_paths, valid_targets) {
+    function draw_side(expression, side, draggable_paths, valid_targets, root_operations) {
         const attrs = {
             class: 'equation-side',
             'data-drop-key': `side:${side}`,
@@ -24,8 +23,24 @@ function EquationView(dependencies) {
             attrs.class += ' valid-drop';
             attrs['data-valid-drop'] = '1';
         }
+        const expression_node = expression_view.draw(expression, side, draggable_paths, valid_targets);
+        if (root_operations.length === 0) return html.span(attrs, [expression_node]);
+
+        const symbols = { add:'+', mul:'\\times' };
         return html.span(attrs, [
-            expression_view.draw(expression, side, draggable_paths, valid_targets)
+            html.span({ class:'root-operation-source' }, [
+                html.span({ class:'root-operation-highlights' }, root_operations.map(operation =>
+                    html.span({
+                        class:'root-operation-highlight draggable-symbol',
+                        'data-draggable':'1',
+                        'data-path':side,
+                        'data-operation':operation,
+                        'aria-label':operation === 'add'?
+                            'Move as an addend' : 'Move as a factor',
+                    }, [math(symbols[operation], 'math-operator')])
+                )),
+                expression_node,
+            ])
         ]);
     }
 
@@ -48,7 +63,7 @@ function EquationView(dependencies) {
             target_key.startsWith('side:');
 
         if (is_balance_move) {
-            const inverse = equations.invert(equation, drag_state.source_path);
+            const inverse = equations.invert(equation, drag_state.source_path, drag_state.source_operation);
             if (inverse != null) {
                 return [
                     draw_ghost(inverse, {
@@ -75,9 +90,9 @@ function EquationView(dependencies) {
 
             div_io.replaceChildren(
                 html.div({ class:'equation-row' }, [
-                    draw_side(equation.left, 'L', draggable_paths, valid_targets),
+                    draw_side(equation.left, 'L', draggable_paths, valid_targets, equations.root_operations(equation, 'L')),
                     html.span({ class:'equals-sign' }, [math('=', 'math-equals')]),
-                    draw_side(equation.right, 'R', draggable_paths, valid_targets),
+                    draw_side(equation.right, 'R', draggable_paths, valid_targets, equations.root_operations(equation, 'R')),
                 ])
             );
 

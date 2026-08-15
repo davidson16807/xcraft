@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 `EquationDragOperations` presents and consolidates operations under `Equations`
@@ -12,13 +11,13 @@ function EquationDragOperations(dependencies) {
     const paths = dependencies.expression_paths;
     const equations = dependencies.equations;
 
-    function move(equation, source_path, target_key) {
+    function move(equation, source_path, target_key, root_operation) {
         if (source_path == null || target_key == null) return equation;
 
         switch(paths.domain(target_key))
         {
         case 'side':
-            return equations.balance(equation, source_path, target_key.slice(5));
+            return equations.balance(equation, source_path, target_key.slice(5), root_operation);
         case 'path':
             const target_path = paths.path(target_key);
             if (
@@ -36,7 +35,7 @@ function EquationDragOperations(dependencies) {
 
     }
 
-    function moves_for_source(equation, source_path) {
+    function moves_for_source(equation, source_path, root_operation) {
         const parsed = paths.split(source_path);
         const other_side = parsed.side === 'L'? 'R' : 'L';
         const candidates = [
@@ -44,10 +43,19 @@ function EquationDragOperations(dependencies) {
             ...paths.all(equation).map(path => `path:${path}`),
         ];
         return Object.freeze(candidates.filter(target_key =>
-            move(equation, source_path, target_key) !== equation
+            move(equation, source_path, target_key, root_operation) !== equation
         ));
     }
 
+
+    function root_operations(equation, source_path) {
+        if (paths.parent(source_path) != null) return Object.freeze([]);
+        const source = paths.resolve(equation, source_path);
+        if (source == null || source.type === 'add' || source.type === 'mul') return Object.freeze([]);
+        return Object.freeze(['add', 'mul'].filter(operation =>
+            moves_for_source(equation, source_path, operation).length > 0
+        ));
+    }
 
     function draggable_paths(equation) {
         return Object.freeze(paths.all(equation).filter(path =>
@@ -60,5 +68,6 @@ function EquationDragOperations(dependencies) {
         move,
         moves_for_source,
         draggable_paths,
+        root_operations,
     });
 }
