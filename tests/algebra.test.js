@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 const fs = require('fs');
 const vm = require('vm');
@@ -7,6 +6,8 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 [
+    'scripts/models/structure/MonoidStructure.js',
+    'scripts/models/structure/PowerStructure.js',
     'scripts/models/expression/Expression.js',
     'scripts/models/expression/ExpressionShape.js',
     'scripts/models/expression/Expressions.js',
@@ -20,6 +21,7 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/equation/EquationShape.js',
     'scripts/models/expression/ExpressionPaths.js',
     'scripts/models/equation/Equations.js',
+    'scripts/models/equation/EquationDragOperations.js',
     'scripts/levels/Levels.js',
 ].forEach(file => {
     vm.runInThisContext(
@@ -56,11 +58,14 @@ const powers = Powers(expressions, expression_shape);
 const power_expressions = PowerExpressions(expressions, powers);
 const equation_shape = EquationShape(expression_shape);
 const paths = ExpressionPaths(expressions);
-const algebra = Equations({
-    expressions: expressions,
-    scale_expressions: scale_expressions,
-    power_expressions: power_expressions,
+const algebra = EquationDragOperations({
     expression_paths: paths,
+    equations: Equations({
+        expressions: expressions,
+        scale_expressions: scale_expressions,
+        power_expressions: power_expressions,
+        expression_paths: paths,
+    }),
 });
 const levels = Levels(expressions);
 
@@ -103,23 +108,23 @@ function solveLevel2() {
 
 function solveLevel3() {
     let q = levels[2].equation;
-    q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/0/0', 'side:R');
+    q = move(q, 'R/0/1', 'path:R/0/0');
     assertShape(q, levels[2].goal, 'level 3');
 }
 
 function solveLevel4() {
     let q = levels[3].equation;
-    q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/0/1', 'side:R');
+    q = move(q, 'R/0/1', 'path:R/0/0');
     assertShape(q, levels[3].goal, 'level 4');
 }
 
 function solveLevel5() {
     let q = levels[4].equation;
     q = move(q, 'L/0', 'path:L/1');
-    q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/0/0', 'side:R');
+    q = move(q, 'R/0/1', 'path:R/0/0');
     assertShape(q, levels[4].goal, 'level 5');
 }
 
@@ -129,14 +134,14 @@ function solveLevel6() {
     q = move(q, 'L/0', 'path:L/2');
     q = move(q, 'L/1', 'side:R');
     q = move(q, 'R/1', 'path:R/0');
-    q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/0/0', 'side:R');
+    q = move(q, 'R/0/1', 'path:R/0/0');
     assertShape(q, levels[5].goal, 'level 6');
 }
 
 function solveLevel7() {
     let q = levels[6].equation;
-    q = move(q, 'L/0', 'path:L/1');
+    q = move(q, 'L/0/0', 'path:L/0/1');
     assertShape(q, levels[6].goal, 'level 7');
 }
 
@@ -146,15 +151,15 @@ function solveLevel8() {
     q = move(q, 'L/1', 'path:L/2');
     q = move(q, 'L/1', 'side:R');
     q = move(q, 'R/1', 'path:R/0');
-    q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/0/0', 'side:R');
+    q = move(q, 'R/0/1', 'path:R/0/0');
     assertShape(q, levels[7].goal, 'level 8');
 }
 
 function solveLevel9() {
     let q = levels[8].equation;
-    q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/0/1', 'side:R');
+    q = move(q, 'R/0/1', 'path:R/0/0');
     q = move(q, 'L/1', 'side:R');
     q = move(q, 'R/1', 'path:R/0');
     assertShape(q, levels[8].goal, 'level 9');
@@ -166,8 +171,8 @@ function solveLevel10() {
     q = move(q, 'L/0', 'path:L/2');
     q = move(q, 'L/1', 'side:R');
     q = move(q, 'R/1', 'path:R/0');
-    q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/0/0', 'side:R');
+    q = move(q, 'R/0/1', 'path:R/0/0');
     assertShape(q, levels[9].goal, 'level 10');
 }
 
@@ -346,7 +351,7 @@ function assertExpressionsEquivalent(left, right, property, context, where) {
 
 function assertSameExpression(actual, expected, property, context) {
     const actual_key = orderedExpressionKey(actual);
-    const expected_key = orderedExpressionKey(expected);
+    const expected_key = orderedExpressionKey(top_level_side(expected));
     assert(
         actual_key === expected_key,
         `${property}: move produced the wrong expression\n`+
@@ -637,8 +642,8 @@ function multiplicativeCommutativity() {
         ) {
             assertMoveTransforms(
                 left,
-                'L/0',
-                'path:L/1',
+                'L/0/0',
+                'path:L/0/1',
                 right,
                 'multiplicative commutativity',
                 context,
@@ -742,8 +747,8 @@ function multiplicativeInverse() {
         ) {
             assertMoveTransforms(
                 product,
-                'L/0',
-                'path:L/1',
+                'L/0/0',
+                'path:L/0/1',
                 one,
                 'multiplicative inverse',
                 context,
@@ -870,22 +875,25 @@ function multiplicativeBalance() {
             expressions.mul([a, x]),
             b
         );
+        const target = before.right.contents.length === 1?
+            before.right.contents[0] :
+            before.right;
         const expected = new Equation(
             x,
-            expressions.append('mul', b, inverse_a)
+            expressions.append('mul', target, inverse_a)
         );
         const context = `a = ${describeCase(a)}\nb = ${describeCase(b)}`;
+        const term = before.left.contents[0];
 
-        // Construction can only expose `a` as L/0 when it remains a direct
-        // factor.  The filter above excludes products, and this check guards
-        // against any future constructor changes.
         if (
-            before.left.type === 'mul' &&
-            before.left.contents[0] === a
+            before.left.type === 'add' &&
+            before.left.contents.length === 1 &&
+            term.type === 'mul' &&
+            term.contents[0] === a
         ) {
             assertEquationMoveTransforms(
                 before,
-                'L/0',
+                'L/0/0',
                 'side:R',
                 expected,
                 'multiplicative balance',
@@ -899,23 +907,29 @@ function multiplicativeBalance() {
             expressions.mul([x, reciprocal_factor]),
             b
         );
+        const reverse_target = reverse_before.right.contents.length === 1?
+            reverse_before.right.contents[0] :
+            reverse_before.right;
         const reverse_expected = new Equation(
             x,
             expressions.append(
                 'mul',
-                b,
+                reverse_target,
                 expressions.reciprocal(reciprocal_factor)
             )
         );
+        const reverse_term = reverse_before.left.contents[0];
 
         if (
-            reverse_before.left.type === 'mul' &&
-            reverse_before.left.contents.length === 2 &&
-            reverse_before.left.contents[1] === reciprocal_factor
+            reverse_before.left.type === 'add' &&
+            reverse_before.left.contents.length === 1 &&
+            reverse_term.type === 'mul' &&
+            reverse_term.contents.length === 2 &&
+            reverse_term.contents[1] === reciprocal_factor
         ) {
             assertEquationMoveTransforms(
                 reverse_before,
-                'L/1',
+                'L/0/1',
                 'side:R',
                 reverse_expected,
                 'multiplicative balance',
@@ -996,8 +1010,8 @@ function distributivity() {
 
         assertMoveTransforms(
             expressions.mul([a, sum]),
-            'L/0',
-            'path:L/1',
+            'L/0/0',
+            'path:L/0/1',
             expanded,
             'left distributivity',
             context,
@@ -1006,12 +1020,85 @@ function distributivity() {
 
         assertMoveTransforms(
             expressions.mul([sum, a]),
-            'L/1',
-            'path:L/0',
+            'L/0/1',
+            'path:L/0/0',
             expanded,
             'right distributivity',
             context,
             where
+        );
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Top-level additive and multiplicative operation context
+// A lone value can be dragged as either an addend or a factor.
+// -----------------------------------------------------------------------------
+
+function topLevelOperationContext() {
+    const cases = [
+        x,
+        expressions.constant(3),
+    ];
+
+    for (const value of cases) {
+        const before = new Equation(value, expressions.constant(7));
+        const context = `value = ${describeCase(value)}`;
+
+        assert(
+            before.left.type === 'add' &&
+            before.left.contents.length === 1 &&
+            before.left.contents[0].type === 'mul' &&
+            before.left.contents[0].contents.length === 1 &&
+            before.left.contents[0].contents[0] === value,
+            `top-level operation context was not retained\n${context}`
+        );
+
+        const draggable = algebra.draggable_paths(before);
+        assert(
+            draggable.includes('L/0'),
+            `lone value was not draggable as an addend\n${context}`
+        );
+        assert(
+            draggable.includes('L/0/0'),
+            `lone value was not draggable as a factor\n${context}`
+        );
+
+        const additive_expected = new Equation(
+            zero,
+            expressions.append(
+                'add',
+                before.right,
+                scale_expressions.negate(before.left.contents[0])
+            )
+        );
+        assertEquationMoveTransforms(
+            before,
+            'L/0',
+            'side:R',
+            additive_expected,
+            'top-level additive context',
+            context,
+            variables => isDefined(value, variables)
+        );
+
+        const target = before.right.contents[0];
+        const multiplicative_expected = new Equation(
+            one,
+            expressions.append(
+                'mul',
+                target,
+                expressions.reciprocal(value)
+            )
+        );
+        assertEquationMoveTransforms(
+            before,
+            'L/0/0',
+            'side:R',
+            multiplicative_expected,
+            'top-level multiplicative context',
+            context,
+            variables => isDefinedNonzero(value, variables)
         );
     }
 }
@@ -1050,6 +1137,7 @@ function distributivity() {
     divisionDefinition,
     multiplicativeBalance,
     distributivity,
+    topLevelOperationContext,
 ].forEach(test => test());
 
 console.log(

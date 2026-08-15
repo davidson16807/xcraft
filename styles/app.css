@@ -452,3 +452,39 @@ main {
         flex-direction: column;
     }
 }
+
+/*
+Top-level equations retain both additive and multiplicative structure.  These
+small hover handles make the otherwise-overlapping drag meanings explicit:
+click + to drag the containing addend, or × / the factor itself to drag a
+factor.  They are positioned out of flow so ordinary mathematical spacing is
+unchanged.
+*/
+.addend.draggable-symbol,
+.expression-node.draggable-symbol,
+.expression-reciprocal.draggable-symbol {
+    position: relative;
+}
+
+.drag-operation-indicator {
+    position: absolute;
+    top: 50%;
+    opacity: 0;
+    font-size: 0.42em;
+    line-height: 1;
+    pointer-events: auto;
+    transition: opacity 80ms linear;
+    transform: translateY(-50%);
+}
+
+.additive-operation-indicator {
+    left: -0.90em;
+}
+
+.multiplication-operation-indicator {
+    left: -0.48em;
+}
+
+.draggable-symbol:hover > .drag-operation-indicator {
+    opacity: 0.68;
+}

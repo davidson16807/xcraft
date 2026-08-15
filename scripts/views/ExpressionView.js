@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 function ExpressionView(dependencies) {
 
@@ -48,6 +47,15 @@ function ExpressionView(dependencies) {
         return attrs;
     }
 
+    function multiplication_indicator(node, path, draggable_paths) {
+        if (path == null || !draggable_paths.has(path)) return node;
+        node.insertBefore(
+            math('\\times', 'math-operator drag-operation-indicator multiplication-operation-indicator'),
+            node.firstChild
+        );
+        return node;
+    }
+
     function product_factor_nodes(expression, node, previous_expression) {
         if (previous_expression && expression.type === 'constant' && expression.contents < 0) {
             node.insertBefore(math('(', 'math-paren'), node.firstChild);
@@ -87,7 +95,11 @@ function ExpressionView(dependencies) {
                 numerator.map((item, i) =>
                     product_factor_nodes(
                         item.factor,
-                        draw(item.factor, item.path, draggable_paths, valid_targets, 2),
+                        multiplication_indicator(
+                            draw(item.factor, item.path, draggable_paths, valid_targets, 2),
+                            item.path,
+                            draggable_paths
+                        ),
                         i > 0? numerator[i-1].factor : null
                     )
                 ).flat()
@@ -103,7 +115,11 @@ function ExpressionView(dependencies) {
               : numerator.map((item, i) =>
                     product_factor_nodes(
                         item.factor,
-                        draw(item.factor, item.path, draggable_paths, valid_targets, numerator_parent),
+                        multiplication_indicator(
+                            draw(item.factor, item.path, draggable_paths, valid_targets, numerator_parent),
+                            item.path,
+                            draggable_paths
+                        ),
                         i > 0? numerator[i-1].factor : null
                     )
                 ).flat()
@@ -113,12 +129,16 @@ function ExpressionView(dependencies) {
             denominator.map((item, i) =>
                 product_factor_nodes(
                     item.factor.contents[0],
-                    draw_reciprocal_factor(
-                        item.factor,
+                    multiplication_indicator(
+                        draw_reciprocal_factor(
+                            item.factor,
+                            item.path,
+                            draggable_paths,
+                            valid_targets,
+                            denominator_parent
+                        ),
                         item.path,
-                        draggable_paths,
-                        valid_targets,
-                        denominator_parent
+                        draggable_paths
                     ),
                     i > 0? denominator[i-1].factor.contents[0] : null
                 )
@@ -167,10 +187,29 @@ function ExpressionView(dependencies) {
                 return html.span(path_attributes(path, draggable_paths, valid_targets, 'expression-add'),
                     expression.contents.map((term, i) => {
                         const sign = scales.sign(term);
-                        const absolute = scales.absolute(term);
+                        let absolute = scales.absolute(term);
                         const term_path = paths.nary(path, i);
+
+                        // Equation roots deliberately retain singleton products so
+                        // the same visible expression can be dragged either as an
+                        // addend or as a factor.  Preserve that one child in the
+                        // view after stripping an additive sign.
+                        if (
+                            term.type === 'mul' &&
+                            term.contents.length === 1 &&
+                            absolute.type !== 'mul'
+                        ) {
+                            absolute = new Expression('mul', Object.freeze([absolute]));
+                        }
+
+                        const operation_indicator =
+                            i === 0 && sign >= 0 && draggable_paths.has(term_path)?
+                                [math('+', 'math-operator drag-operation-indicator additive-operation-indicator')] :
+                                [];
+
                         return html.span(path_attributes(term_path, draggable_paths, valid_targets, 'addend'),
                             [
+                                ...operation_indicator,
                                 ...(i > 0)? [math(sign < 0? '-' : '+', 'math-operator')]
                                  : sign < 0? [math('-', 'math-operator')]
                                  : [],
