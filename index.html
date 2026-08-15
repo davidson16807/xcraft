@@ -138,7 +138,7 @@
             evaluate => expression => expression.contents.reduce((accumulator, item) => accumulator + evaluate(item), 0)
         ),
         'mul': MonoidStructure('mul', new Expression('constant', 1), true,
-            evaluate => expression => expression.contents.reduce((accumulator, item) => accumulator + evaluate(item), 1)
+            evaluate => expression => expression.contents.reduce((accumulator, item) => accumulator * evaluate(item), 1)
         ),
         'pow': PowerStructure('pow'),
     });

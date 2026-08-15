@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 In math, a "monoid" is a structure featuring an operation that has an identity and is everywhere associative.
@@ -28,11 +27,15 @@ const MonoidStructure = (label, identity, is_commutative, evaluator) => {
         else return new Expression(label, Object.freeze(flat));
     }
 
+    function is_identity(expression) {
+        return expression.type === identity.type && expression.contents === identity.contents;
+    }
+
     function swap(expression, index1, index2) {
         if (!is_commutative) { return expression; }
         const contents = expression.contents.slice();
         [contents[index1], contents[index2]] = [contents[index2], contents[index1]];
-        return new Expression(expression.type, contents);
+        return create(contents);
     }
 
     function append(left, right) {
@@ -40,7 +43,18 @@ const MonoidStructure = (label, identity, is_commutative, evaluator) => {
     }
 
     function remove(expression, index) {
-        return expression.type !== label? expression : create(expression.contents.filter((_, i) => i !== index));
+        const contents = expression.contents.slice();
+        contents.splice(index, 1);
+        return expression.type !== label? expression : create(contents);
+    }
+
+    function collapse(expression, index1, index2, replacement) {
+        const low = Math.min(index1, index2);
+        const high = Math.max(index1, index2);
+        const contents = expression.contents.slice();
+        contents[low] = replacement;
+        contents.splice(high, 1);
+        return create(contents);
     }
 
     return Object.freeze({
@@ -49,13 +63,14 @@ const MonoidStructure = (label, identity, is_commutative, evaluator) => {
         swap,
         append,
         remove,
+        collapse,
         evaluator, 
     });
 }
 
 const PowerStructure = (label) => {
     function create(base, exponent) {
-        const exponent_expression = exponent instanceof Expression? exponent : Expression('constant',exponent);
+        const exponent_expression = exponent instanceof Expression? exponent : new Expression('constant', exponent);
         return new Expression(label, Object.freeze([base, exponent_expression]));
     }
 
@@ -67,17 +82,22 @@ const PowerStructure = (label) => {
     }
 
     function swap(expression, index1, index2) {
-        if (!is_commutative) { return expression; }
-        const contents = expression.contents.slice();
-        [contents[index1], contents[index2]] = [contents[index2], contents[index1]];
-        const replacement = new Expression(expression.type, contents);
+        return expression
     }
 
     function append(left, right) {
-        return expression;
+        return create([left, right]);
     }
 
     function remove(expression, index) {
+        return expression;
+    }
+
+    function replace(expression, index, replacement) {
+        return create(expression.contents.with(index, replacement));
+    }
+
+    function collapse(expression, index1, index2, replacement) {
         return expression;
     }
 
@@ -87,6 +107,7 @@ const PowerStructure = (label) => {
         swap,
         append,
         remove,
+        collapse,
         evaluator, 
     });
 }
@@ -113,8 +134,8 @@ const Expressions = (structures) => {
 
     function append(type, left, right) {
         const structure = structures[type];
-        if (structure == null) return expression;
-        return left.type === type? structure.create([...left.contents, right]) : structure.create([left, right]);
+        if (structure == null) return left;
+        return structure.append(left, right);
     }
 
     function remove(expression, index) {
@@ -123,8 +144,14 @@ const Expressions = (structures) => {
         return structure.remove(expression, index);
     }
 
+    function collapse(expression, index1, index2, replacement) {
+        const structure = structures[expression.type];
+        if (structure == null) return expression;
+        return structure.collapse(expression, index1, index2, replacement);
+    }
+
     const evaluator = variables => expression => {
-        const subevaluate = expression => evaluator(variables);
+        const subevaluate = expression => evaluator(variables)(expression);
         const structure = structures[expression.type];
         if (structure != null) { return structure.evaluator(subevaluate)(expression); }
         switch (expression.type) {
@@ -162,6 +189,7 @@ const Expressions = (structures) => {
         div,
         append,
         remove,
+        collapse,
         precedence,
         evaluate,
     });

@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 Every successful operation in this namespace is an equivalence-preserving
@@ -12,28 +11,12 @@ function Equations(dependencies) {
     const scales = dependencies.scale_expressions;
     const powers = dependencies.power_expressions;
 
-    const _group_identity_for_tag = {
-        'add': 0,
-        'mul': 1,
-    };
-
-    /* remove source and replace target with `replacement` */
-    function _replace_two_children(equation, parent_path, source_index, target_index, replacement, type) {
-        const parent = paths.resolve(equation, parent_path);
-        const items = parent.contents.slice();
-        const low = Math.min(source_index, target_index);
-        const high = Math.max(source_index, target_index);
-        items.splice(high, 1);
-        items.splice(low, 1, replacement);
-
-        const identity = _group_identity_for_tag[type];
-        if (identity == null) return equation;
-
-        if (replacement.type === 'constant' && replacement.contents === identity) {
-            items.splice(low, 1);
-        }
-
-        return paths.replace(equation, parent_path, new Expression(type, items));
+    /* collapse two sibling operands into one replacement */
+    function _collapse(equation, parent_path, source_index, target_index, replacement) {
+        let parent = paths.resolve(equation, parent_path);
+        if (parent == null) return equation;
+        return paths.replace(equation, parent_path, 
+                expressions.collapse(parent, source_index, target_index, replacement));
     }
 
     function _balance(equation, source_path, target_side) {
@@ -101,11 +84,10 @@ function Equations(dependencies) {
     };
 
     function _combine(equation, source_path, target_path) {
-        const source_parent_path = paths.parent(source_path);
-        const target_parent_path = paths.parent(target_path);
-        if (source_parent_path == null || source_parent_path !== target_parent_path) return equation;
+        const parent_path = paths.parent(source_path);
+        if (parent_path == null || parent_path !== paths.parent(target_path)) return equation;
 
-        const parent = paths.resolve(equation, source_parent_path);
+        const parent = paths.resolve(equation, parent_path);
         const group_expressions = _group_expressions_for_tag[parent.type];
         if (group_expressions == null) return equation;
 
@@ -117,13 +99,12 @@ function Equations(dependencies) {
         );
         if (combined == null) return equation;
 
-        return _replace_two_children(
+        return _collapse(
             equation,
-            source_parent_path,
+            parent_path,
             Number(paths.segment(source_path)),
             Number(paths.segment(target_path)),
-            combined,
-            parent.type
+            combined
         );
 
     }
@@ -151,13 +132,12 @@ function Equations(dependencies) {
             sum.contents.map(term => scales.scale(scale, term))
         );
 
-        return _replace_two_children(
+        return _collapse(
             equation,
             source_parent_path,
             Number(paths.segment(source_path)),
             Number(paths.segment(target_path)),
-            distributed,
-            'mul'
+            distributed
         );
     }
 

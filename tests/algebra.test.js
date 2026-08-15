@@ -25,7 +25,15 @@ const root = path.resolve(__dirname, '..');
 });
 
 const expression_shape = ExpressionShape();
-const expressions = Expressions();
+const expressions = Expressions({
+    'add': MonoidStructure('add', new Expression('constant', 0), true,
+        evaluate => expression => expression.contents.reduce((accumulator, item) => accumulator + evaluate(item), 0)
+    ),
+    'mul': MonoidStructure('mul', new Expression('constant', 1), true,
+        evaluate => expression => expression.contents.reduce((accumulator, item) => accumulator * evaluate(item), 1)
+    ),
+    'pow': PowerStructure('pow'),
+});
 const scales = Scales(expressions, expression_shape);
 const scale_expressions = ScaleExpressions(expressions, scales);
 const powers = Powers(expressions, expression_shape);
