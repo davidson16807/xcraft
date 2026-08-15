@@ -173,17 +173,21 @@ function solveLevel10() {
 // -----------------------------------------------------------------------------
 // Property-test vocabulary and cases
 // -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// Property-test vocabulary and cases
+// -----------------------------------------------------------------------------
 
 const x = expressions.variable('x');
 const zero = expressions.constant(0);
 const one = expressions.constant(1);
 
 /*
-`a`, `b`, and `c` range over expressions, not just numbers.  The pool is
-intentionally small enough that ternary laws can be tested exhaustively, but
-contains nested sums, products, powers, signs, constants, and variables.
+The ring pool contains expressions without division by a variable expression.
+The field pool extends it with reciprocals and negative powers.  Algebraic
+metavariables a, b, and c range over the field pool; only x ranges over raw
+Numbers during semantic evaluation.
 */
-const expression_cases = Object.freeze([
+const ring_expression_cases = Object.freeze([
     expressions.constant(-3),
     expressions.constant(0),
     expressions.constant(1),
@@ -205,7 +209,26 @@ const expression_cases = Object.freeze([
     ]),
 ]);
 
-/* `x` alone ranges over numbers during semantic evaluation. */
+const field_expression_cases = Object.freeze([
+    ...ring_expression_cases,
+    expressions.reciprocal(x),
+    expressions.reciprocal(
+        expressions.add([x, expressions.constant(1)])
+    ),
+    expressions.reciprocal(
+        expressions.add([x, expressions.constant(-2)])
+    ),
+    expressions.mul([
+        expressions.constant(3),
+        expressions.reciprocal(x),
+    ]),
+    expressions.pow(x, -2),
+    expressions.div(
+        expressions.add([x, expressions.constant(1)]),
+        expressions.add([x, expressions.constant(-1)])
+    ),
+]);
+
 const x_values = Object.freeze([
     -10,
     -2,
@@ -221,6 +244,7 @@ const x_values = Object.freeze([
 const stats = {
     semantic_cases: 0,
     evaluations: 0,
+    domain_skips: 0,
     moves: 0,
 };
 
@@ -246,14 +270,61 @@ function approximatelyEqual(a, b) {
     return Math.abs(a - b) <= 1e-10 * scale;
 }
 
-function assertExpressionsEquivalent(left, right, property, context) {
-    stats.semantic_cases++;
+function valueOf(expression, variables) {
+    return expressions.evaluate(expression, variables);
+}
+
+function isDefined(expression, variables) {
+    return Number.isFinite(valueOf(expression, variables));
+}
+
+function isDefinedNonzero(expression, variables) {
+    const value = valueOf(expression, variables);
+    return Number.isFinite(value) && value !== 0;
+}
+
+function allDefined(items, variables) {
+    return items.every(expression => isDefined(expression, variables));
+}
+
+function allDefinedNonzero(items, variables) {
+    return items.every(expression => isDefinedNonzero(expression, variables));
+}
+
+function hasAdmissibleAssignment(where) {
+    return x_values.some(value => where({x:value}));
+}
+
+/*
+Semantic properties over rational expressions are pointwise: assignments at
+which a premise is false (for example a denominator is zero) are outside the
+property's domain and are skipped.  Once the premise is true, both sides must
+be finite and equal; undefined results are failures, not additional skips.
+*/
+function assertExpressionsEquivalent(left, right, property, context, where) {
+    const predicate = where || (() => true);
+    let evaluated = 0;
 
     for (const value of x_values) {
         const variables = {x:value};
-        const left_value = expressions.evaluate(left, variables);
-        const right_value = expressions.evaluate(right, variables);
+        if (!predicate(variables)) {
+            stats.domain_skips++;
+            continue;
+        }
+
+        const left_value = valueOf(left, variables);
+        const right_value = valueOf(right, variables);
         stats.evaluations++;
+        evaluated++;
+
+        assert(
+            Number.isFinite(left_value) && Number.isFinite(right_value),
+            `${property} became undefined on an admissible assignment\n`+
+            `${context}\n`+
+            `x = ${value}\n`+
+            `left:  ${orderedExpressionKey(left)} = ${left_value}\n`+
+            `right: ${orderedExpressionKey(right)} = ${right_value}`
+        );
 
         assert(
             approximatelyEqual(left_value, right_value),
@@ -264,6 +335,12 @@ function assertExpressionsEquivalent(left, right, property, context) {
             `right: ${orderedExpressionKey(right)} = ${right_value}`
         );
     }
+
+    assert(
+        evaluated > 0,
+        `${property}: no admissible sampled assignments\n${context}`
+    );
+    stats.semantic_cases++;
 }
 
 function assertSameExpression(actual, expected, property, context) {
@@ -279,11 +356,11 @@ function assertSameExpression(actual, expected, property, context) {
 }
 
 /*
-Verify the whole public move contract for a property: the move is discoverable,
-it changes the equation, produces the expected expression, leaves the other
-side alone, and is semantically equivalent to the original expression.
+Verify the whole public local-move contract for a property: the move is
+advertised, changes the equation, produces the expected expression, leaves the
+other side alone, and is semantically valid throughout the property's domain.
 */
-function assertMoveTransforms(before, source, target, expected, property, context) {
+function assertMoveTransforms(before, source, target, expected, property, context, where) {
     const sentinel = expressions.constant(17);
     const equation = new Equation(before, sentinel);
     const advertised = algebra.moves_for_source(equation, source);
@@ -303,20 +380,84 @@ function assertMoveTransforms(before, source, target, expected, property, contex
 
     assertSameExpression(updated.left, expected, property, context);
     assertSameExpression(updated.right, sentinel, property, `${context}\nright side changed`);
-    assertExpressionsEquivalent(before, updated.left, property, `${context}\nmove semantics`);
+    assertExpressionsEquivalent(before, updated.left, property, `${context}\nmove semantics`, where);
+    stats.moves++;
+}
+
+/* Balance moves do not preserve either side's value; they preserve equality. */
+function assertEquationsEquivalent(before, after, property, context, where) {
+    const predicate = where || (() => true);
+    let evaluated = 0;
+
+    for (const value of x_values) {
+        const variables = {x:value};
+        if (!predicate(variables)) {
+            stats.domain_skips++;
+            continue;
+        }
+
+        const before_left = valueOf(before.left, variables);
+        const before_right = valueOf(before.right, variables);
+        const after_left = valueOf(after.left, variables);
+        const after_right = valueOf(after.right, variables);
+        stats.evaluations++;
+        evaluated++;
+
+        assert(
+            [before_left, before_right, after_left, after_right].every(Number.isFinite),
+            `${property}: balance move became undefined on an admissible assignment\n`+
+            `${context}\nx = ${value}`
+        );
+
+        const before_true = approximatelyEqual(before_left, before_right);
+        const after_true = approximatelyEqual(after_left, after_right);
+        assert(
+            before_true === after_true,
+            `${property}: balance move changed equation truth\n`+
+            `${context}\nx = ${value}\n`+
+            `before: ${before_left} = ${before_right}\n`+
+            `after:  ${after_left} = ${after_right}`
+        );
+    }
+
+    assert(
+        evaluated > 0,
+        `${property}: no admissible sampled assignments\n${context}`
+    );
+    stats.semantic_cases++;
+}
+
+function assertEquationMoveTransforms(before, source, target, expected, property, context, where) {
+    const advertised = algebra.moves_for_source(before, source);
+    assert(
+        advertised.includes(target),
+        `${property}: expected balance move was not advertised\n`+
+        `${context}\nsource: ${source}\ntarget: ${target}\n`+
+        `advertised: ${advertised.join(', ')}`
+    );
+
+    const updated = algebra.move(before, source, target);
+    assert(
+        updated !== before,
+        `${property}: advertised balance move returned the original equation\n${context}`
+    );
+
+    assertSameExpression(updated.left, expected.left, property, `${context}\nleft side`);
+    assertSameExpression(updated.right, expected.right, property, `${context}\nright side`);
+    assertEquationsEquivalent(before, updated, property, `${context}\nmove semantics`, where);
     stats.moves++;
 }
 
 function forEachPair(callback) {
-    for (const a of expression_cases)
-    for (const b of expression_cases)
+    for (const a of field_expression_cases)
+    for (const b of field_expression_cases)
         callback(a, b);
 }
 
 function forEachTriple(callback) {
-    for (const a of expression_cases)
-    for (const b of expression_cases)
-    for (const c of expression_cases)
+    for (const a of field_expression_cases)
+    for (const b of field_expression_cases)
+    for (const c of field_expression_cases)
         callback(a, b, c);
 }
 
@@ -345,12 +486,11 @@ function additiveCommutativity() {
         const left = expressions.add([a, b]);
         const right = expressions.add([b, a]);
         const context = `a = ${describeCase(a)}\nb = ${describeCase(b)}`;
+        const where = variables => allDefined([a, b], variables);
 
-        assertExpressionsEquivalent(left, right, 'additive commutativity', context);
+        if (!hasAdmissibleAssignment(where)) return;
+        assertExpressionsEquivalent(left, right, 'additive commutativity', context, where);
 
-        // If either operand is itself a sum, construction flattens it and the
-        // two metavariables are no longer single draggable siblings.  If the
-        // terms combine, simplification intentionally has priority over swap.
         if (
             a !== b &&
             a.type !== 'add' &&
@@ -363,7 +503,8 @@ function additiveCommutativity() {
                 'path:L/1',
                 right,
                 'additive commutativity',
-                context
+                context,
+                where
             );
         }
     });
@@ -376,6 +517,9 @@ function additiveCommutativity() {
 
 function additiveAssociativity() {
     forEachTriple((a, b, c) => {
+        const where = variables => allDefined([a, b, c], variables);
+        if (!hasAdmissibleAssignment(where)) return;
+
         const left = expressions.add([
             expressions.add([a, b]),
             c,
@@ -388,7 +532,8 @@ function additiveAssociativity() {
             left,
             right,
             'additive associativity',
-            `a = ${describeCase(a)}\nb = ${describeCase(b)}\nc = ${describeCase(c)}`
+            `a = ${describeCase(a)}\nb = ${describeCase(b)}\nc = ${describeCase(c)}`,
+            where
         );
     });
 }
@@ -399,19 +544,24 @@ function additiveAssociativity() {
 // -----------------------------------------------------------------------------
 
 function additiveIdentity() {
-    for (const a of expression_cases) {
+    for (const a of field_expression_cases) {
+        const where = variables => isDefined(a, variables);
+        if (!hasAdmissibleAssignment(where)) continue;
+
         const context = `a = ${describeCase(a)}`;
         assertExpressionsEquivalent(
             expressions.add([a, zero]),
             a,
             'additive identity',
-            `${context}\nright identity`
+            `${context}\nright identity`,
+            where
         );
         assertExpressionsEquivalent(
             expressions.add([zero, a]),
             a,
             'additive identity',
-            `${context}\nleft identity`
+            `${context}\nleft identity`,
+            where
         );
     }
 }
@@ -422,16 +572,16 @@ function additiveIdentity() {
 // -----------------------------------------------------------------------------
 
 function additiveInverse() {
-    for (const a of expression_cases) {
+    for (const a of field_expression_cases) {
+        const where = variables => isDefined(a, variables);
+        if (!hasAdmissibleAssignment(where)) continue;
+
         const negative_a = scale_expressions.negate(a);
         const left = expressions.add([a, negative_a]);
         const context = `a = ${describeCase(a)}`;
 
-        assertExpressionsEquivalent(left, zero, 'additive inverse', context);
+        assertExpressionsEquivalent(left, zero, 'additive inverse', context, where);
 
-        // A nested sum is flattened by construction, so `a` is not a single
-        // draggable sibling in that representation.  All other sample forms
-        // should expose the cancellation as a player move.
         if (a.type !== 'add') {
             assertMoveTransforms(
                 left,
@@ -439,7 +589,8 @@ function additiveInverse() {
                 'path:L/1',
                 zero,
                 'additive inverse',
-                context
+                context,
+                where
             );
         }
     }
@@ -470,12 +621,11 @@ function multiplicativeCommutativity() {
         const left = expressions.mul([a, b]);
         const right = expressions.mul([b, a]);
         const context = `a = ${describeCase(a)}\nb = ${describeCase(b)}`;
+        const where = variables => allDefined([a, b], variables);
 
-        assertExpressionsEquivalent(left, right, 'multiplicative commutativity', context);
+        if (!hasAdmissibleAssignment(where)) return;
+        assertExpressionsEquivalent(left, right, 'multiplicative commutativity', context, where);
 
-        // As with addition, nested products flatten.  Like powers and numeric
-        // products simplify before swapping, so only test the explicit swap
-        // gesture when that gesture is the operation the player will get.
         if (
             a !== b &&
             a.type !== 'mul' &&
@@ -490,7 +640,8 @@ function multiplicativeCommutativity() {
                 'path:L/1',
                 right,
                 'multiplicative commutativity',
-                context
+                context,
+                where
             );
         }
     });
@@ -503,6 +654,9 @@ function multiplicativeCommutativity() {
 
 function multiplicativeAssociativity() {
     forEachTriple((a, b, c) => {
+        const where = variables => allDefined([a, b, c], variables);
+        if (!hasAdmissibleAssignment(where)) return;
+
         const left = expressions.mul([
             expressions.mul([a, b]),
             c,
@@ -515,7 +669,8 @@ function multiplicativeAssociativity() {
             left,
             right,
             'multiplicative associativity',
-            `a = ${describeCase(a)}\nb = ${describeCase(b)}\nc = ${describeCase(c)}`
+            `a = ${describeCase(a)}\nb = ${describeCase(b)}\nc = ${describeCase(c)}`,
+            where
         );
     });
 }
@@ -526,20 +681,247 @@ function multiplicativeAssociativity() {
 // -----------------------------------------------------------------------------
 
 function multiplicativeIdentity() {
-    for (const a of expression_cases) {
+    for (const a of field_expression_cases) {
+        const where = variables => isDefined(a, variables);
+        if (!hasAdmissibleAssignment(where)) continue;
+
         const context = `a = ${describeCase(a)}`;
         assertExpressionsEquivalent(
             expressions.mul([a, one]),
             a,
             'multiplicative identity',
-            `${context}\nright identity`
+            `${context}\nright identity`,
+            where
         );
         assertExpressionsEquivalent(
             expressions.mul([one, a]),
             a,
             'multiplicative identity',
-            `${context}\nleft identity`
+            `${context}\nleft identity`,
+            where
         );
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Multiplicative inverse
+// a * a^-1 = 1, for a != 0
+// -----------------------------------------------------------------------------
+
+function multiplicativeInverse() {
+    for (const a of field_expression_cases) {
+        const where = variables => isDefinedNonzero(a, variables);
+        if (!hasAdmissibleAssignment(where)) continue;
+
+        const reciprocal_a = expressions.reciprocal(a);
+        const product = expressions.mul([a, reciprocal_a]);
+        const context = `a = ${describeCase(a)}`;
+
+        assertExpressionsEquivalent(
+            product,
+            one,
+            'multiplicative inverse',
+            context,
+            where
+        );
+
+        // Test cancellation through the public move API when a and a^-1 are
+        // represented as two direct sibling factors *and* PowerExpressions
+        // currently recognizes them as a combinable pair.  For example x*x^-1
+        // is supported, while (x^2)*(x^2)^-1 would require power-of-a-power
+        // normalization that the game does not yet implement.
+        const combined = power_expressions.combine(a, reciprocal_a);
+        if (
+            combined != null &&
+            orderedExpressionKey(combined) === orderedExpressionKey(one) &&
+            product.type === 'mul' &&
+            product.contents.length === 2 &&
+            product.contents[0] === a &&
+            product.contents[1] === reciprocal_a
+        ) {
+            assertMoveTransforms(
+                product,
+                'L/0',
+                'path:L/1',
+                one,
+                'multiplicative inverse',
+                context,
+                where
+            );
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Double reciprocal
+// (a^-1)^-1 = a, for a != 0
+// -----------------------------------------------------------------------------
+
+function doubleReciprocal() {
+    for (const a of field_expression_cases) {
+        const where = variables => isDefinedNonzero(a, variables);
+        if (!hasAdmissibleAssignment(where)) continue;
+
+        assertExpressionsEquivalent(
+            expressions.reciprocal(expressions.reciprocal(a)),
+            a,
+            'double reciprocal',
+            `a = ${describeCase(a)}`,
+            where
+        );
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Inverse of a product
+// (ab)^-1 = a^-1 b^-1, for a != 0 and b != 0
+// -----------------------------------------------------------------------------
+
+function inverseOfProduct() {
+    forEachPair((a, b) => {
+        const where = variables => allDefinedNonzero([a, b], variables);
+        if (!hasAdmissibleAssignment(where)) return;
+
+        const left = expressions.reciprocal(expressions.mul([a, b]));
+        const right = expressions.mul([
+            expressions.reciprocal(a),
+            expressions.reciprocal(b),
+        ]);
+
+        assertExpressionsEquivalent(
+            left,
+            right,
+            'inverse of product',
+            `a = ${describeCase(a)}\nb = ${describeCase(b)}`,
+            where
+        );
+    });
+}
+
+// -----------------------------------------------------------------------------
+// Multiplicative cancellation
+// (ab)b^-1 = a, for b != 0
+// -----------------------------------------------------------------------------
+
+function multiplicativeCancellation() {
+    forEachPair((a, b) => {
+        const where = variables =>
+            isDefined(a, variables) && isDefinedNonzero(b, variables);
+        if (!hasAdmissibleAssignment(where)) return;
+
+        const left = expressions.mul([
+            a,
+            b,
+            expressions.reciprocal(b),
+        ]);
+
+        assertExpressionsEquivalent(
+            left,
+            a,
+            'multiplicative cancellation',
+            `a = ${describeCase(a)}\nb = ${describeCase(b)}`,
+            where
+        );
+    });
+}
+
+// -----------------------------------------------------------------------------
+// Division definition
+// a / b = a * b^-1, for b != 0
+// -----------------------------------------------------------------------------
+
+function divisionDefinition() {
+    forEachPair((a, b) => {
+        const where = variables =>
+            isDefined(a, variables) && isDefinedNonzero(b, variables);
+        if (!hasAdmissibleAssignment(where)) return;
+
+        assertExpressionsEquivalent(
+            expressions.div(a, b),
+            expressions.mul([a, expressions.reciprocal(b)]),
+            'division definition',
+            `a = ${describeCase(a)}\nb = ${describeCase(b)}`,
+            where
+        );
+    });
+}
+
+// -----------------------------------------------------------------------------
+// Multiplicative balance
+// ax = b  <->  x = b a^-1, for a != 0
+// x a^-1 = b  <->  x = ba, for a != 0
+// -----------------------------------------------------------------------------
+
+function multiplicativeBalance() {
+    const factor_cases = field_expression_cases.filter(a =>
+        a.type !== 'mul' &&
+        !(a.type === 'constant' && a.contents === 0)
+    );
+
+    for (const a of factor_cases)
+    for (const b of field_expression_cases) {
+        const where = variables =>
+            isDefinedNonzero(a, variables) && isDefined(b, variables);
+        if (!hasAdmissibleAssignment(where)) continue;
+
+        const inverse_a = expressions.reciprocal(a);
+        const before = new Equation(
+            expressions.mul([a, x]),
+            b
+        );
+        const expected = new Equation(
+            x,
+            expressions.append('mul', b, inverse_a)
+        );
+        const context = `a = ${describeCase(a)}\nb = ${describeCase(b)}`;
+
+        // Construction can only expose `a` as L/0 when it remains a direct
+        // factor.  The filter above excludes products, and this check guards
+        // against any future constructor changes.
+        if (
+            before.left.type === 'mul' &&
+            before.left.contents[0] === a
+        ) {
+            assertEquationMoveTransforms(
+                before,
+                'L/0',
+                'side:R',
+                expected,
+                'multiplicative balance',
+                `${context}\ndivide both sides by a`,
+                where
+            );
+        }
+
+        const reciprocal_factor = expressions.reciprocal(a);
+        const reverse_before = new Equation(
+            expressions.mul([x, reciprocal_factor]),
+            b
+        );
+        const reverse_expected = new Equation(
+            x,
+            expressions.append(
+                'mul',
+                b,
+                expressions.reciprocal(reciprocal_factor)
+            )
+        );
+
+        if (
+            reverse_before.left.type === 'mul' &&
+            reverse_before.left.contents.length === 2 &&
+            reverse_before.left.contents[1] === reciprocal_factor
+        ) {
+            assertEquationMoveTransforms(
+                reverse_before,
+                'L/1',
+                'side:R',
+                reverse_expected,
+                'multiplicative balance',
+                `${context}\nmultiply both sides by a`,
+                where
+            );
+        }
     }
 }
 
@@ -551,6 +933,9 @@ function multiplicativeIdentity() {
 
 function distributivity() {
     forEachTriple((a, b, c) => {
+        const where = variables => allDefined([a, b, c], variables);
+        if (!hasAdmissibleAssignment(where)) return;
+
         const sum_bc = expressions.add([b, c]);
         const sum_ab = expressions.add([a, b]);
         const left_product = expressions.mul([a, sum_bc]);
@@ -569,19 +954,18 @@ function distributivity() {
             left_product,
             left_expanded,
             'left distributivity',
-            context
+            context,
+            where
         );
         assertExpressionsEquivalent(
             right_product,
             right_expanded,
             'right distributivity',
-            context
+            context,
+            where
         );
     });
 
-    // The current game exposes distribution specifically for a numeric scale
-    // and a sum.  Use nonconstant addends so constant folding cannot take
-    // precedence over the distribution gesture.
     const scalar_cases = [
         expressions.constant(-3),
         expressions.constant(-1),
@@ -594,15 +978,15 @@ function distributivity() {
         scale_expressions.negate(x),
         expressions.mul([expressions.constant(3), x]),
         expressions.pow(x, 2),
-        expressions.mul([
-            expressions.add([x, expressions.constant(1)]),
-            expressions.add([x, expressions.constant(-2)]),
-        ]),
+        expressions.reciprocal(expressions.add([x, expressions.constant(1)])),
     ];
 
     for (const a of scalar_cases)
     for (const b of addend_cases)
     for (const c of addend_cases) {
+        const where = variables => allDefined([a, b, c], variables);
+        if (!hasAdmissibleAssignment(where)) continue;
+
         const sum = expressions.add([b, c]);
         const expanded = expressions.add(
             sum.contents.map(term => scale_expressions.scale(a, term))
@@ -615,7 +999,8 @@ function distributivity() {
             'path:L/1',
             expanded,
             'left distributivity',
-            context
+            context,
+            where
         );
 
         assertMoveTransforms(
@@ -624,7 +1009,8 @@ function distributivity() {
             'path:L/0',
             expanded,
             'right distributivity',
-            context
+            context,
+            where
         );
     }
 }
@@ -656,6 +1042,12 @@ function distributivity() {
     multiplicativeCommutativity,
     multiplicativeAssociativity,
     multiplicativeIdentity,
+    multiplicativeInverse,
+    doubleReciprocal,
+    inverseOfProduct,
+    multiplicativeCancellation,
+    divisionDefinition,
+    multiplicativeBalance,
     distributivity,
 ].forEach(test => test());
 
@@ -663,5 +1055,6 @@ console.log(
     `ok - 10 level solutions; `+
     `${stats.semantic_cases} property cases; `+
     `${stats.evaluations} evaluations; `+
+    `${stats.domain_skips} domain exclusions; `+
     `${stats.moves} advertised property moves`
 );
