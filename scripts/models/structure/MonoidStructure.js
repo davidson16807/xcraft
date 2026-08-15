@@ -43,19 +43,38 @@ const MonoidStructure = (label, identity, is_commutative, evaluator) => {
         return left.type === label? create([...left.contents, right]) : create([left, right]);
     }
 
+    /*
+    Preserve a one-item monoid after a structural edit when the remaining
+    item is a variable or constant, so its additive/multiplicative context is
+    not lost.  Removing that final item then exposes the monoid identity.
+    */
+    function remainder(contents) {
+        if (contents.length === 0) return identity;
+        if (contents.length === 1) {
+            const item = contents[0];
+            if (is_identity(item)) return identity;
+            if (item.type === 'constant' || item.type === 'variable') {
+                return new Expression(label, Object.freeze(contents));
+            }
+        }
+        return create(contents);
+    }
+
     function remove(expression, index) {
+        if (expression.type !== label) return expression;
         const contents = expression.contents.slice();
         contents.splice(index, 1);
-        return expression.type !== label? expression : create(contents);
+        return remainder(contents);
     }
 
     function collapse(expression, index1, index2, replacement) {
+        if (expression.type !== label) return expression;
         const low = Math.min(index1, index2);
         const high = Math.max(index1, index2);
         const contents = expression.contents.slice();
         contents[low] = replacement;
         contents.splice(high, 1);
-        return create(contents);
+        return remainder(contents);
     }
 
     return Object.freeze({

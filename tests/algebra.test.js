@@ -8,6 +8,8 @@ const path = require('path');
 const root = path.resolve(__dirname, '..');
 [
     'scripts/models/expression/Expression.js',
+    'scripts/models/structure/MonoidStructure.js',
+    'scripts/models/structure/PowerStructure.js',
     'scripts/models/expression/ExpressionShape.js',
     'scripts/models/expression/Expressions.js',
     'scripts/models/expression/Scale.js',
@@ -20,6 +22,7 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/equation/EquationShape.js',
     'scripts/models/expression/ExpressionPaths.js',
     'scripts/models/equation/Equations.js',
+    'scripts/models/equation/EquationDragOperations.js',
     'scripts/levels/Levels.js',
 ].forEach(file => {
     vm.runInThisContext(
@@ -56,11 +59,14 @@ const powers = Powers(expressions, expression_shape);
 const power_expressions = PowerExpressions(expressions, powers);
 const equation_shape = EquationShape(expression_shape);
 const paths = ExpressionPaths(expressions);
-const algebra = Equations({
-    expressions: expressions,
-    scale_expressions: scale_expressions,
-    power_expressions: power_expressions,
+const algebra = EquationDragOperations({
     expression_paths: paths,
+    equations: Equations({
+        expressions: expressions,
+        scale_expressions: scale_expressions,
+        power_expressions: power_expressions,
+        expression_paths: paths,
+    }),
 });
 const levels = Levels(expressions);
 
@@ -142,8 +148,9 @@ function solveLevel7() {
 
 function solveLevel8() {
     let q = levels[7].equation;
-    q = move(q, 'L/0/0', 'path:L/0/1');
-    q = move(q, 'L/1', 'path:L/2');
+    q = move(q, 'L/1', 'side:R');
+    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/0', 'path:L/1');
     q = move(q, 'L/1', 'side:R');
     q = move(q, 'R/1', 'path:R/0');
     q = move(q, 'L/0', 'side:R');
@@ -162,9 +169,12 @@ function solveLevel9() {
 
 function solveLevel10() {
     let q = levels[9].equation;
-    q = move(q, 'L/0/0', 'path:L/0/1');
-    q = move(q, 'L/0', 'path:L/2');
     q = move(q, 'L/1', 'side:R');
+    q = move(q, 'L/0', 'path:L/1');
+    q = move(q, 'L/0', 'side:R');
+    q = move(q, 'R/1', 'path:R/2');
+    q = move(q, 'R/1', 'side:L');
+    q = move(q, 'L/0', 'side:R');
     q = move(q, 'R/1', 'path:R/0');
     q = move(q, 'L/0', 'side:R');
     q = move(q, 'R/1', 'path:R/0');
@@ -181,6 +191,7 @@ function solveLevel10() {
 const x = expressions.variable('x');
 const zero = expressions.constant(0);
 const one = expressions.constant(1);
+const singleton = (type, expression) => new Expression(type, Object.freeze([expression]));
 
 /*
 The ring pool contains expressions without division by a variable expression.
@@ -565,6 +576,51 @@ function additiveIdentity() {
             where
         );
     }
+
+    /*
+    A variable or constant left as the sole addend must retain enough additive
+    context to remain draggable.  Removing that final addend leaves 0.
+    */
+    for (const a of [x, expressions.constant(2)]) {
+        const where = variables => isDefined(a, variables);
+        const three = expressions.constant(3);
+        const before = new Equation(
+            expressions.add([a, three]),
+            expressions.constant(10)
+        );
+        const after_first = new Equation(
+            singleton('add', a),
+            expressions.add([expressions.constant(10), expressions.constant(-3)])
+        );
+        const context = `sole addend a = ${describeCase(a)}`;
+
+        assertEquationMoveTransforms(
+            before,
+            'L/1',
+            'side:R',
+            after_first,
+            'additive identity',
+            `${context}\nleave a as the sole addend`,
+            where
+        );
+        assert(
+            algebra.draggable_paths(after_first).includes('L/0'),
+            `additive identity: sole addend should remain draggable\n${context}`
+        );
+
+        assertEquationMoveTransforms(
+            after_first,
+            'L/0',
+            'side:R',
+            new Equation(
+                zero,
+                expressions.append('add', after_first.right, scale_expressions.negate(a))
+            ),
+            'additive identity',
+            `${context}\nremove the final addend`,
+            where
+        );
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -699,6 +755,52 @@ function multiplicativeIdentity() {
             a,
             'multiplicative identity',
             `${context}\nleft identity`,
+            where
+        );
+    }
+
+    /*
+    A nonzero variable or constant left as the sole factor must retain enough
+    multiplicative context to remain draggable.  Removing that final factor
+    leaves 1.
+    */
+    for (const a of [x, expressions.constant(2)]) {
+        const where = variables => isDefinedNonzero(a, variables);
+        const three = expressions.constant(3);
+        const before = new Equation(
+            expressions.mul([a, three]),
+            expressions.constant(10)
+        );
+        const after_first = new Equation(
+            singleton('mul', a),
+            expressions.mul([expressions.constant(10), expressions.reciprocal(three)])
+        );
+        const context = `sole factor a = ${describeCase(a)}`;
+
+        assertEquationMoveTransforms(
+            before,
+            'L/1',
+            'side:R',
+            after_first,
+            'multiplicative identity',
+            `${context}\nleave a as the sole factor`,
+            where
+        );
+        assert(
+            algebra.draggable_paths(after_first).includes('L/0'),
+            `multiplicative identity: sole factor should remain draggable\n${context}`
+        );
+
+        assertEquationMoveTransforms(
+            after_first,
+            'L/0',
+            'side:R',
+            new Equation(
+                one,
+                expressions.append('mul', after_first.right, expressions.reciprocal(a))
+            ),
+            'multiplicative identity',
+            `${context}\nremove the final factor`,
             where
         );
     }
@@ -871,7 +973,7 @@ function multiplicativeBalance() {
             b
         );
         const expected = new Equation(
-            x,
+            singleton('mul', x),
             expressions.append('mul', b, inverse_a)
         );
         const context = `a = ${describeCase(a)}\nb = ${describeCase(b)}`;
@@ -900,7 +1002,7 @@ function multiplicativeBalance() {
             b
         );
         const reverse_expected = new Equation(
-            x,
+            singleton('mul', x),
             expressions.append(
                 'mul',
                 b,
