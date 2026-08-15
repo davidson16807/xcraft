@@ -21,16 +21,31 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/equation/Equations.js',
     'scripts/levels/Levels.js',
 ].forEach(file => {
-    vm.runInThisContext(fs.readFileSync(path.join(root, file), 'utf8'), { filename:file });
+    vm.runInThisContext(
+        fs.readFileSync(path.join(root, file), 'utf8'),
+        { filename:file }
+    );
 });
 
 const expression_shape = ExpressionShape();
 const expressions = Expressions({
-    'add': MonoidStructure('add', new Expression('constant', 0), true,
-        evaluate => expression => expression.contents.reduce((accumulator, item) => accumulator + evaluate(item), 0)
+    'add': MonoidStructure(
+        'add',
+        new Expression('constant', 0),
+        true,
+        evaluate => expression => expression.contents.reduce(
+            (accumulator, item) => accumulator + evaluate(item),
+            0
+        )
     ),
-    'mul': MonoidStructure('mul', new Expression('constant', 1), true,
-        evaluate => expression => expression.contents.reduce((accumulator, item) => accumulator * evaluate(item), 1)
+    'mul': MonoidStructure(
+        'mul',
+        new Expression('constant', 1),
+        true,
+        evaluate => expression => expression.contents.reduce(
+            (accumulator, item) => accumulator * evaluate(item),
+            1
+        )
     ),
     'pow': PowerStructure('pow'),
 });
@@ -66,6 +81,10 @@ function move(equation, source, target) {
     assert(updated !== equation, `move should be valid: ${source} -> ${target}`);
     return updated;
 }
+
+// -----------------------------------------------------------------------------
+// Level solutions
+// -----------------------------------------------------------------------------
 
 function solveLevel1() {
     let q = levels[0].equation;
@@ -151,249 +170,498 @@ function solveLevel10() {
     assertShape(q, levels[9].goal, 'level 10');
 }
 
-function verifyCoefficientBasis() {
-    const x = expressions.variable('x');
-    const two_x = expressions.mul([expressions.constant(2), x]);
-    const decomposition = scales.from_expression(two_x);
+// -----------------------------------------------------------------------------
+// Property-test vocabulary and cases
+// -----------------------------------------------------------------------------
 
-    assert(decomposition.coefficient === 2, 'coefficient/basis should extract numeric coefficient');
-    assert(
-        expression_shape.encode(decomposition.basis) === expression_shape.encode(x),
-        'coefficient/basis should preserve the nonconstant basis'
-    );
-    assert(
-        scale_expressions.combine(two_x, expressions.mul([expressions.constant(3), x])).contents[0].contents === 5,
-        'coefficient/basis should combine like terms'
-    );
-}
+const x = expressions.variable('x');
+const zero = expressions.constant(0);
+const one = expressions.constant(1);
 
-function verifyPowerBase() {
-    const x = expressions.variable('x');
-    const y = expressions.variable('y');
-
-    const x3 = expressions.pow(x, 3);
-    const decomposition = powers.from_expression(x3);
-    assert(decomposition.power === 3, 'power/base should extract a numeric power');
-    assert(
-        expression_shape.encode(decomposition.base) === expression_shape.encode(x),
-        'power/base should preserve the base'
-    );
-
-    const x5 = power_expressions.combine(expressions.pow(x, 2), expressions.pow(x, 3));
-    assert(
-        expression_shape.encode(x5) === expression_shape.encode(expressions.pow(x, 5)),
-        'like bases should combine by adding powers'
-    );
-
-    const x2 = power_expressions.combine(x, x);
-    assert(
-        expression_shape.encode(x2) === expression_shape.encode(expressions.pow(x, 2)),
-        'implicit first powers should combine'
-    );
-
-    assert(
-        power_expressions.combine(x, y) == null,
-        'different algebraic bases should not combine'
-    );
-
-    const thirty = power_expressions.combine(expressions.constant(5), expressions.constant(6));
-    assert(
-        thirty.type === 'constant' && thirty.contents === 30,
-        'numeric factors should still multiply explicitly'
-    );
-
-    const seven = power_expressions.combine(
-        expressions.constant(28),
-        expressions.reciprocal(expressions.constant(4))
-    );
-    assert(
-        seven.type === 'constant' && seven.contents === 7,
-        'numeric reciprocal factors should still evaluate explicitly'
-    );
-
-    const product = new Equation(
-        expressions.mul([expressions.pow(x, 2), expressions.pow(x, 3)]),
-        expressions.constant(0)
-    );
-    const combined_product = algebra.move(product, 'L/0', 'path:L/1');
-    assert(
-        expression_shape.encode(combined_product.left) ===
-        expression_shape.encode(expressions.pow(x, 5)),
-        'equation multiplication should combine like bases through PowerExpressions'
-    );
-}
-
-function verifyOppositeOperations() {
-    const additive_inverse = algebra.invert(levels[0].equation, 'L/1');
-    assert(
-        expression_shape.encode(additive_inverse) ===
-        expression_shape.encode(expressions.constant(-3)),
-        'moving +3 across equality should apply -3 to both sides'
-    );
-
-    const multiplicative_inverse = algebra.invert(levels[2].equation, 'L/0');
-    assert(
-        expression_shape.encode(multiplicative_inverse) ===
-        expression_shape.encode(expressions.reciprocal(expressions.constant(4))),
-        'moving a factor 4 across equality should apply its reciprocal to both sides'
-    );
-
-    const reciprocal_inverse = algebra.invert(levels[3].equation, 'L/1');
-    assert(
-        expression_shape.encode(reciprocal_inverse) ===
-        expression_shape.encode(expressions.constant(6)),
-        'moving a reciprocal factor across equality should apply its base to both sides'
-    );
-
-    assert(
-        algebra.invert(levels[6].equation, 'L/1/0') == null,
-        'nested/local expressions should not advertise a balance operation'
-    );
-}
-
-function verifyCommutativeSwaps() {
-    const x = expressions.variable('x');
-    const y = expressions.variable('y');
-    const three = expressions.constant(3);
-
-    const sum = new Equation(
-        expressions.add([x, three, y]),
-        expressions.constant(0)
-    );
-    assert(
-        algebra.moves_for_source(sum, 'L/0').includes('path:L/2'),
-        'commutative siblings should be advertised as valid path targets'
-    );
-
-    const two = expressions.constant(2);
-
-    const two_x = expressions.mul([two, x]);
-    const three_x = expressions.mul([three, x]);
-    const like_terms = new Equation(
-        expressions.add([two_x, three_x]),
-        expressions.constant(0)
-    );
-    const combined = algebra.move(like_terms, 'L/0', 'path:L/1');
-    assert(combined.left.type === 'mul', 'combining like terms should take precedence over swapping');
-    assert(
-        scales.from_expression(combined.left).coefficient === 5,
-        'combining like terms should produce 5x rather than reverse the terms'
-    );
-
-    const power = new Equation(
+/*
+`a`, `b`, and `c` range over expressions, not just numbers.  The pool is
+intentionally small enough that ternary laws can be tested exhaustively, but
+contains nested sums, products, powers, signs, constants, and variables.
+*/
+const expression_cases = Object.freeze([
+    expressions.constant(-3),
+    expressions.constant(0),
+    expressions.constant(1),
+    expressions.constant(2),
+    x,
+    scale_expressions.negate(x),
+    expressions.add([x, expressions.constant(2)]),
+    expressions.add([x, expressions.constant(-3)]),
+    expressions.mul([expressions.constant(3), x]),
+    expressions.pow(x, 2),
+    expressions.add([
         expressions.pow(x, 2),
-        expressions.constant(0)
-    );
-
-    const nested = new Equation(
-        expressions.add([x, expressions.mul([y, three])]),
-        expressions.constant(0)
-    );
-}
-
-function verifyTopLevelBalance() {
-    const x = expressions.variable('x');
-    const two = expressions.constant(2);
-    const five = expressions.constant(5);
-
-    // What is displayed as (x-2)=5 is structurally just an addition at the
-    // root, so -2 is immediately eligible for a balanced operation.
-    const equation = new Equation(
+        x,
+        expressions.constant(1),
+    ]),
+    expressions.mul([
+        expressions.add([x, expressions.constant(1)]),
         expressions.add([x, expressions.constant(-2)]),
-        five
-    );
-    const inverse = algebra.invert(equation, 'L/1');
-    assert(
-        expression_shape.encode(inverse) === expression_shape.encode(two),
-        'a visually parenthesized root sum should expose its top-level addends'
-    );
-    const moved = algebra.move(equation, 'L/1', 'side:R');
-    assert(moved !== equation, 'top-level -2 should move across equality');
-    assert(
-        equation_shape.encode(moved) === equation_shape.encode(
-            new Equation(x, expressions.add([five, two]))
-        ),
-        'moving -2 should apply +2 to the other side'
-    );
+    ]),
+]);
 
-}
+/* `x` alone ranges over numbers during semantic evaluation. */
+const x_values = Object.freeze([
+    -10,
+    -2,
+    -1,
+    -0.5,
+    0,
+    0.5,
+    1,
+    2,
+    10,
+]);
 
-function verifyExpressionRepresentation() {
-    levels.forEach(level => {
-        paths.all(level.equation).forEach(path => {
-            const expression = paths.resolve(level.equation, path);
-            assert(expression instanceof Expression, `AST node should be an Expression: ${path}`);
-            assert(expression.type !== 'div', `division should not be a primitive AST node: ${path}`);
-            assert(expression.type !== 'group', `parentheses should not be a primitive AST node: ${path}`);
-        });
-    });
+const stats = {
+    semantic_cases: 0,
+    evaluations: 0,
+    moves: 0,
+};
 
-    const x = expressions.variable('x');
-    const two = expressions.constant(2);
-    const quotient = expressions.div(x, two);
-    assert(quotient.type === 'mul', 'division should construct multiplication by a reciprocal');
-    assert(expressions.is_reciprocal(quotient.contents[1]), 'division denominator should be reciprocal');
-    const square = expressions.pow(x, 2);
-    assert(square.type === 'pow', 'powers should use the power expression type');
-}
-
-function isSatisfied(equation, variables, tolerance) {
-    const epsilon = tolerance == null? 1e-9 : tolerance;
-    const left = expressions.evaluate(equation.left, variables);
-    const right = expressions.evaluate(equation.right, variables);
-    return Number.isFinite(left) && Number.isFinite(right) && Math.abs(left - right) <= epsilon;
-}
-
-function sameSolutionSamples(before, after) {
-    for (let x = -20; x <= 20; x++) {
-        const b = isSatisfied(before, {x:x});
-        const a = isSatisfied(after, {x:x});
-        if (a !== b) return false;
+function orderedExpressionKey(expression) {
+    switch (expression.type) {
+        case 'constant': return `C(${expression.contents})`;
+        case 'variable': return `V(${expression.contents})`;
+        case 'pow': return `P(${orderedExpressionKey(expression.contents[0])},${orderedExpressionKey(expression.contents[1])})`;
+        case 'add': return `A(${expression.contents.map(orderedExpressionKey).join(',')})`;
+        case 'mul': return `M(${expression.contents.map(orderedExpressionKey).join(',')})`;
+        default: return `${expression.type}(?)`;
     }
-    return true;
 }
 
-function verifyAdvertisedMoves() {
-    const queue = levels.map(level => ({ equation:level.equation, depth:0 }));
-    const visited = new Set(queue.map(item => equation_shape.encode(item.equation)));
-    let checked = 0;
+function describeCase(expression) {
+    return orderedExpressionKey(expression);
+}
 
-    while (queue.length > 0) {
-        const { equation, depth } = queue.shift();
-        for (const source of paths.all(equation)) {
-            for (const target of algebra.moves_for_source(equation, source)) {
-                const updated = algebra.move(equation, source, target);
-                assert(updated !== equation, 'advertised move must change state');
-                assert(
-                    sameSolutionSamples(equation, updated),
-                    `move changed sampled solution set: ${source} -> ${target}\n`+
-                    `${equation_shape.encode(equation)} -> ${equation_shape.encode(updated)}`
-                );
-                checked++;
-                if (depth < 3) {
-                    const key = equation_shape.encode(updated);
-                    if (!visited.has(key) && visited.size < 5000) {
-                        visited.add(key);
-                        queue.push({ equation:updated, depth:depth+1 });
-                    }
-                }
-            }
+function approximatelyEqual(a, b) {
+    if (Object.is(a, b)) return true;
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return false;
+    const scale = Math.max(1, Math.abs(a), Math.abs(b));
+    return Math.abs(a - b) <= 1e-10 * scale;
+}
+
+function assertExpressionsEquivalent(left, right, property, context) {
+    stats.semantic_cases++;
+
+    for (const value of x_values) {
+        const variables = {x:value};
+        const left_value = expressions.evaluate(left, variables);
+        const right_value = expressions.evaluate(right, variables);
+        stats.evaluations++;
+
+        assert(
+            approximatelyEqual(left_value, right_value),
+            `${property} failed\n`+
+            `${context}\n`+
+            `x = ${value}\n`+
+            `left:  ${orderedExpressionKey(left)} = ${left_value}\n`+
+            `right: ${orderedExpressionKey(right)} = ${right_value}`
+        );
+    }
+}
+
+function assertSameExpression(actual, expected, property, context) {
+    const actual_key = orderedExpressionKey(actual);
+    const expected_key = orderedExpressionKey(expected);
+    assert(
+        actual_key === expected_key,
+        `${property}: move produced the wrong expression\n`+
+        `${context}\n`+
+        `expected: ${expected_key}\n`+
+        `actual:   ${actual_key}`
+    );
+}
+
+/*
+Verify the whole public move contract for a property: the move is discoverable,
+it changes the equation, produces the expected expression, leaves the other
+side alone, and is semantically equivalent to the original expression.
+*/
+function assertMoveTransforms(before, source, target, expected, property, context) {
+    const sentinel = expressions.constant(17);
+    const equation = new Equation(before, sentinel);
+    const advertised = algebra.moves_for_source(equation, source);
+
+    assert(
+        advertised.includes(target),
+        `${property}: expected move was not advertised\n`+
+        `${context}\nsource: ${source}\ntarget: ${target}\n`+
+        `advertised: ${advertised.join(', ')}`
+    );
+
+    const updated = algebra.move(equation, source, target);
+    assert(
+        updated !== equation,
+        `${property}: advertised move returned the original equation\n${context}`
+    );
+
+    assertSameExpression(updated.left, expected, property, context);
+    assertSameExpression(updated.right, sentinel, property, `${context}\nright side changed`);
+    assertExpressionsEquivalent(before, updated.left, property, `${context}\nmove semantics`);
+    stats.moves++;
+}
+
+function forEachPair(callback) {
+    for (const a of expression_cases)
+    for (const b of expression_cases)
+        callback(a, b);
+}
+
+function forEachTriple(callback) {
+    for (const a of expression_cases)
+    for (const b of expression_cases)
+    for (const c of expression_cases)
+        callback(a, b, c);
+}
+
+// -----------------------------------------------------------------------------
+// Additive closure
+// a + b is an Expression.
+// -----------------------------------------------------------------------------
+
+function additiveClosure() {
+    forEachPair((a, b) => {
+        const result = expressions.add([a, b]);
+        assert(
+            result instanceof Expression,
+            `additive closure failed\na = ${describeCase(a)}\nb = ${describeCase(b)}`
+        );
+    });
+}
+
+// -----------------------------------------------------------------------------
+// Additive commutativity
+// a + b = b + a
+// -----------------------------------------------------------------------------
+
+function additiveCommutativity() {
+    forEachPair((a, b) => {
+        const left = expressions.add([a, b]);
+        const right = expressions.add([b, a]);
+        const context = `a = ${describeCase(a)}\nb = ${describeCase(b)}`;
+
+        assertExpressionsEquivalent(left, right, 'additive commutativity', context);
+
+        // If either operand is itself a sum, construction flattens it and the
+        // two metavariables are no longer single draggable siblings.  If the
+        // terms combine, simplification intentionally has priority over swap.
+        if (
+            a !== b &&
+            a.type !== 'add' &&
+            b.type !== 'add' &&
+            scale_expressions.combine(a, b) == null
+        ) {
+            assertMoveTransforms(
+                left,
+                'L/0',
+                'path:L/1',
+                right,
+                'additive commutativity',
+                context
+            );
+        }
+    });
+}
+
+// -----------------------------------------------------------------------------
+// Additive associativity
+// (a + b) + c = a + (b + c)
+// -----------------------------------------------------------------------------
+
+function additiveAssociativity() {
+    forEachTriple((a, b, c) => {
+        const left = expressions.add([
+            expressions.add([a, b]),
+            c,
+        ]);
+        const right = expressions.add([
+            a,
+            expressions.add([b, c]),
+        ]);
+        assertExpressionsEquivalent(
+            left,
+            right,
+            'additive associativity',
+            `a = ${describeCase(a)}\nb = ${describeCase(b)}\nc = ${describeCase(c)}`
+        );
+    });
+}
+
+// -----------------------------------------------------------------------------
+// Additive identity
+// a + 0 = a = 0 + a
+// -----------------------------------------------------------------------------
+
+function additiveIdentity() {
+    for (const a of expression_cases) {
+        const context = `a = ${describeCase(a)}`;
+        assertExpressionsEquivalent(
+            expressions.add([a, zero]),
+            a,
+            'additive identity',
+            `${context}\nright identity`
+        );
+        assertExpressionsEquivalent(
+            expressions.add([zero, a]),
+            a,
+            'additive identity',
+            `${context}\nleft identity`
+        );
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Additive inverse
+// a + (-a) = 0
+// -----------------------------------------------------------------------------
+
+function additiveInverse() {
+    for (const a of expression_cases) {
+        const negative_a = scale_expressions.negate(a);
+        const left = expressions.add([a, negative_a]);
+        const context = `a = ${describeCase(a)}`;
+
+        assertExpressionsEquivalent(left, zero, 'additive inverse', context);
+
+        // A nested sum is flattened by construction, so `a` is not a single
+        // draggable sibling in that representation.  All other sample forms
+        // should expose the cancellation as a player move.
+        if (a.type !== 'add') {
+            assertMoveTransforms(
+                left,
+                'L/0',
+                'path:L/1',
+                zero,
+                'additive inverse',
+                context
+            );
         }
     }
-    assert(checked > 0, 'property test should check at least one move');
-    return checked;
 }
 
-verifyCoefficientBasis();
-verifyPowerBase();
-verifyOppositeOperations();
-verifyCommutativeSwaps();
-verifyTopLevelBalance();
-verifyExpressionRepresentation();
+// -----------------------------------------------------------------------------
+// Multiplicative closure
+// ab is an Expression.
+// -----------------------------------------------------------------------------
+
+function multiplicativeClosure() {
+    forEachPair((a, b) => {
+        const result = expressions.mul([a, b]);
+        assert(
+            result instanceof Expression,
+            `multiplicative closure failed\na = ${describeCase(a)}\nb = ${describeCase(b)}`
+        );
+    });
+}
+
+// -----------------------------------------------------------------------------
+// Multiplicative commutativity
+// ab = ba
+// -----------------------------------------------------------------------------
+
+function multiplicativeCommutativity() {
+    forEachPair((a, b) => {
+        const left = expressions.mul([a, b]);
+        const right = expressions.mul([b, a]);
+        const context = `a = ${describeCase(a)}\nb = ${describeCase(b)}`;
+
+        assertExpressionsEquivalent(left, right, 'multiplicative commutativity', context);
+
+        // As with addition, nested products flatten.  Like powers and numeric
+        // products simplify before swapping, so only test the explicit swap
+        // gesture when that gesture is the operation the player will get.
+        if (
+            a !== b &&
+            a.type !== 'mul' &&
+            b.type !== 'mul' &&
+            power_expressions.combine(a, b) == null &&
+            !((a.type === 'constant' && b.type === 'add') ||
+              (a.type === 'add' && b.type === 'constant'))
+        ) {
+            assertMoveTransforms(
+                left,
+                'L/0',
+                'path:L/1',
+                right,
+                'multiplicative commutativity',
+                context
+            );
+        }
+    });
+}
+
+// -----------------------------------------------------------------------------
+// Multiplicative associativity
+// (ab)c = a(bc)
+// -----------------------------------------------------------------------------
+
+function multiplicativeAssociativity() {
+    forEachTriple((a, b, c) => {
+        const left = expressions.mul([
+            expressions.mul([a, b]),
+            c,
+        ]);
+        const right = expressions.mul([
+            a,
+            expressions.mul([b, c]),
+        ]);
+        assertExpressionsEquivalent(
+            left,
+            right,
+            'multiplicative associativity',
+            `a = ${describeCase(a)}\nb = ${describeCase(b)}\nc = ${describeCase(c)}`
+        );
+    });
+}
+
+// -----------------------------------------------------------------------------
+// Multiplicative identity
+// a * 1 = a = 1 * a
+// -----------------------------------------------------------------------------
+
+function multiplicativeIdentity() {
+    for (const a of expression_cases) {
+        const context = `a = ${describeCase(a)}`;
+        assertExpressionsEquivalent(
+            expressions.mul([a, one]),
+            a,
+            'multiplicative identity',
+            `${context}\nright identity`
+        );
+        assertExpressionsEquivalent(
+            expressions.mul([one, a]),
+            a,
+            'multiplicative identity',
+            `${context}\nleft identity`
+        );
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Distributivity
+// a(b + c) = ab + ac
+// (a + b)c = ac + bc
+// -----------------------------------------------------------------------------
+
+function distributivity() {
+    forEachTriple((a, b, c) => {
+        const sum_bc = expressions.add([b, c]);
+        const sum_ab = expressions.add([a, b]);
+        const left_product = expressions.mul([a, sum_bc]);
+        const left_expanded = expressions.add([
+            expressions.mul([a, b]),
+            expressions.mul([a, c]),
+        ]);
+        const right_product = expressions.mul([sum_ab, c]);
+        const right_expanded = expressions.add([
+            expressions.mul([a, c]),
+            expressions.mul([b, c]),
+        ]);
+        const context = `a = ${describeCase(a)}\nb = ${describeCase(b)}\nc = ${describeCase(c)}`;
+
+        assertExpressionsEquivalent(
+            left_product,
+            left_expanded,
+            'left distributivity',
+            context
+        );
+        assertExpressionsEquivalent(
+            right_product,
+            right_expanded,
+            'right distributivity',
+            context
+        );
+    });
+
+    // The current game exposes distribution specifically for a numeric scale
+    // and a sum.  Use nonconstant addends so constant folding cannot take
+    // precedence over the distribution gesture.
+    const scalar_cases = [
+        expressions.constant(-3),
+        expressions.constant(-1),
+        expressions.constant(0),
+        expressions.constant(1),
+        expressions.constant(2),
+    ];
+    const addend_cases = [
+        x,
+        scale_expressions.negate(x),
+        expressions.mul([expressions.constant(3), x]),
+        expressions.pow(x, 2),
+        expressions.mul([
+            expressions.add([x, expressions.constant(1)]),
+            expressions.add([x, expressions.constant(-2)]),
+        ]),
+    ];
+
+    for (const a of scalar_cases)
+    for (const b of addend_cases)
+    for (const c of addend_cases) {
+        const sum = expressions.add([b, c]);
+        const expanded = expressions.add(
+            sum.contents.map(term => scale_expressions.scale(a, term))
+        );
+        const context = `a = ${describeCase(a)}\nb = ${describeCase(b)}\nc = ${describeCase(c)}`;
+
+        assertMoveTransforms(
+            expressions.mul([a, sum]),
+            'L/0',
+            'path:L/1',
+            expanded,
+            'left distributivity',
+            context
+        );
+
+        assertMoveTransforms(
+            expressions.mul([sum, a]),
+            'L/1',
+            'path:L/0',
+            expanded,
+            'right distributivity',
+            context
+        );
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Run the specification
+// -----------------------------------------------------------------------------
+
 [
-    solveLevel1, solveLevel2, solveLevel3, solveLevel4, solveLevel5,
-    solveLevel6, solveLevel7, solveLevel8, solveLevel9, solveLevel10,
+    solveLevel1,
+    solveLevel2,
+    solveLevel3,
+    solveLevel4,
+    solveLevel5,
+    solveLevel6,
+    solveLevel7,
+    solveLevel8,
+    solveLevel9,
+    solveLevel10,
 ].forEach(test => test());
 
-const checked = verifyAdvertisedMoves();
-console.log(`ok - 10 level solutions; ${checked} advertised rewrites preserve sampled solutions`);
+[
+    additiveClosure,
+    additiveCommutativity,
+    additiveAssociativity,
+    additiveIdentity,
+    additiveInverse,
+    multiplicativeClosure,
+    multiplicativeCommutativity,
+    multiplicativeAssociativity,
+    multiplicativeIdentity,
+    distributivity,
+].forEach(test => test());
+
+console.log(
+    `ok - 10 level solutions; `+
+    `${stats.semantic_cases} property cases; `+
+    `${stats.evaluations} evaluations; `+
+    `${stats.moves} advertised property moves`
+);
