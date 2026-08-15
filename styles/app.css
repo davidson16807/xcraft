@@ -298,6 +298,47 @@ main {
     border-radius: 0.12em;
 }
 
+.root-operation-choices {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+.root-operation-handles {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-right: 0.10em;
+}
+
+.root-operation-handle {
+    width: max(0.48em, 28px);
+    height: max(0.48em, 28px);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    border: 1px solid var(--hairline);
+    border-radius: 0.18em;
+    font-size: 0.42em;
+    opacity: 0.34;
+    transition: opacity 80ms linear, background 80ms linear;
+}
+
+.root-operation-handle.draggable-symbol:hover {
+    opacity: 1;
+    background: var(--offpaper);
+}
+
+.root-operation-disabled {
+    opacity: 0.12;
+}
+
+.root-operation-symbol {
+    pointer-events: none;
+}
+
 
 .math-operator,
 .math-paren {
