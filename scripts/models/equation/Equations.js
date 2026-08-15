@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 Every successful operation in this namespace is an equivalence-preserving
@@ -15,6 +14,40 @@ function Equations(dependencies) {
     const scales = dependencies.scale_expressions;
     const powers = dependencies.power_expressions;
 
+    /*
+    Equation roots intentionally retain add([mul([...])]) wrappers.  Algebraic
+    operations sometimes need the value represented by a side without those
+    interaction-only singleton wrappers.
+    */
+    function side_value(side) {
+        if (side.type !== 'add') return side;
+        return expressions.add(side.contents.map(term =>
+            term.type === 'mul'? expressions.mul(term.contents) : term
+        ));
+    }
+
+    function operation_for_source(equation, source_path) {
+        const parsed = paths.split(source_path);
+        const root_path = parsed.side;
+        const root = paths.resolve(equation, root_path);
+        const parent_path = paths.parent(source_path);
+
+        if (root == null || root.type !== 'add') return null;
+
+        if (parent_path === root_path) {
+            return { type:'add', parent:root };
+        }
+
+        if (root.contents.length !== 1) return null;
+        const term_path = paths.nary(root_path, 0);
+        if (parent_path !== term_path) return null;
+
+        const term = paths.resolve(equation, term_path);
+        return term != null && term.type === 'mul'?
+            { type:'mul', parent:term } :
+            null;
+    }
+
     /* collapse two sibling operands into one replacement */
     function collapse(equation, parent_path, source_index, target_index, replacement) {
         let parent = paths.resolve(equation, parent_path);
@@ -28,29 +61,33 @@ function Equations(dependencies) {
         if (parsed.side === target_side) return equation;
 
         const source = paths.resolve(equation, source_path);
-        if (source == null) return equation;
+        const operation = operation_for_source(equation, source_path);
+        if (source == null || operation == null) return equation;
 
-        const source_root_path = parsed.side;
-        const source_root = paths.resolve(equation, source_root_path);
+        const source_root = paths.resolve(equation, parsed.side);
         const target_root = paths.resolve(equation, target_side);
-        const parent_path = paths.parent(source_path);
-        if (parent_path !== source_root_path) return equation;
-
-        const segment = paths.segment(source_path);
         const inverse = invert(equation, source_path);
-        const index = Number(segment);
+        const index = Number(paths.segment(source_path));
         if (inverse == null) return equation;
 
-        // a + b = c  ->  a = c - b
-        // ab = c  ->  b = c/a
-        // a/b = c is represented as a*b^-1 = c, so dragging b^-1 across
-        // uses the same inverse operation and reciprocal(b^-1) becomes b.
-        const new_source = expressions.remove(source_root, index);
-        const new_target = expressions.append(source_root.type, target_root, inverse);
-        let left, right;
-        [left,right] = target_side==='L'? [new_target, new_source] : [new_source, new_target];
-        return equation.with({left: left, right: right});
+        let new_source, new_target;
+        if (operation.type === 'add') {
+            // a + b = c  ->  a = c - b
+            new_source = expressions.remove(source_root, index);
+            new_target = expressions.append('add', target_root, inverse);
+        } else {
+            // ab = c  ->  b = c/a
+            // The enclosing add has exactly one term, so removing a factor
+            // changes the value of the whole source side.
+            new_source = expressions.remove(operation.parent, index);
+            new_target = expressions.append('mul', side_value(target_root), inverse);
+        }
 
+        let left, right;
+        [left,right] = target_side === 'L'?
+            [new_target, new_source] :
+            [new_source, new_target];
+        return equation.with({left:left, right:right});
     }
 
     function swap(equation, path1, path2) {
@@ -148,24 +185,16 @@ function Equations(dependencies) {
     function invert(equation, source_path) {
         if (source_path == null) return null;
 
-        const parsed = paths.split(source_path);
         const source = paths.resolve(equation, source_path);
-        if (source == null) return null;
+        const operation = operation_for_source(equation, source_path);
+        if (source == null || operation == null) return null;
 
-        const source_root_path = parsed.side;
-        const source_root = paths.resolve(equation, source_root_path);
-        const parent_path = paths.parent(source_path);
-
-        // a + b = c applies -b to both sides.
-        if (source_root.type === 'add' && parent_path === source_root_path) {
+        if (operation.type === 'add') {
             return scales.negate(source);
         }
 
-        // ab = c applies a^-1 to both sides.  A reciprocal factor is its
-        // own inverse operation in the expected way: (a^-1)^-1 -> a.
         if (
-            source_root.type === 'mul' &&
-            parent_path === source_root_path &&
+            operation.type === 'mul' &&
             !(source.type === 'constant' && source.contents === 0)
         ) {
             return expressions.reciprocal(source);

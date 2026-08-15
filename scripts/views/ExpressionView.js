@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 function ExpressionView(dependencies) {
 
@@ -63,7 +62,7 @@ function ExpressionView(dependencies) {
     }
 
     function draw_reciprocal_factor(expression, path, draggable_paths, valid_targets, parent_precedence) {
-        return html.span(path_attributes(path, draggable_paths, valid_targets, 'expression-reciprocal'), [
+        return html.span(path_attributes(path, draggable_paths, valid_targets, 'expression-reciprocal factor'), [
             draw(
                 expression.contents[0],
                 paths.base(path),
@@ -72,6 +71,11 @@ function ExpressionView(dependencies) {
                 parent_precedence
             )
         ]);
+    }
+
+    function factor_node(node) {
+        node.classList.add('factor');
+        return node;
     }
 
     function draw_mul(expression, path, draggable_paths, valid_targets) {
@@ -87,7 +91,7 @@ function ExpressionView(dependencies) {
                 numerator.map((item, i) =>
                     product_factor_nodes(
                         item.factor,
-                        draw(item.factor, item.path, draggable_paths, valid_targets, 2),
+                        factor_node(draw(item.factor, item.path, draggable_paths, valid_targets, 2)),
                         i > 0? numerator[i-1].factor : null
                     )
                 ).flat()
@@ -103,7 +107,7 @@ function ExpressionView(dependencies) {
               : numerator.map((item, i) =>
                     product_factor_nodes(
                         item.factor,
-                        draw(item.factor, item.path, draggable_paths, valid_targets, numerator_parent),
+                        factor_node(draw(item.factor, item.path, draggable_paths, valid_targets, numerator_parent)),
                         i > 0? numerator[i-1].factor : null
                     )
                 ).flat()
@@ -163,11 +167,18 @@ function ExpressionView(dependencies) {
                 return html.span(path_attributes(path, draggable_paths, valid_targets), [math(expression.contents)]);
                 break;
 
-            case 'add':
+            case 'add': {
+                const is_singleton_side = expression.contents.length === 1;
                 return html.span(path_attributes(path, draggable_paths, valid_targets, 'expression-add'),
                     expression.contents.map((term, i) => {
-                        const sign = scales.sign(term);
-                        const absolute = scales.absolute(term);
+                        /*
+                        A singleton top-level add is an interaction wrapper, not
+                        notation that needs sign normalization.  Drawing its term
+                        directly preserves the nested mul/factor path, so a lone x
+                        exposes both +x and ×x drag affordances.
+                        */
+                        const sign = is_singleton_side? 1 : scales.sign(term);
+                        const visible = is_singleton_side? term : scales.absolute(term);
                         const term_path = paths.nary(path, i);
                         return html.span(path_attributes(term_path, draggable_paths, valid_targets, 'addend'),
                             [
@@ -175,7 +186,7 @@ function ExpressionView(dependencies) {
                                  : sign < 0? [math('-', 'math-operator')]
                                  : [],
                                 draw_contents(
-                                    absolute,
+                                    visible,
                                     term_path,
                                     draggable_paths,
                                     valid_targets
@@ -183,7 +194,7 @@ function ExpressionView(dependencies) {
                             ]);
                     })
                 );
-                break;
+            }
 
             case 'mul':
                 return draw_mul(expression, path, draggable_paths, valid_targets);

@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 const fs = require('fs');
 const vm = require('vm');
@@ -7,6 +6,8 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 [
+    'scripts/models/structure/MonoidStructure.js',
+    'scripts/models/structure/PowerStructure.js',
     'scripts/models/expression/Expression.js',
     'scripts/models/expression/ExpressionShape.js',
     'scripts/models/expression/Expressions.js',
@@ -20,6 +21,7 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/equation/EquationShape.js',
     'scripts/models/expression/ExpressionPaths.js',
     'scripts/models/equation/Equations.js',
+    'scripts/models/equation/EquationDragOperations.js',
     'scripts/levels/Levels.js',
 ].forEach(file => {
     vm.runInThisContext(
@@ -56,11 +58,14 @@ const powers = Powers(expressions, expression_shape);
 const power_expressions = PowerExpressions(expressions, powers);
 const equation_shape = EquationShape(expression_shape);
 const paths = ExpressionPaths(expressions);
-const algebra = Equations({
-    expressions: expressions,
-    scale_expressions: scale_expressions,
-    power_expressions: power_expressions,
+const algebra = EquationDragOperations({
     expression_paths: paths,
+    equations: Equations({
+        expressions: expressions,
+        scale_expressions: scale_expressions,
+        power_expressions: power_expressions,
+        expression_paths: paths,
+    }),
 });
 const levels = Levels(expressions);
 
@@ -77,9 +82,24 @@ function assertShape(actual, expected, message) {
     );
 }
 
+function assertEquationLayers(equation, message) {
+    for (const [name, side] of [['left', equation.left], ['right', equation.right]]) {
+        assert(
+            side.type === 'add',
+            `${message}: ${name} side should retain a top-level add`
+        );
+        assert(
+            side.contents.length > 0 &&
+            side.contents.every(term => term.type === 'mul' && term.contents.length > 0),
+            `${message}: every top-level ${name} addend should retain a nonempty mul`
+        );
+    }
+}
+
 function move(equation, source, target) {
     const updated = algebra.move(equation, source, target);
     assert(updated !== equation, `move should be valid: ${source} -> ${target}`);
+    assertEquationLayers(updated, `${source} -> ${target}`);
     return updated;
 }
 
@@ -103,23 +123,23 @@ function solveLevel2() {
 
 function solveLevel3() {
     let q = levels[2].equation;
-    q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/0/0', 'side:R');
+    q = move(q, 'R/0/1', 'path:R/0/0');
     assertShape(q, levels[2].goal, 'level 3');
 }
 
 function solveLevel4() {
     let q = levels[3].equation;
-    q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/0/1', 'side:R');
+    q = move(q, 'R/0/1', 'path:R/0/0');
     assertShape(q, levels[3].goal, 'level 4');
 }
 
 function solveLevel5() {
     let q = levels[4].equation;
     q = move(q, 'L/0', 'path:L/1');
-    q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/0/0', 'side:R');
+    q = move(q, 'R/0/1', 'path:R/0/0');
     assertShape(q, levels[4].goal, 'level 5');
 }
 
@@ -129,14 +149,14 @@ function solveLevel6() {
     q = move(q, 'L/0', 'path:L/2');
     q = move(q, 'L/1', 'side:R');
     q = move(q, 'R/1', 'path:R/0');
-    q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/0/0', 'side:R');
+    q = move(q, 'R/0/1', 'path:R/0/0');
     assertShape(q, levels[5].goal, 'level 6');
 }
 
 function solveLevel7() {
     let q = levels[6].equation;
-    q = move(q, 'L/0', 'path:L/1');
+    q = move(q, 'L/0/0', 'path:L/0/1');
     assertShape(q, levels[6].goal, 'level 7');
 }
 
@@ -146,15 +166,15 @@ function solveLevel8() {
     q = move(q, 'L/1', 'path:L/2');
     q = move(q, 'L/1', 'side:R');
     q = move(q, 'R/1', 'path:R/0');
-    q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/0/0', 'side:R');
+    q = move(q, 'R/0/1', 'path:R/0/0');
     assertShape(q, levels[7].goal, 'level 8');
 }
 
 function solveLevel9() {
     let q = levels[8].equation;
-    q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/0/1', 'side:R');
+    q = move(q, 'R/0/1', 'path:R/0/0');
     q = move(q, 'L/1', 'side:R');
     q = move(q, 'R/1', 'path:R/0');
     assertShape(q, levels[8].goal, 'level 9');
@@ -166,8 +186,8 @@ function solveLevel10() {
     q = move(q, 'L/0', 'path:L/2');
     q = move(q, 'L/1', 'side:R');
     q = move(q, 'R/1', 'path:R/0');
-    q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/0/0', 'side:R');
+    q = move(q, 'R/0/1', 'path:R/0/0');
     assertShape(q, levels[9].goal, 'level 10');
 }
 
@@ -378,9 +398,11 @@ function assertMoveTransforms(before, source, target, expected, property, contex
         updated !== equation,
         `${property}: advertised move returned the original equation\n${context}`
     );
+    assertEquationLayers(updated, property);
 
-    assertSameExpression(updated.left, expected, property, context);
-    assertSameExpression(updated.right, sentinel, property, `${context}\nright side changed`);
+    const expected_equation = new Equation(expected, sentinel);
+    assertSameExpression(updated.left, expected_equation.left, property, context);
+    assertSameExpression(updated.right, expected_equation.right, property, `${context}\nright side changed`);
     assertExpressionsEquivalent(before, updated.left, property, `${context}\nmove semantics`, where);
     stats.moves++;
 }
@@ -442,6 +464,7 @@ function assertEquationMoveTransforms(before, source, target, expected, property
         updated !== before,
         `${property}: advertised balance move returned the original equation\n${context}`
     );
+    assertEquationLayers(updated, property);
 
     assertSameExpression(updated.left, expected.left, property, `${context}\nleft side`);
     assertSameExpression(updated.right, expected.right, property, `${context}\nright side`);
@@ -460,6 +483,77 @@ function forEachTriple(callback) {
     for (const b of field_expression_cases)
     for (const c of field_expression_cases)
         callback(a, b, c);
+}
+
+// -----------------------------------------------------------------------------
+// Equation-side operation contexts
+// Every side is add([mul([...]), ...]).  A lone value can therefore be
+// addressed either as its only addend or as its only factor.
+// -----------------------------------------------------------------------------
+
+function equationSideOperationContexts() {
+    for (const level of levels) {
+        assertEquationLayers(level.equation, `level ${level.index + 1} equation`);
+        assertEquationLayers(level.goal, `level ${level.index + 1} goal`);
+    }
+
+    const cases = [
+        { name:'variable', value:x, nonzero:true },
+        { name:'constant', value:expressions.constant(3), nonzero:true },
+    ];
+    const five = expressions.constant(5);
+
+    for (const item of cases) {
+        const before = new Equation(item.value, five);
+        const context = `lone ${item.name}`;
+        assertEquationLayers(before, context);
+
+        const draggable = algebra.draggable_paths(before);
+        assert(
+            draggable.includes('L/0') &&
+            algebra.moves_for_source(before, 'L/0').includes('side:R'),
+            `${context}: the sole addend should be draggable across equality`
+        );
+        assert(
+            draggable.includes('L/0/0') &&
+            algebra.moves_for_source(before, 'L/0/0').includes('side:R'),
+            `${context}: the sole factor should be draggable across equality`
+        );
+
+        const additive = algebra.move(before, 'L/0', 'side:R');
+        assertEquationLayers(additive, `${context} additive drag`);
+        assertSameExpression(
+            additive.left,
+            new Equation(zero, zero).left,
+            'additive identity remainder',
+            context
+        );
+        assertEquationsEquivalent(
+            before,
+            additive,
+            'additive singleton balance',
+            context,
+            variables => isDefined(item.value, variables)
+        );
+        stats.moves++;
+
+        const multiplicative = algebra.move(before, 'L/0/0', 'side:R');
+        assertEquationLayers(multiplicative, `${context} multiplicative drag`);
+        assertSameExpression(
+            multiplicative.left,
+            new Equation(one, zero).left,
+            'multiplicative identity remainder',
+            context
+        );
+        assertEquationsEquivalent(
+            before,
+            multiplicative,
+            'multiplicative singleton balance',
+            context,
+            variables => isDefinedNonzero(item.value, variables)
+        );
+        stats.moves++;
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -637,8 +731,8 @@ function multiplicativeCommutativity() {
         ) {
             assertMoveTransforms(
                 left,
-                'L/0',
-                'path:L/1',
+                'L/0/0',
+                'path:L/0/1',
                 right,
                 'multiplicative commutativity',
                 context,
@@ -742,8 +836,8 @@ function multiplicativeInverse() {
         ) {
             assertMoveTransforms(
                 product,
-                'L/0',
-                'path:L/1',
+                'L/0/0',
+                'path:L/0/1',
                 one,
                 'multiplicative inverse',
                 context,
@@ -876,23 +970,15 @@ function multiplicativeBalance() {
         );
         const context = `a = ${describeCase(a)}\nb = ${describeCase(b)}`;
 
-        // Construction can only expose `a` as L/0 when it remains a direct
-        // factor.  The filter above excludes products, and this check guards
-        // against any future constructor changes.
-        if (
-            before.left.type === 'mul' &&
-            before.left.contents[0] === a
-        ) {
-            assertEquationMoveTransforms(
-                before,
-                'L/0',
-                'side:R',
-                expected,
-                'multiplicative balance',
-                `${context}\ndivide both sides by a`,
-                where
-            );
-        }
+        assertEquationMoveTransforms(
+            before,
+            'L/0/0',
+            'side:R',
+            expected,
+            'multiplicative balance',
+            `${context}\ndivide both sides by a`,
+            where
+        );
 
         const reciprocal_factor = expressions.reciprocal(a);
         const reverse_before = new Equation(
@@ -908,21 +994,15 @@ function multiplicativeBalance() {
             )
         );
 
-        if (
-            reverse_before.left.type === 'mul' &&
-            reverse_before.left.contents.length === 2 &&
-            reverse_before.left.contents[1] === reciprocal_factor
-        ) {
-            assertEquationMoveTransforms(
-                reverse_before,
-                'L/1',
-                'side:R',
-                reverse_expected,
-                'multiplicative balance',
-                `${context}\nmultiply both sides by a`,
-                where
-            );
-        }
+        assertEquationMoveTransforms(
+            reverse_before,
+            'L/0/1',
+            'side:R',
+            reverse_expected,
+            'multiplicative balance',
+            `${context}\nmultiply both sides by a`,
+            where
+        );
     }
 }
 
@@ -996,8 +1076,8 @@ function distributivity() {
 
         assertMoveTransforms(
             expressions.mul([a, sum]),
-            'L/0',
-            'path:L/1',
+            'L/0/0',
+            'path:L/0/1',
             expanded,
             'left distributivity',
             context,
@@ -1006,8 +1086,8 @@ function distributivity() {
 
         assertMoveTransforms(
             expressions.mul([sum, a]),
-            'L/1',
-            'path:L/0',
+            'L/0/1',
+            'path:L/0/0',
             expanded,
             'right distributivity',
             context,
@@ -1034,6 +1114,7 @@ function distributivity() {
 ].forEach(test => test());
 
 [
+    equationSideOperationContexts,
     additiveClosure,
     additiveCommutativity,
     additiveAssociativity,

@@ -280,7 +280,8 @@ main {
 .expression-mul,
 .expression-power,
 .expression-reciprocal,
-.addend {
+.addend,
+.factor {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -344,6 +345,46 @@ main {
 
 .fraction-numerator {
     border-bottom: max(1px, 0.025em) solid currentColor;
+}
+
+.addend.draggable-symbol,
+.factor.draggable-symbol {
+    position: relative;
+}
+
+.addend.draggable-symbol::before,
+.factor.draggable-symbol::before {
+    position: absolute;
+    z-index: 2;
+    width: 0.48em;
+    height: 0.48em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--hairline);
+    border-radius: 50%;
+    background: var(--paper);
+    color: var(--quiet);
+    font: 500 0.30em/1 sans-serif;
+    opacity: 0;
+    transition: opacity 80ms linear;
+}
+
+.addend.draggable-symbol::before {
+    content: "+";
+    left: -0.38em;
+    top: -0.18em;
+}
+
+.factor.draggable-symbol::before {
+    content: "×";
+    left: -0.38em;
+    bottom: -0.18em;
+}
+
+.addend.draggable-symbol:hover::before,
+.factor.draggable-symbol:hover::before {
+    opacity: 0.78;
 }
 
 .draggable-symbol {
