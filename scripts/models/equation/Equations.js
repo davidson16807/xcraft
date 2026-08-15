@@ -1,9 +1,13 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 Every successful operation in this namespace is an equivalence-preserving
 rewrite under the nonzero-divisor assumptions supplied by the active level.
 Unsupported drags return the original equation reference.
+
+`Equations` introduces properties that require more knowledge 
+than what can be provided by structures like `MonoidStructure`.
 */
 function Equations(dependencies) {
     const expressions = dependencies.expressions;
@@ -12,14 +16,14 @@ function Equations(dependencies) {
     const powers = dependencies.power_expressions;
 
     /* collapse two sibling operands into one replacement */
-    function _collapse(equation, parent_path, source_index, target_index, replacement) {
+    function collapse(equation, parent_path, source_index, target_index, replacement) {
         let parent = paths.resolve(equation, parent_path);
         if (parent == null) return equation;
         return paths.replace(equation, parent_path, 
                 expressions.collapse(parent, source_index, target_index, replacement));
     }
 
-    function _balance(equation, source_path, target_side) {
+    function balance(equation, source_path, target_side) {
         const parsed = paths.split(source_path);
         if (parsed.side === target_side) return equation;
 
@@ -49,7 +53,7 @@ function Equations(dependencies) {
 
     }
 
-    function _swap(equation, path1, path2) {
+    function swap(equation, path1, path2) {
         if (path1 == null || path2 == null || path1 === path2) return equation;
 
         const parent_path = paths.parent(path1);
@@ -83,7 +87,7 @@ function Equations(dependencies) {
         'mul': powers,
     };
 
-    function _combine(equation, source_path, target_path) {
+    function combine(equation, source_path, target_path) {
         const parent_path = paths.parent(source_path);
         if (parent_path == null || parent_path !== paths.parent(target_path)) return equation;
 
@@ -99,7 +103,7 @@ function Equations(dependencies) {
         );
         if (combined == null) return equation;
 
-        return _collapse(
+        return collapse(
             equation,
             parent_path,
             Number(paths.segment(source_path)),
@@ -109,7 +113,7 @@ function Equations(dependencies) {
 
     }
 
-    function _distribute(equation, source_path, target_path) {
+    function distribute(equation, source_path, target_path) {
         const source_parent_path = paths.parent(source_path);
         const target_parent_path = paths.parent(target_path);
         if (source_parent_path == null || source_parent_path !== target_parent_path) return equation;
@@ -132,7 +136,7 @@ function Equations(dependencies) {
             sum.contents.map(term => scales.scale(scale, term))
         );
 
-        return _collapse(
+        return collapse(
             equation,
             source_parent_path,
             Number(paths.segment(source_path)),
@@ -140,50 +144,6 @@ function Equations(dependencies) {
             distributed
         );
     }
-
-    function move(equation, source_path, target_key) {
-        if (source_path == null || target_key == null) return equation;
-
-        switch(paths.domain(target_key))
-        {
-        case 'side':
-            return _balance(equation, source_path, target_key.slice(5));
-        case 'path':
-            const target_path = paths.path(target_key);
-            if (
-                source_path === target_path ||
-                paths.is_ancestor(source_path, target_path) ||
-                paths.is_ancestor(target_path, source_path)
-            ) return equation;
-            const combined = _combine(equation, source_path, target_path);
-            if (combined !== equation) return combined;
-            const distributed = _distribute(equation, source_path, target_path);
-            return distributed !== equation? distributed : _swap(equation, source_path, target_path);
-        default:
-            return equation;
-        }
-
-    }
-
-    function moves_for_source(equation, source_path) {
-        const parsed = paths.split(source_path);
-        const other_side = parsed.side === 'L'? 'R' : 'L';
-        const candidates = [
-            `side:${other_side}`,
-            ...paths.all(equation).map(path => `path:${path}`),
-        ];
-        return Object.freeze(candidates.filter(target_key =>
-            move(equation, source_path, target_key) !== equation
-        ));
-    }
-
-
-    function draggable_paths(equation) {
-        return Object.freeze(paths.all(equation).filter(path =>
-            moves_for_source(equation, path).length > 0
-        ));
-    }
-
 
     function invert(equation, source_path) {
         if (source_path == null) return null;
@@ -215,9 +175,11 @@ function Equations(dependencies) {
     }
 
     return Object.freeze({
+        collapse,
+        balance,
+        swap,
+        combine,
+        distribute,
         invert,
-        move,
-        moves_for_source,
-        draggable_paths,
     });
 }
