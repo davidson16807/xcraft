@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 `AppUpdater` is the update function in the Model-View-Updater architecture.
@@ -37,7 +36,7 @@ function AppUpdater(dependencies) {
     }
 
     return Object.freeze({
-        drag_start: (app, source_path, x,y) => drag_ops.start(app, source_path, x,y),
+        drag_start: (app, source_path, source_operation, x,y) => drag_ops.start(app, source_path, source_operation, x,y),
         drag_move: (app, x,y, target_key) => drag_ops.move(app, x,y, target_key),
         drag_drop: (app, target_key) => drag_ops.drop(app, target_key),
         drag_cancel: (app) => drag_ops.cancel(app),

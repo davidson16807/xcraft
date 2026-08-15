@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 function ExpressionView(dependencies) {
 
@@ -60,6 +59,44 @@ function ExpressionView(dependencies) {
             previous_expression.type === 'constant' &&
             expression.type === 'constant'
         )? [math('\\cdot', 'math-operator multiplication-dot'), node] : [node];
+    }
+
+    function root_operation_handle(path, operation, enabled) {
+        const symbol = operation === 'add'? '+' : '\\times';
+        const attrs = {
+            class: `root-operation-handle root-operation-${operation}`,
+            'aria-label': operation === 'add'? 'Drag as an addend' : 'Drag as a factor',
+        };
+        if (enabled) {
+            attrs.class += ' draggable-symbol';
+            attrs['data-draggable'] = '1';
+            attrs['data-path'] = path;
+            attrs['data-operation'] = operation;
+        } else {
+            attrs.class += ' root-operation-disabled';
+        }
+        return html.span(attrs, [math(symbol, 'root-operation-symbol')]);
+    }
+
+    function root_operation_choices(node, expression, path, root_operations) {
+        if (
+            path == null ||
+            paths.parent(path) != null ||
+            expression.type === 'add' ||
+            expression.type === 'mul' ||
+            root_operations == null
+        ) return node;
+
+        node.classList.add('root-operation-source');
+        node.setAttribute('tabindex', '0');
+
+        return html.span({ class:'root-operation-choices' }, [
+            html.span({ class:'root-operation-handles' }, [
+                root_operation_handle(path, 'add', root_operations.has('add')),
+                root_operation_handle(path, 'mul', root_operations.has('mul')),
+            ]),
+            node,
+        ]);
     }
 
     function draw_reciprocal_factor(expression, path, draggable_paths, valid_targets, parent_precedence) {
@@ -237,14 +274,15 @@ function ExpressionView(dependencies) {
         return node;
     }
 
-    function draw(expression, path, draggable_paths, valid_targets, parent_precedence, is_power_base)
+    function draw(expression, path, draggable_paths, valid_targets, parent_precedence, is_power_base, root_operations)
     {
-        return maybe_parenthesize(
+        const node = maybe_parenthesize(
             _draw(expression, path, draggable_paths, valid_targets, parent_precedence, is_power_base),
             expression,
             parent_precedence == null? 0 : parent_precedence,
             !!is_power_base
         );
+        return root_operation_choices(node, expression, path, root_operations);
     }
 
     return Object.freeze({ draw: draw });

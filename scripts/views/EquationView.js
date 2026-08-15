@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 function EquationView(dependencies) {
 
@@ -15,7 +14,7 @@ function EquationView(dependencies) {
         return node;
     }
 
-    function draw_side(expression, side, draggable_paths, valid_targets) {
+    function draw_side(expression, side, draggable_paths, valid_targets, root_operations) {
         const attrs = {
             class: 'equation-side',
             'data-drop-key': `side:${side}`,
@@ -25,7 +24,7 @@ function EquationView(dependencies) {
             attrs['data-valid-drop'] = '1';
         }
         return html.span(attrs, [
-            expression_view.draw(expression, side, draggable_paths, valid_targets)
+            expression_view.draw(expression, side, draggable_paths, valid_targets, null, false, root_operations)
         ]);
     }
 
@@ -48,7 +47,7 @@ function EquationView(dependencies) {
             target_key.startsWith('side:');
 
         if (is_balance_move) {
-            const inverse = equations.invert(equation, drag_state.source_path);
+            const inverse = equations.invert(equation, drag_state.source_path, drag_state.source_operation);
             if (inverse != null) {
                 return [
                     draw_ghost(inverse, {
@@ -72,12 +71,14 @@ function EquationView(dependencies) {
 
             const valid_targets = new Set(drag_state && drag_state.candidates || []);
             const draggable_paths = new Set(equations.draggable_paths(equation));
+            const left_root_operations = new Set(equations.root_operations(equation, 'L'));
+            const right_root_operations = new Set(equations.root_operations(equation, 'R'));
 
             div_io.replaceChildren(
                 html.div({ class:'equation-row' }, [
-                    draw_side(equation.left, 'L', draggable_paths, valid_targets),
+                    draw_side(equation.left, 'L', draggable_paths, valid_targets, left_root_operations),
                     html.span({ class:'equals-sign' }, [math('=', 'math-equals')]),
-                    draw_side(equation.right, 'R', draggable_paths, valid_targets),
+                    draw_side(equation.right, 'R', draggable_paths, valid_targets, right_root_operations),
                 ])
             );
 

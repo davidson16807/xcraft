@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 function AppView(dependencies, app_updater) {
     const html = dependencies.html;
@@ -83,7 +82,13 @@ function AppView(dependencies, app_updater) {
             const source = event.target.closest('[data-draggable="1"]');
             if (!source || !equation_element.contains(source)) return;
             event.preventDefault();
-            dispatch(app_updater.drag_start(app, source.getAttribute('data-path'), event.clientX, event.clientY ), dom_io);
+            dispatch(app_updater.drag_start(
+                app,
+                source.getAttribute('data-path'),
+                source.getAttribute('data-operation'),
+                event.clientX,
+                event.clientY
+            ), dom_io);
         });
 
         dom_io.addEventListener('pointermove', event => {
