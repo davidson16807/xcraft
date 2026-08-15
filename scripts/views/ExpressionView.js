@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 function ExpressionView(dependencies) {
 
@@ -62,8 +61,14 @@ function ExpressionView(dependencies) {
         )? [math('\\cdot', 'math-operator multiplication-dot'), node] : [node];
     }
 
+    function draw_factor(expression, path, draggable_paths, valid_targets, parent_precedence) {
+        const node = draw(expression, path, draggable_paths, valid_targets, parent_precedence);
+        node.classList.add('factor');
+        return node;
+    }
+
     function draw_reciprocal_factor(expression, path, draggable_paths, valid_targets, parent_precedence) {
-        return html.span(path_attributes(path, draggable_paths, valid_targets, 'expression-reciprocal'), [
+        return html.span(path_attributes(path, draggable_paths, valid_targets, 'expression-reciprocal factor'), [
             draw(
                 expression.contents[0],
                 paths.base(path),
@@ -87,7 +92,7 @@ function ExpressionView(dependencies) {
                 numerator.map((item, i) =>
                     product_factor_nodes(
                         item.factor,
-                        draw(item.factor, item.path, draggable_paths, valid_targets, 2),
+                        draw_factor(item.factor, item.path, draggable_paths, valid_targets, 2),
                         i > 0? numerator[i-1].factor : null
                     )
                 ).flat()
@@ -103,7 +108,7 @@ function ExpressionView(dependencies) {
               : numerator.map((item, i) =>
                     product_factor_nodes(
                         item.factor,
-                        draw(item.factor, item.path, draggable_paths, valid_targets, numerator_parent),
+                        draw_factor(item.factor, item.path, draggable_paths, valid_targets, numerator_parent),
                         i > 0? numerator[i-1].factor : null
                     )
                 ).flat()
@@ -168,6 +173,10 @@ function ExpressionView(dependencies) {
                     expression.contents.map((term, i) => {
                         const sign = scales.sign(term);
                         const absolute = scales.absolute(term);
+                        const visible_term =
+                            term.type === 'mul' && absolute.type !== 'mul'?
+                                new Expression('mul', Object.freeze([absolute])) :
+                                absolute;
                         const term_path = paths.nary(path, i);
                         return html.span(path_attributes(term_path, draggable_paths, valid_targets, 'addend'),
                             [
@@ -175,7 +184,7 @@ function ExpressionView(dependencies) {
                                  : sign < 0? [math('-', 'math-operator')]
                                  : [],
                                 draw_contents(
-                                    absolute,
+                                    visible_term,
                                     term_path,
                                     draggable_paths,
                                     valid_targets

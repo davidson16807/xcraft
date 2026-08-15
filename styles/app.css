@@ -452,3 +452,59 @@ main {
         flex-direction: column;
     }
 }
+
+/*
+Surface-operation experiment.
+A lone visible expression can be both the sole additive term and the sole
+multiplicative factor.  The two structural drag sources therefore overlap.
+Expose their operation contexts just outside the hovered expression:
+
+    + × x
+
+Moving onto + selects the addend wrapper; moving onto × selects the factor.
+On devices without hover both affordances remain visible.
+*/
+.addend.draggable-symbol,
+.factor.draggable-symbol {
+    position: relative;
+}
+
+.addend.draggable-symbol::before,
+.factor.draggable-symbol::before {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    font-size: 0.62em;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--ink);
+    background: var(--offpaper);
+    border: 1px solid var(--hairline);
+    border-radius: 0.28em;
+    padding: 0.16em 0.24em;
+    transition: opacity 80ms linear;
+    z-index: 2;
+}
+
+.addend.draggable-symbol::before {
+    content: '+';
+    right: calc(100% + 1.65em);
+}
+
+.factor.draggable-symbol::before {
+    content: '×';
+    right: calc(100% + 0.25em);
+}
+
+.addend.draggable-symbol:hover::before,
+.factor.draggable-symbol:hover::before {
+    opacity: 1;
+}
+
+@media (hover: none) {
+    .addend.draggable-symbol::before,
+    .factor.draggable-symbol::before {
+        opacity: 0.72;
+    }
+}

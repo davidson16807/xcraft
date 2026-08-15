@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 Every successful operation in this namespace is an equivalence-preserving
@@ -23,30 +22,91 @@ function Equations(dependencies) {
                 expressions.collapse(parent, source_index, target_index, replacement));
     }
 
+    function _term_value(expression) {
+        if (expression.type !== 'mul') return expression;
+        return expressions.mul(expression.contents);
+    }
+
+    function _side_value(expression) {
+        if (expression.type !== 'add') return expression;
+        return expressions.add(expression.contents.map(_term_value));
+    }
+
+    /*
+    A surface expression has two possible operation contexts:
+
+        add([..., term, ...])       term is an additive operand
+        add([mul([...factor...])])  factor is a multiplicative operand, but
+                                    only when that product is the entire side
+
+    The latter restriction prevents moving a factor out of just one term of a
+    sum as though it multiplied the whole side.
+    */
+    function _operation_context(equation, source_path) {
+        const parsed = paths.split(source_path);
+        const side_path = parsed.side;
+        const side = paths.resolve(equation, side_path);
+        const parent_path = paths.parent(source_path);
+        if (side == null || side.type !== 'add' || parent_path == null) return null;
+
+        if (parent_path === side_path) {
+            return {
+                type: 'add',
+                side: side,
+                container_path: side_path,
+                container: side,
+            };
+        }
+
+        const container = paths.resolve(equation, parent_path);
+        if (
+            side.contents.length === 1 &&
+            paths.parent(parent_path) === side_path &&
+            paths.segment(parent_path) === '0' &&
+            container != null &&
+            container.type === 'mul'
+        ) {
+            return {
+                type: 'mul',
+                side: side,
+                container_path: parent_path,
+                container: container,
+            };
+        }
+
+        return null;
+    }
+
     function balance(equation, source_path, target_side) {
         const parsed = paths.split(source_path);
         if (parsed.side === target_side) return equation;
 
         const source = paths.resolve(equation, source_path);
-        if (source == null) return equation;
+        const context = _operation_context(equation, source_path);
+        if (source == null || context == null) return equation;
 
-        const source_root_path = parsed.side;
-        const source_root = paths.resolve(equation, source_root_path);
-        const target_root = paths.resolve(equation, target_side);
-        const parent_path = paths.parent(source_path);
-        if (parent_path !== source_root_path) return equation;
-
-        const segment = paths.segment(source_path);
         const inverse = invert(equation, source_path);
-        const index = Number(segment);
-        if (inverse == null) return equation;
+        const index = Number(paths.segment(source_path));
+        if (inverse == null || !Number.isInteger(index)) return equation;
 
-        // a + b = c  ->  a = c - b
-        // ab = c  ->  b = c/a
-        // a/b = c is represented as a*b^-1 = c, so dragging b^-1 across
-        // uses the same inverse operation and reciprocal(b^-1) becomes b.
-        const new_source = expressions.remove(source_root, index);
-        const new_target = expressions.append(source_root.type, target_root, inverse);
+        // Remove the selected operand in its actual additive/multiplicative
+        // context, then let Equation restore the surface add([mul([...])])
+        // representation for the source side.
+        const removed = expressions.remove(context.container, index);
+        const source_equation = paths.replace(
+            equation,
+            context.container_path,
+            removed
+        );
+        const new_source = paths.resolve(source_equation, parsed.side);
+
+        // Apply the inverse operation to the entire target side.  Unwrap the
+        // purely structural singleton surface nodes first so x=7 divided by 2
+        // becomes 7/2 rather than (7)/2.
+        const target_root = paths.resolve(equation, target_side);
+        const target_value = _side_value(target_root);
+        const new_target = expressions.append(context.type, target_value, inverse);
+
         let left, right;
         [left,right] = target_side==='L'? [new_target, new_source] : [new_source, new_target];
         return equation.with({left: left, right: right});
@@ -148,24 +208,19 @@ function Equations(dependencies) {
     function invert(equation, source_path) {
         if (source_path == null) return null;
 
-        const parsed = paths.split(source_path);
         const source = paths.resolve(equation, source_path);
-        if (source == null) return null;
-
-        const source_root_path = parsed.side;
-        const source_root = paths.resolve(equation, source_root_path);
-        const parent_path = paths.parent(source_path);
+        const context = _operation_context(equation, source_path);
+        if (source == null || context == null) return null;
 
         // a + b = c applies -b to both sides.
-        if (source_root.type === 'add' && parent_path === source_root_path) {
+        if (context.type === 'add') {
             return scales.negate(source);
         }
 
-        // ab = c applies a^-1 to both sides.  A reciprocal factor is its
-        // own inverse operation in the expected way: (a^-1)^-1 -> a.
+        // ab = c applies a^-1 to both sides.  A reciprocal factor is its own
+        // inverse operation in the expected way: (a^-1)^-1 -> a.
         if (
-            source_root.type === 'mul' &&
-            parent_path === source_root_path &&
+            context.type === 'mul' &&
             !(source.type === 'constant' && source.contents === 0)
         ) {
             return expressions.reciprocal(source);

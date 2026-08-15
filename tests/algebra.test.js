@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 const fs = require('fs');
 const vm = require('vm');
@@ -7,6 +6,8 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 [
+    'scripts/models/structure/MonoidStructure.js',
+    'scripts/models/structure/PowerStructure.js',
     'scripts/models/expression/Expression.js',
     'scripts/models/expression/ExpressionShape.js',
     'scripts/models/expression/Expressions.js',
@@ -20,6 +21,7 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/equation/EquationShape.js',
     'scripts/models/expression/ExpressionPaths.js',
     'scripts/models/equation/Equations.js',
+    'scripts/models/equation/EquationDragOperations.js',
     'scripts/levels/Levels.js',
 ].forEach(file => {
     vm.runInThisContext(
@@ -56,11 +58,14 @@ const powers = Powers(expressions, expression_shape);
 const power_expressions = PowerExpressions(expressions, powers);
 const equation_shape = EquationShape(expression_shape);
 const paths = ExpressionPaths(expressions);
-const algebra = Equations({
-    expressions: expressions,
-    scale_expressions: scale_expressions,
-    power_expressions: power_expressions,
+const algebra = EquationDragOperations({
     expression_paths: paths,
+    equations: Equations({
+        expressions: expressions,
+        scale_expressions: scale_expressions,
+        power_expressions: power_expressions,
+        expression_paths: paths,
+    }),
 });
 const levels = Levels(expressions);
 
@@ -77,9 +82,24 @@ function assertShape(actual, expected, message) {
     );
 }
 
+function assertSurfaceForm(equation, message) {
+    ['left', 'right'].forEach(side => {
+        const expression = equation[side];
+        assert(
+            expression.type === 'add',
+            `${message}: ${side} side should have an additive root`
+        );
+        assert(
+            expression.contents.every(term => term.type === 'mul'),
+            `${message}: every top-level ${side} term should have a multiplicative root`
+        );
+    });
+}
+
 function move(equation, source, target) {
     const updated = algebra.move(equation, source, target);
     assert(updated !== equation, `move should be valid: ${source} -> ${target}`);
+    assertSurfaceForm(updated, `${source} -> ${target}`);
     return updated;
 }
 
@@ -90,73 +110,70 @@ function move(equation, source, target) {
 function solveLevel1() {
     let q = levels[0].equation;
     q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'R/0', 'path:R/1');
     assertShape(q, levels[0].goal, 'level 1');
 }
 
 function solveLevel2() {
     let q = levels[1].equation;
     q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'R/0', 'path:R/1');
     assertShape(q, levels[1].goal, 'level 2');
 }
 
 function solveLevel3() {
     let q = levels[2].equation;
-    q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/0/0', 'side:R');
+    q = move(q, 'R/0/0', 'path:R/0/1');
     assertShape(q, levels[2].goal, 'level 3');
 }
 
 function solveLevel4() {
     let q = levels[3].equation;
-    q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/0/1', 'side:R');
+    q = move(q, 'R/0/0', 'path:R/0/1');
     assertShape(q, levels[3].goal, 'level 4');
 }
 
 function solveLevel5() {
     let q = levels[4].equation;
     q = move(q, 'L/0', 'path:L/1');
-    q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/0/0', 'side:R');
+    q = move(q, 'R/0/0', 'path:R/0/1');
     assertShape(q, levels[4].goal, 'level 5');
 }
 
 function solveLevel6() {
     let q = levels[5].equation;
-    q = move(q, 'R/0', 'side:L');
-    q = move(q, 'L/0', 'path:L/2');
     q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
-    q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'R/0', 'side:L');
+    q = move(q, 'L/0', 'path:L/1');
+    q = move(q, 'L/0/0', 'side:R');
+    q = move(q, 'R/0/0', 'path:R/0/1');
     assertShape(q, levels[5].goal, 'level 6');
 }
 
 function solveLevel7() {
     let q = levels[6].equation;
-    q = move(q, 'L/0', 'path:L/1');
+    q = move(q, 'L/0/0', 'path:L/0/1');
     assertShape(q, levels[6].goal, 'level 7');
 }
 
 function solveLevel8() {
     let q = levels[7].equation;
     q = move(q, 'L/0/0', 'path:L/0/1');
-    q = move(q, 'L/1', 'path:L/2');
     q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
-    q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/1', 'side:R');
+    q = move(q, 'L/0/0', 'side:R');
+    q = move(q, 'R/0/0', 'path:R/0/1');
     assertShape(q, levels[7].goal, 'level 8');
 }
 
 function solveLevel9() {
     let q = levels[8].equation;
+    q = move(q, 'L/0/1', 'side:R');
     q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
-    q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'R/0', 'path:R/1');
     assertShape(q, levels[8].goal, 'level 9');
 }
 
@@ -165,9 +182,8 @@ function solveLevel10() {
     q = move(q, 'L/0/0', 'path:L/0/1');
     q = move(q, 'L/0', 'path:L/2');
     q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
-    q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/0/0', 'side:R');
+    q = move(q, 'R/0/0', 'path:R/0/1');
     assertShape(q, levels[9].goal, 'level 10');
 }
 
@@ -374,13 +390,15 @@ function assertMoveTransforms(before, source, target, expected, property, contex
     );
 
     const updated = algebra.move(equation, source, target);
+    assertSurfaceForm(updated, `${property}: local move`);
     assert(
         updated !== equation,
         `${property}: advertised move returned the original equation\n${context}`
     );
 
-    assertSameExpression(updated.left, expected, property, context);
-    assertSameExpression(updated.right, sentinel, property, `${context}\nright side changed`);
+    const expected_equation = new Equation(expected, sentinel);
+    assertSameExpression(updated.left, expected_equation.left, property, context);
+    assertSameExpression(updated.right, expected_equation.right, property, `${context}\nright side changed`);
     assertExpressionsEquivalent(before, updated.left, property, `${context}\nmove semantics`, where);
     stats.moves++;
 }
@@ -438,6 +456,7 @@ function assertEquationMoveTransforms(before, source, target, expected, property
     );
 
     const updated = algebra.move(before, source, target);
+    assertSurfaceForm(updated, `${property}: balance move`);
     assert(
         updated !== before,
         `${property}: advertised balance move returned the original equation\n${context}`
@@ -637,8 +656,8 @@ function multiplicativeCommutativity() {
         ) {
             assertMoveTransforms(
                 left,
-                'L/0',
-                'path:L/1',
+                'L/0/0',
+                'path:L/0/1',
                 right,
                 'multiplicative commutativity',
                 context,
@@ -742,8 +761,8 @@ function multiplicativeInverse() {
         ) {
             assertMoveTransforms(
                 product,
-                'L/0',
-                'path:L/1',
+                'L/0/0',
+                'path:L/0/1',
                 one,
                 'multiplicative inverse',
                 context,
@@ -880,12 +899,14 @@ function multiplicativeBalance() {
         // factor.  The filter above excludes products, and this check guards
         // against any future constructor changes.
         if (
-            before.left.type === 'mul' &&
-            before.left.contents[0] === a
+            before.left.type === 'add' &&
+            before.left.contents.length === 1 &&
+            before.left.contents[0].type === 'mul' &&
+            before.left.contents[0].contents[0] === a
         ) {
             assertEquationMoveTransforms(
                 before,
-                'L/0',
+                'L/0/0',
                 'side:R',
                 expected,
                 'multiplicative balance',
@@ -909,13 +930,15 @@ function multiplicativeBalance() {
         );
 
         if (
-            reverse_before.left.type === 'mul' &&
-            reverse_before.left.contents.length === 2 &&
-            reverse_before.left.contents[1] === reciprocal_factor
+            reverse_before.left.type === 'add' &&
+            reverse_before.left.contents.length === 1 &&
+            reverse_before.left.contents[0].type === 'mul' &&
+            reverse_before.left.contents[0].contents.length === 2 &&
+            reverse_before.left.contents[0].contents[1] === reciprocal_factor
         ) {
             assertEquationMoveTransforms(
                 reverse_before,
-                'L/1',
+                'L/0/1',
                 'side:R',
                 reverse_expected,
                 'multiplicative balance',
@@ -923,6 +946,85 @@ function multiplicativeBalance() {
                 where
             );
         }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Surface additive context
+// a = b  <->  0 = b - a
+// A sole x or constant remains selectable as an addend because each equation
+// side retains its outer add node.
+// -----------------------------------------------------------------------------
+
+function surfaceAdditiveContext() {
+    const cases = [
+        [x, expressions.constant(2)],
+        [expressions.constant(3), expressions.constant(3)],
+    ];
+
+    for (const [a, b] of cases) {
+        const before = new Equation(a, b);
+        const where = variables => allDefined([a, b], variables);
+        const expected = new Equation(
+            zero,
+            expressions.add([b, scale_expressions.negate(a)])
+        );
+        const context = `a = ${describeCase(a)}\nb = ${describeCase(b)}`;
+
+        assertSurfaceForm(before, 'surface additive context');
+        assert(
+            algebra.draggable_paths(before).includes('L/0'),
+            `surface additive context: sole term should be draggable\n${context}`
+        );
+        assertEquationMoveTransforms(
+            before,
+            'L/0',
+            'side:R',
+            expected,
+            'surface additive context',
+            context,
+            where
+        );
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Surface multiplicative context
+// a = b  <->  1 = b/a, for a != 0
+// The same sole x or constant is independently selectable as a factor through
+// the nested mul node retained immediately below the outer add node.
+// -----------------------------------------------------------------------------
+
+function surfaceMultiplicativeContext() {
+    const cases = [
+        [x, expressions.constant(2)],
+        [expressions.constant(3), expressions.constant(3)],
+    ];
+
+    for (const [a, b] of cases) {
+        const before = new Equation(a, b);
+        const where = variables =>
+            isDefinedNonzero(a, variables) && isDefined(b, variables);
+        const expected = new Equation(
+            one,
+            expressions.mul([b, expressions.reciprocal(a)])
+        );
+        const context = `a = ${describeCase(a)}\nb = ${describeCase(b)}`;
+
+        assertSurfaceForm(before, 'surface multiplicative context');
+        assert(
+            algebra.draggable_paths(before).includes('L/0/0'),
+            `surface multiplicative context: sole factor should be draggable\n${context}`
+        );
+        assertEquationMoveTransforms(
+            before,
+            'L/0/0',
+            'side:R',
+            expected,
+            'surface multiplicative context',
+            context,
+            where
+        );
     }
 }
 
@@ -996,8 +1098,8 @@ function distributivity() {
 
         assertMoveTransforms(
             expressions.mul([a, sum]),
-            'L/0',
-            'path:L/1',
+            'L/0/0',
+            'path:L/0/1',
             expanded,
             'left distributivity',
             context,
@@ -1006,8 +1108,8 @@ function distributivity() {
 
         assertMoveTransforms(
             expressions.mul([sum, a]),
-            'L/1',
-            'path:L/0',
+            'L/0/1',
+            'path:L/0/0',
             expanded,
             'right distributivity',
             context,
@@ -1019,6 +1121,11 @@ function distributivity() {
 // -----------------------------------------------------------------------------
 // Run the specification
 // -----------------------------------------------------------------------------
+
+levels.forEach((level, index) => {
+    assertSurfaceForm(level.equation, `level ${index+1} equation`);
+    assertSurfaceForm(level.goal, `level ${index+1} goal`);
+});
 
 [
     solveLevel1,
@@ -1049,6 +1156,8 @@ function distributivity() {
     multiplicativeCancellation,
     divisionDefinition,
     multiplicativeBalance,
+    surfaceAdditiveContext,
+    surfaceMultiplicativeContext,
     distributivity,
 ].forEach(test => test());
 
