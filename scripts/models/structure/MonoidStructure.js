@@ -28,28 +28,37 @@ const MonoidStructure = (label, identity, is_commutative, evaluator) => {
         else return new Expression(label, Object.freeze(flat));
     }
 
-    function is_identity(expression) {
-        return expression.type === identity.type && expression.contents === identity.contents;
-    }
-
     function swap(expression, index1, index2) {
-        if (!is_commutative) { return expression; }
+        if (
+            !is_commutative ||
+            expression.type !== label ||
+            !Number.isInteger(index1) ||
+            !Number.isInteger(index2) ||
+            index1 < 0 || index2 < 0 ||
+            index1 >= expression.contents.length ||
+            index2 >= expression.contents.length ||
+            index1 === index2 ||
+            expression.contents[index1] === expression.contents[index2]
+        ) return expression;
+
         const contents = expression.contents.slice();
         [contents[index1], contents[index2]] = [contents[index2], contents[index1]];
         return create(contents);
     }
 
     function append(left, right) {
-        return left.type === label? create([...left.contents, right]) : create([left, right]);
+        return create([left, right]);
     }
 
     function remove(expression, index) {
+        if (expression.type !== label) return expression;
         const contents = expression.contents.slice();
         contents.splice(index, 1);
-        return expression.type !== label? expression : create(contents);
+        return create(contents);
     }
 
     function collapse(expression, index1, index2, replacement) {
+        if (expression.type !== label) return expression;
         const low = Math.min(index1, index2);
         const high = Math.max(index1, index2);
         const contents = expression.contents.slice();

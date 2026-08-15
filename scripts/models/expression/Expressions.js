@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 `Expression` is the immutable model for algebraic expressions.
@@ -27,6 +26,12 @@ const Expressions = (structures) => {
         return structure.append(left, right);
     }
 
+    function swap(expression, index1, index2) {
+        const structure = structures[expression.type];
+        if (structure == null) return expression;
+        return structure.swap(expression, index1, index2);
+    }
+
     function remove(expression, index) {
         const structure = structures[expression.type];
         if (structure == null) return expression;
@@ -39,18 +44,16 @@ const Expressions = (structures) => {
         return structure.collapse(expression, index1, index2, replacement);
     }
 
-    const evaluator = variables => expression => {
-        const subevaluate = expression => evaluator(variables)(expression);
+    function evaluate(expression, variables) {
+        const subevaluate = child => evaluate(child, variables);
         const structure = structures[expression.type];
-        if (structure != null) { return structure.evaluator(subevaluate)(expression); }
+        if (structure != null) return structure.evaluator(subevaluate)(expression);
         switch (expression.type) {
             case 'constant': return expression.contents;
             case 'variable': return variables[expression.contents];
             default: return NaN;
         }
     }
-
-    const evaluate = (expression, variables) => evaluator(variables)(expression);
 
     function precedence(expression) {
         switch (expression.type) {
@@ -77,6 +80,7 @@ const Expressions = (structures) => {
         is_reciprocal,
         div,
         append,
+        swap,
         remove,
         collapse,
         precedence,

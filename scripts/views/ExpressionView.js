@@ -156,16 +156,12 @@ function ExpressionView(dependencies) {
     function _draw(expression, path, draggable_paths, valid_targets, parent_precedence, is_power_base) {
         draggable_paths = draggable_paths || empty_paths;
         valid_targets = valid_targets || empty_paths;
-        let node;
-
         switch (expression.type) {
             case 'constant':
                 return html.span(path_attributes(path, draggable_paths, valid_targets), [math(String(expression.contents))]);
-                break;
 
             case 'variable':
                 return html.span(path_attributes(path, draggable_paths, valid_targets), [math(expression.contents)]);
-                break;
 
             case 'add': {
                 const is_singleton_side = expression.contents.length === 1;
@@ -198,7 +194,6 @@ function ExpressionView(dependencies) {
 
             case 'mul':
                 return draw_mul(expression, path, draggable_paths, valid_targets);
-                break;
 
             case 'pow': {
                 const base = expression.contents[0];
@@ -238,14 +233,11 @@ function ExpressionView(dependencies) {
                         ]
                     );
                 }
-                break;
             }
 
             default:
                 return html.span(path_attributes(path, draggable_paths, valid_targets), [math('?')]);
         }
-
-        return node;
     }
 
     function draw(expression, path, draggable_paths, valid_targets, parent_precedence, is_power_base)
