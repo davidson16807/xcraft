@@ -16,11 +16,11 @@ const ExpressionPaths = (expressions) => {
     }
 
     function base(path) {
-        return path == null? null : `${path}/b`;
+        return path == null? null : `${path}/0`;
     }
 
     function exponent(path) {
-        return path == null? null : `${path}/e`;
+        return path == null? null : `${path}/1`;
     }
 
     function split(path) {
@@ -39,12 +39,7 @@ const ExpressionPaths = (expressions) => {
     }
 
     function _children(expression) {
-        switch (expression.type) {
-            case 'add': return expression.contents.map((_, i) => String(i));
-            case 'mul': return expression.contents.map((_, i) => String(i));
-            case 'pow': return ['b', 'e'];
-            default: return [];
-        }
+        return !Array.isArray(expression.contents)? [] : expression.contents.map((_, i) => String(i));
     }
 
     function _at(expression, segments) {
@@ -52,12 +47,7 @@ const ExpressionPaths = (expressions) => {
     }
 
     function _child(expression, segment) {
-        switch (expression.type) {
-            case 'add': return expression.contents[Number(segment)];
-            case 'mul': return expression.contents[Number(segment)];
-            case 'pow': return expression.contents[segment === 'b'? 0 : 1];
-            default: return undefined;
-        }
+        return !Array.isArray(expression.contents)? undefined : expression.contents[Number(segment)];
     }
 
     function _side_expression(equation, side) {
@@ -70,23 +60,12 @@ const ExpressionPaths = (expressions) => {
     }
 
     function _replace_child(expression, segment, replacement) {
-        switch (expression.type) {
-            case 'add': {
-                const terms = expression.contents.slice();
-                terms[Number(segment)] = replacement;
-                return expressions.add(terms);
-            }
-            case 'mul': {
-                const factors = expression.contents.slice();
-                factors[Number(segment)] = replacement;
-                return expressions.mul(factors);
-            }
-            case 'pow':
-                return segment === 'b'?
-                    expressions.pow(replacement, expression.contents[1]) :
-                    expressions.pow(expression.contents[0], replacement);
-            default:
-                return expression;
+        if (!Array.isArray(expression.contents)) {
+            return expression;
+        } else {
+            const contents = expression.contents.slice();
+            contents[Number(segment)] = replacement;
+            return expression.with({contents: contents});
         }
     }
 
