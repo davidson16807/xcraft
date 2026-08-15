@@ -49,6 +49,12 @@ function ExpressionView(dependencies) {
     }
 
     function product_factor_nodes(expression, node, previous_expression) {
+        if (previous_expression && expression.type === 'constant' && expression.contents < 0) {
+            node.insertBefore(math('(', 'math-paren'), node.firstChild);
+            node.appendChild(math(')', 'math-paren'));
+            return [math('\\cdot', 'math-operator multiplication-dot'), node];
+        }
+
         return (
             previous_expression &&
             previous_expression.type === 'constant' &&
@@ -146,7 +152,6 @@ function ExpressionView(dependencies) {
     function _draw(expression, path, draggable_paths, valid_targets, parent_precedence, is_power_base) {
         draggable_paths = draggable_paths || empty_paths;
         valid_targets = valid_targets || empty_paths;
-        const parent = parent_precedence == null? 0 : parent_precedence;
         let node;
 
         switch (expression.type) {
@@ -235,8 +240,10 @@ function ExpressionView(dependencies) {
     function draw(expression, path, draggable_paths, valid_targets, parent_precedence, is_power_base)
     {
         return maybe_parenthesize(
-            _draw(expression, path, draggable_paths, valid_targets, parent_precedence, is_power_base), 
-            expression, parent, !!is_power_base
+            _draw(expression, path, draggable_paths, valid_targets, parent_precedence, is_power_base),
+            expression,
+            parent_precedence == null? 0 : parent_precedence,
+            !!is_power_base
         );
     }
 
