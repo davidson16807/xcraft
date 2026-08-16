@@ -36,7 +36,6 @@ function Equations(dependencies) {
 
         if (is_alone) {
             if (enabled.length !== 1) return null; // ambiguous? no-op
-            if (expressions.is_identity(enabled[0], source)) return source;
             if (enabled[0] === 'add') return scales.negate(source);
             if (enabled[0] === 'mul' && !(source.type === 'constant' && source.contents === 0)) {
                 return expressions.reciprocal(source);
@@ -45,7 +44,6 @@ function Equations(dependencies) {
         }
 
         if (!enabled_operations[source_root.type]) return null; // disabled? no-op
-        if (expressions.is_identity(source_root.type, source)) return source;
 
         // a + b = c applies -b to both sides.
         if (source_root.type === 'add' && 
@@ -195,47 +193,8 @@ function Equations(dependencies) {
 
 
     function simplify(equation) {
-        function simplify_expression(expression) {
-            const value = expressions.evaluate(expression, {});
-            if (Number.isFinite(value)) return expressions.constant(value);
-            if (!Array.isArray(expression.contents)) return expression;
-
-            let contents = expression.contents.map(simplify_expression);
-
-            // Addition and multiplication are associative, so constant-valued
-            // siblings can be folded even when the entire expression still
-            // depends on a variable: e.g. x + 7 - 1 -> x + 6.
-            if (expression.type === 'add' || expression.type === 'mul') {
-                const constants = contents
-                    .map((item, index) => ({ item:item, index:index, value:expressions.evaluate(item, {}) }))
-                    .filter(item => Number.isFinite(item.value));
-
-                if (constants.length > 1) {
-                    const constant_expression = expression.with({
-                        contents: Object.freeze(constants.map(item => item.item)),
-                    });
-                    const combined_value = expressions.evaluate(constant_expression, {});
-                    if (Number.isFinite(combined_value)) {
-                        const combined = expressions.constant(combined_value);
-                        const first = constants[0].index;
-                        const constant_indexes = new Set(constants.map(item => item.index));
-                        contents = contents.flatMap((item, index) =>
-                            index === first? [combined] :
-                            constant_indexes.has(index)? [] : [item]
-                        );
-                    }
-                }
-            }
-
-            if (
-                contents.length === expression.contents.length &&
-                contents.every((item, i) => item === expression.contents[i])
-            ) return expression;
-            return expression.with({ contents: Object.freeze(contents) });
-        }
-
-        const left = simplify_expression(equation.left);
-        const right = simplify_expression(equation.right);
+        const left = expressions.simplify(equation.left);
+        const right = expressions.simplify(equation.right);
         return left === equation.left && right === equation.right? equation :
             equation.with({ left:left, right:right });
     }
