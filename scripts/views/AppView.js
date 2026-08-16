@@ -26,6 +26,8 @@ function AppView(dependencies, app_updater) {
         const dark_button = dom_io.getElementById('dark');
         const add_button = dom_io.getElementById('drag-add');
         const multiply_button = dom_io.getElementById('drag-multiply');
+        const add_indicator = dom_io.getElementById('drag-add-indicator');
+        const multiply_indicator = dom_io.getElementById('drag-multiply-indicator');
         const level_strip = dom_io.getElementById('level-strip');
         const solved_mark = dom_io.getElementById('solved-mark');
 
@@ -47,6 +49,8 @@ function AppView(dependencies, app_updater) {
         dark_button.style.display = app.theme !== 'night'? 'none' : '';
         add_button.setAttribute('aria-pressed', String(!!app.drag_options.enabled.add));
         multiply_button.setAttribute('aria-pressed', String(!!app.drag_options.enabled.mul));
+        add_indicator.textContent = app.drag_options.enabled.add? 'On' : 'Off';
+        multiply_indicator.textContent = app.drag_options.enabled.mul? 'On' : 'Off';
         solved_mark.classList.toggle('visible', solved);
 
         level_strip.replaceChildren(
