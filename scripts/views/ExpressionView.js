@@ -6,7 +6,6 @@ function ExpressionView(dependencies) {
     const html = dependencies.html;
     const paths = dependencies.expression_paths;
     const expressions = dependencies.expressions;
-    const scales = dependencies.scale_expressions;
     const ring = dependencies.ring_expressions;
     const render = dependencies.render;
 
@@ -168,7 +167,7 @@ function ExpressionView(dependencies) {
                 return html.span(path_attributes(path, draggable_paths, valid_targets, 'expression-add'),
                     expression.contents.map((term, i) => {
                         const is_inverse = ring.is_inverse('add', term);
-                        const absolute = scales.absolute(term);
+                        const absolute = ring.absolute('add', term);
                         const term_path = paths.nary(path, i);
                         return html.span(path_attributes(term_path, draggable_paths, valid_targets, 'addend'),
                             [

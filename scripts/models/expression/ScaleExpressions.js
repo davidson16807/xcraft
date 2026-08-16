@@ -16,22 +16,24 @@ const ScaleExpressions = (expressions, scales) => {
         return sign(expression) < 0;
     }
 
-    function scale(scale, expression) {
-        if (scale.type !== 'constant') return expressions.mul([scale, expression]);
-        return scales.to_expression(
-            scales.scale(
-                scale,
-                scales.from_expression(expression)));
+    function distribute(left, right) {
+        if (left.type === 'constant') {
+            return scales.to_expression(
+                scales.scale(
+                    left,
+                    scales.from_expression(right)));
+        }
+        if (right.type === 'constant') {
+            return scales.to_expression(
+                scales.scale(
+                    right,
+                    scales.from_expression(left)));
+        }
+        return expressions.mul([left, right]);
     }
 
     function sign(expression) {
         return scales.sign(scales.from_expression(expression));
-    }
-
-    function absolute(expression) {
-        return scales.to_expression(
-            scales.absolute(
-                scales.from_expression(expression)));
     }
 
     function combine(left, right) {
@@ -44,9 +46,8 @@ const ScaleExpressions = (expressions, scales) => {
     return Object.freeze({
         inverse,
         is_inverse,
-        scale,
+        distribute,
         sign,
-        absolute,
         combine,
     });
 };

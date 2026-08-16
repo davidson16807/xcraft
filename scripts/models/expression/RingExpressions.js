@@ -23,9 +23,21 @@ const RingExpressions = group_expressions_for_tag => {
             group_expressions.is_inverse(expression);
     }
 
+    function absolute(type, expression) {
+        return is_inverse(type, expression)? inverse(type, expression) : expression;
+    }
+
+    function distribute(type, left, right) {
+        const group_expressions = group_expressions_for_tag[type];
+        return group_expressions == null || group_expressions.distribute == null? null :
+            group_expressions.distribute(left, right);
+    }
+
     return Object.freeze({
         combine,
         inverse,
         is_inverse,
+        absolute,
+        distribute,
     });
 };

@@ -13,7 +13,6 @@ function Equations(dependencies) {
     const expressions = dependencies.expressions;
     const paths = dependencies.expression_paths;
     const ring = dependencies.ring_expressions;
-    const scales = dependencies.scale_expressions;
 
     /* collapse two sibling operands into one replacement */
     function collapse(equation, parent_path, index1, index2, replacement) {
@@ -169,11 +168,9 @@ function Equations(dependencies) {
         // immaterial for today's commutative multiplication but keeps the
         // rewrite valid as a pattern for future noncommutative products.
         const distributed = expressions.add(
-            sum.contents.map(term => factor.type === 'constant'?
-                scales.scale(factor, term) :
-                factor_index < sum_index?
-                    expressions.mul([factor, term]) :
-                    expressions.mul([term, factor])
+            sum.contents.map(term => factor_index < sum_index?
+                ring.distribute('add', factor, term) :
+                ring.distribute('add', term, factor)
             )
         );
 

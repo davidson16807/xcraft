@@ -71,7 +71,6 @@ const equation_shape = EquationShape(expression_shape);
 const paths = ExpressionPaths(expressions);
 const equations = Equations({
     expressions: expressions,
-    scale_expressions: scale_expressions,
     ring_expressions: ring_expressions,
     expression_paths: paths,
 });
@@ -895,6 +894,51 @@ function ringExpressionInterface() {
         'RingExpressions',
         'multiplicative identity should be its own inverse'
     );
+
+
+    assertSameExpression(
+        ring_expressions.absolute('add', negative_x),
+        x,
+        'RingExpressions',
+        'absolute should invert an additive inverse'
+    );
+    assertSameExpression(
+        ring_expressions.absolute('add', x),
+        x,
+        'RingExpressions',
+        'absolute should preserve a non-inverse expression'
+    );
+    assertSameExpression(
+        ring_expressions.absolute('mul', reciprocal_x),
+        x,
+        'RingExpressions',
+        'absolute should invert a multiplicative inverse'
+    );
+    assertSameExpression(
+        ring_expressions.absolute('mul', x),
+        x,
+        'RingExpressions',
+        'absolute should preserve an ordinary multiplicative expression'
+    );
+
+    const two = expressions.constant(2);
+    const x_plus_one = expressions.add([x, one]);
+    assertSameExpression(
+        ring_expressions.distribute('add', two, x_plus_one),
+        expressions.mul([two, x_plus_one]),
+        'RingExpressions',
+        'distribute should delegate through the additive group expression'
+    );
+    assertSameExpression(
+        ring_expressions.distribute('add', x, two),
+        expressions.mul([two, x]),
+        'RingExpressions',
+        'additive distribution should absorb a constant into a scale'
+    );
+    assert(
+        ring_expressions.distribute('mul', x, two) == null,
+        'RingExpressions: unsupported distribution should return null'
+    );
 }
 
 // -----------------------------------------------------------------------------
@@ -1519,12 +1563,10 @@ function distributivity() {
 
         const sum = expressions.add([b, c]);
         const left_expanded = expressions.add(
-            sum.contents.map(term => a.type === 'constant'?
-                scale_expressions.scale(a, term) : expressions.mul([a, term]))
+            sum.contents.map(term => ring_expressions.distribute('add', a, term))
         );
         const right_expanded = expressions.add(
-            sum.contents.map(term => a.type === 'constant'?
-                scale_expressions.scale(a, term) : expressions.mul([term, a]))
+            sum.contents.map(term => ring_expressions.distribute('add', term, a))
         );
         const context = `a = ${describeCase(a)}\nb = ${describeCase(b)}\nc = ${describeCase(c)}`;
 
