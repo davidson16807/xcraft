@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 Every successful operation in this namespace is an equivalence-preserving
@@ -37,6 +36,7 @@ function Equations(dependencies) {
 
         if (is_alone) {
             if (enabled.length !== 1) return null; // ambiguous? no-op
+            if (expressions.is_identity(enabled[0], source)) return source;
             if (enabled[0] === 'add') return scales.negate(source);
             if (enabled[0] === 'mul' && !(source.type === 'constant' && source.contents === 0)) {
                 return expressions.reciprocal(source);
@@ -45,6 +45,7 @@ function Equations(dependencies) {
         }
 
         if (!enabled_operations[source_root.type]) return null; // disabled? no-op
+        if (expressions.is_identity(source_root.type, source)) return source;
 
         // a + b = c applies -b to both sides.
         if (source_root.type === 'add' && 
@@ -139,19 +140,32 @@ function Equations(dependencies) {
         const group_expressions = _group_expressions_for_tag[parent.type];
         if (group_expressions == null) return equation;
 
+        const source = paths.resolve(equation, source_path);
+        const target = paths.resolve(equation, target_path);
+        const source_index = Number(paths.segment(source_path));
+        const target_index = Number(paths.segment(target_path));
+
+        // a + 0 -> a and a * 1 -> a.  The identity disappears whether it
+        // was dragged or used as the drop target.
+        if (expressions.is_identity(parent.type, source)) {
+            return paths.replace(equation, parent_path,
+                expressions.remove(parent, source_index));
+        }
+        if (expressions.is_identity(parent.type, target)) {
+            return paths.replace(equation, parent_path,
+                expressions.remove(parent, target_index));
+        }
+
         // 2x + 3x -> 5x, and 7 + (-3) -> 4.
         // x^2 * x^3 -> x^5, x * x -> x^2, and numeric products.
-        const combined = group_expressions.combine(
-            paths.resolve(equation, source_path), 
-            paths.resolve(equation, target_path)
-        );
+        const combined = group_expressions.combine(source, target);
         if (combined == null) return equation;
 
         return collapse(
             equation,
             parent_path,
-            Number(paths.segment(source_path)),
-            Number(paths.segment(target_path)),
+            source_index,
+            target_index,
             combined
         );
 

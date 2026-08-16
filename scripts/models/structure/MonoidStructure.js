@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN WRITTEN
 
 /*
 In math, a "monoid" is a structure featuring an operation that has an identity and is everywhere associative.
@@ -65,6 +64,7 @@ const MonoidStructure = (label, identity, is_commutative, evaluator) => {
         append,
         remove,
         collapse,
-        evaluator, 
+        evaluator,
+        is_identity,
     });
 }

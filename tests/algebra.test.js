@@ -688,6 +688,8 @@ function additiveCommutativity() {
             a !== b &&
             a.type !== 'add' &&
             b.type !== 'add' &&
+            !expressions.is_identity('add', a) &&
+            !expressions.is_identity('add', b) &&
             scale_expressions.combine(a, b) == null
         ) {
             assertMoveTransforms(
@@ -757,7 +759,48 @@ function additiveIdentity() {
             `${context}\nleft identity`,
             where
         );
+
+        // Combining with 0 removes 0 regardless of which expression is
+        // dragged.  This is a direct player action, not constructor
+        // normalization, so an explicit identity can remain visible until
+        // the user combines it.
+        const identity_source = expressions.add([zero, a]);
+        assertMoveTransforms(
+            identity_source,
+            'L/0',
+            'path:L/1',
+            a,
+            'additive identity',
+            `${context}\nidentity is the dragged source`,
+            where,
+            default_drag_options
+        );
+
+        const identity_target = expressions.add([a, zero]);
+        const identity_index = identity_target.contents.length - 1;
+        assertMoveTransforms(
+            identity_target,
+            'L/0',
+            `path:L/${identity_index}`,
+            a,
+            'additive identity',
+            `${context}\nidentity is the drop target`,
+            where,
+            default_drag_options
+        );
     }
+
+    const identity_equation = new Equation(zero, x);
+    assertEquationMoveTransforms(
+        identity_equation,
+        'L',
+        'side:R',
+        new Equation(zero, expressions.add([x, zero])),
+        'additive identity',
+        'a lone additive identity remains draggable across equality',
+        variables => isDefined(x, variables),
+        add_only_drag_options
+    );
 }
 
 // -----------------------------------------------------------------------------
@@ -825,6 +868,8 @@ function multiplicativeCommutativity() {
             a !== b &&
             a.type !== 'mul' &&
             b.type !== 'mul' &&
+            !expressions.is_identity('mul', a) &&
+            !expressions.is_identity('mul', b) &&
             power_expressions.combine(a, b) == null &&
             !((a.type === 'constant' && b.type === 'add') ||
               (a.type === 'add' && b.type === 'constant'))
@@ -896,7 +941,46 @@ function multiplicativeIdentity() {
             `${context}\nleft identity`,
             where
         );
+
+        // Combining with 1 removes 1 regardless of which expression is
+        // dragged.
+        const identity_source = expressions.mul([one, a]);
+        assertMoveTransforms(
+            identity_source,
+            'L/0',
+            'path:L/1',
+            a,
+            'multiplicative identity',
+            `${context}\nidentity is the dragged source`,
+            where,
+            default_drag_options
+        );
+
+        const identity_target = expressions.mul([a, one]);
+        const identity_index = identity_target.contents.length - 1;
+        assertMoveTransforms(
+            identity_target,
+            'L/0',
+            `path:L/${identity_index}`,
+            a,
+            'multiplicative identity',
+            `${context}\nidentity is the drop target`,
+            where,
+            default_drag_options
+        );
     }
+
+    const identity_equation = new Equation(one, x);
+    assertEquationMoveTransforms(
+        identity_equation,
+        'L',
+        'side:R',
+        new Equation(one, expressions.mul([x, one])),
+        'multiplicative identity',
+        'a lone multiplicative identity remains draggable across equality',
+        variables => isDefined(x, variables),
+        multiply_only_drag_options
+    );
 }
 
 // -----------------------------------------------------------------------------

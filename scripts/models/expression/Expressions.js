@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 `Expression` is the immutable model for algebraic expressions.
@@ -16,6 +15,7 @@ const Expressions = (structures) => {
     const pow = structures['pow'].create;
 
     function reciprocal(expression) {
+        if (is_identity('mul', expression)) return expression;
         return is_reciprocal(expression)? expression.contents[0] : pow(expression, constant(-1));
     }
 
@@ -37,6 +37,13 @@ const Expressions = (structures) => {
         const structure = structures[expression.type];
         if (structure == null) return expression;
         return structure.collapse(expression, index1, index2, replacement);
+    }
+
+    function is_identity(type, expression) {
+        const structure = structures[type];
+        return structure != null &&
+            structure.is_identity != null &&
+            structure.is_identity(expression);
     }
 
     const evaluator = variables => expression => {
@@ -79,6 +86,7 @@ const Expressions = (structures) => {
         append,
         remove,
         collapse,
+        is_identity,
         precedence,
         evaluate,
     });
