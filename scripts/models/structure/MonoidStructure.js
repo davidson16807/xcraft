@@ -31,15 +31,21 @@ const MonoidStructure = (label, identity, is_commutative, evaluator) => {
         return expression.type === identity.type && expression.contents === identity.contents;
     }
 
+    function append(left, right) {
+        return left.type === label? create([...left.contents, right]) : create([left, right]);
+    }
+
+    function combine(left, right) {
+        if (is_identity(left)) return right;
+        if (is_identity(right)) return left;
+        return null;
+    }
+
     function swap(expression, index1, index2) {
         if (!is_commutative) { return expression; }
         const contents = expression.contents.slice();
         [contents[index1], contents[index2]] = [contents[index2], contents[index1]];
         return create(contents);
-    }
-
-    function append(left, right) {
-        return left.type === label? create([...left.contents, right]) : create([left, right]);
     }
 
     function remove(expression, index) {
@@ -60,8 +66,9 @@ const MonoidStructure = (label, identity, is_commutative, evaluator) => {
     return Object.freeze({
         label,
         create,
-        swap,
         append,
+        combine,
+        swap,
         remove,
         collapse,
         evaluator,

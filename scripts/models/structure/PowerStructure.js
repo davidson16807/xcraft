@@ -14,20 +14,20 @@ const PowerStructure = (label) => {
         );
     }
 
-    function swap(expression, index1, index2) {
-        return expression
-    }
-
     function append(left, right) {
         return create([left, right]);
     }
 
-    function remove(expression, index) {
-        return expression;
+    function combine(left, right) {
+        return null;
     }
 
-    function replace(expression, index, replacement) {
-        return create(expression.contents.with(index, replacement));
+    function swap(expression, index1, index2) {
+        return expression
+    }
+
+    function remove(expression, index) {
+        return expression;
     }
 
     function collapse(expression, index1, index2, replacement) {
@@ -37,8 +37,9 @@ const PowerStructure = (label) => {
     return Object.freeze({
         label,
         create,
-        swap,
         append,
+        combine,
+        swap,
         remove,
         collapse,
         evaluator, 

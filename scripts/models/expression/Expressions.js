@@ -27,6 +27,12 @@ const Expressions = (structures) => {
         return structure.append(left, right);
     }
 
+    function combine(type, left, right) {
+        const structure = structures[type];
+        if (structure == null) return null;
+        return structure.combine(left, right);
+    }
+
     function remove(expression, index) {
         const structure = structures[expression.type];
         if (structure == null) return expression;
@@ -84,6 +90,7 @@ const Expressions = (structures) => {
         is_reciprocal,
         div,
         append,
+        combine,
         remove,
         collapse,
         is_identity,

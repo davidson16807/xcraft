@@ -145,20 +145,10 @@ function Equations(dependencies) {
         const source_index = Number(paths.segment(source_path));
         const target_index = Number(paths.segment(target_path));
 
-        // a + 0 -> a and a * 1 -> a.  The identity disappears whether it
-        // was dragged or used as the drop target.
-        if (expressions.is_identity(parent.type, source)) {
-            return paths.replace(equation, parent_path,
-                expressions.remove(parent, source_index));
-        }
-        if (expressions.is_identity(parent.type, target)) {
-            return paths.replace(equation, parent_path,
-                expressions.remove(parent, target_index));
-        }
-
-        // 2x + 3x -> 5x, and 7 + (-3) -> 4.
-        // x^2 * x^3 -> x^5, x * x -> x^2, and numeric products.
-        const combined = group_expressions.combine(source, target);
+        const combined = (
+            expressions.combine(parent.type, source, target) || 
+            group_expressions.combine(source, target)
+        );
         if (combined == null) return equation;
 
         return collapse(
