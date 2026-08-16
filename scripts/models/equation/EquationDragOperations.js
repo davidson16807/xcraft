@@ -11,13 +11,13 @@ Unsupported drags return the original equation reference.
 function EquationDragOperations(dependencies) {
     const paths = dependencies.expression_paths;
     const equations = dependencies.equations;
-    const default_drag_options = Object.freeze({
-        enabled: Object.freeze({ add:true, mul:true }),
-        auto_simplify: true,
-    });
 
     function move(equation, source_path, target_key, drag_options) {
         if (source_path == null || target_key == null) return equation;
+
+        const parent_path = paths.parent(source_path);
+        const parent = parent_path == null? null : paths.resolve(equation, parent_path);
+        if (parent != null && drag_options.enabled[parent.type] === false) return equation;
 
         switch(paths.domain(target_key))
         {

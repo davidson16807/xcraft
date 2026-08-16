@@ -33,8 +33,18 @@ function Equations(dependencies) {
         const source_root = paths.resolve(equation, source_side);
         const parent_path = paths.parent(source_path);
         const is_alone = source_path === source_side;
-        const enabled_count = enabled_operations['add'] + enabled_operations['mul'];
-        if ((is_alone && enabled_count === 1) || !enabled_operations[source_root.type]) return null; // disabled? no-op
+        const enabled = Object.keys(enabled_operations).filter(operation => enabled_operations[operation]);
+
+        if (is_alone) {
+            if (enabled.length !== 1) return null; // ambiguous? no-op
+            if (enabled[0] === 'add') return scales.negate(source);
+            if (enabled[0] === 'mul' && !(source.type === 'constant' && source.contents === 0)) {
+                return expressions.reciprocal(source);
+            }
+            return null;
+        }
+
+        if (!enabled_operations[source_root.type]) return null; // disabled? no-op
 
         // a + b = c applies -b to both sides.
         if (source_root.type === 'add' && 
@@ -62,20 +72,25 @@ function Equations(dependencies) {
         if (source_side === target_side) return equation; // same on both sides? no-op
 
         const parent_path = paths.parent(source_path);
-        if (parent_path !== source_side) return equation; // not top-level? no-op
+        const is_alone = source_path === source_side;
+        if (!is_alone && parent_path !== source_side) return equation; // not top-level? no-op
 
         const inverse = invert(equation, source_path, enabled_operations);
         if (inverse == null) return equation; // non-invertible operation? no-op
 
         const source_root = paths.resolve(equation, source_side);
         const target_root = paths.resolve(equation, target_side);
+        const operation = is_alone?
+            Object.keys(enabled_operations).find(operation => enabled_operations[operation]) :
+            source_root.type;
 
         // a + b = c  ->  a = c - b
         // ab = c  ->  b = c/a
         // a/b = c is represented as a*b^-1 = c, so dragging b^-1 across
         // uses the same inverse operation and reciprocal(b^-1) becomes b.
-        const new_source = expressions.remove(source_root, Number(paths.segment(source_path)));
-        const new_target = expressions.append(source_root.type, target_root, inverse);
+        const new_source = is_alone? expressions[operation]([]) :
+            expressions.remove(source_root, Number(paths.segment(source_path)));
+        const new_target = expressions.append(operation, target_root, inverse);
         let left, right;
         [left,right] = target_side==='L'? [new_target, new_source] : [new_source, new_target];
         return equation.with({left: left, right: right});
