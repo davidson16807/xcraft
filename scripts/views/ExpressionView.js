@@ -7,6 +7,7 @@ function ExpressionView(dependencies) {
     const paths = dependencies.expression_paths;
     const expressions = dependencies.expressions;
     const scales = dependencies.scale_expressions;
+    const ring = dependencies.ring_expressions;
     const render = dependencies.render;
 
     const empty_paths = new Set();
@@ -78,8 +79,8 @@ function ExpressionView(dependencies) {
         const items = expression.contents.map(
             (factor, i) => ({ factor:factor, path:paths.nary(path, i) })
         );
-        const numerator = items.filter(item => !expressions.is_reciprocal(item.factor));
-        const denominator = items.filter(item => expressions.is_reciprocal(item.factor));
+        const numerator = items.filter(item => !ring.is_inverse('mul', item.factor));
+        const denominator = items.filter(item => ring.is_inverse('mul', item.factor));
 
         if (denominator.length === 0) {
             return html.span(
@@ -166,13 +167,13 @@ function ExpressionView(dependencies) {
             case 'add':
                 return html.span(path_attributes(path, draggable_paths, valid_targets, 'expression-add'),
                     expression.contents.map((term, i) => {
-                        const sign = scales.sign(term);
+                        const is_inverse = ring.is_inverse('add', term);
                         const absolute = scales.absolute(term);
                         const term_path = paths.nary(path, i);
                         return html.span(path_attributes(term_path, draggable_paths, valid_targets, 'addend'),
                             [
-                                ...(i > 0)? [math(sign < 0? '-' : '+', 'math-operator')]
-                                 : sign < 0? [math('-', 'math-operator')]
+                                ...(i > 0)? [math(is_inverse? '-' : '+', 'math-operator')]
+                                 : is_inverse? [math('-', 'math-operator')]
                                  : [],
                                 draw_contents(
                                     absolute,
@@ -193,7 +194,7 @@ function ExpressionView(dependencies) {
                 const base = expression.contents[0];
                 const exponent = expression.contents[1];
 
-                if (expressions.is_reciprocal(expression)) {
+                if (ring.is_inverse('mul', expression)) {
                     return html.span(
                         path_attributes(path, draggable_paths, valid_targets, 'expression-fraction'),
                         [

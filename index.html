@@ -26,6 +26,7 @@
     <script src="./scripts/models/expression/Power.js"></script>
     <script src="./scripts/models/expression/Powers.js"></script>
     <script src="./scripts/models/expression/PowerExpressions.js"></script>
+    <script src="./scripts/models/expression/RingExpressions.js"></script>
     <script src="./scripts/models/equation/Equation.js"></script>
     <script src="./scripts/models/equation/Equations.js"></script>
     <script src="./scripts/models/equation/EquationDragOperations.js"></script>
@@ -168,6 +169,10 @@
     const scale_expressions = ScaleExpressions(expressions, scales);
     const powers = Powers(expressions, expression_shape);
     const power_expressions = PowerExpressions(expressions, powers);
+    const ring_expressions = RingExpressions({
+        add: scale_expressions,
+        mul: power_expressions,
+    });
     const expression_paths = ExpressionPaths(expressions);
     const equation_drag_ops = EquationDragOperations({
         expression_paths: expression_paths,
@@ -175,7 +180,7 @@
             expressions: expressions,
             expression_paths: expression_paths,
             scale_expressions: scale_expressions,
-            power_expressions: power_expressions,
+            ring_expressions: ring_expressions,
         })
     });
     const equation_shape = EquationShape(expression_shape);
@@ -198,6 +203,7 @@
         expressions: expressions,
         expression_paths: expression_paths,
         scale_expressions: scale_expressions,
+        ring_expressions: ring_expressions,
     });
 
     const equation_view = EquationView({
@@ -205,8 +211,7 @@
         render: katex.render,
         equation_drag_operations: equation_drag_ops,
         expression_paths: expression_paths,
-        expressions: expressions,
-        scale_expressions: scale_expressions,
+        ring_expressions: ring_expressions,
         expression_view: expression_view,
     });
 

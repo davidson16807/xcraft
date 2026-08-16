@@ -153,8 +153,6 @@ const Expressions = (structures) => {
         add,
         mul,
         pow,
-        reciprocal,
-        is_reciprocal,
         div,
         append,
         combine,

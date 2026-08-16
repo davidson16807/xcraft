@@ -17,6 +17,7 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/expression/Power.js',
     'scripts/models/expression/Powers.js',
     'scripts/models/expression/PowerExpressions.js',
+    'scripts/models/expression/RingExpressions.js',
     'scripts/models/equation/Equation.js',
     'scripts/models/equation/EquationShape.js',
     'scripts/models/expression/ExpressionPaths.js',
@@ -62,12 +63,16 @@ const scales = Scales(expressions, expression_shape);
 const scale_expressions = ScaleExpressions(expressions, scales);
 const powers = Powers(expressions, expression_shape);
 const power_expressions = PowerExpressions(expressions, powers);
+const ring_expressions = RingExpressions({
+    add: scale_expressions,
+    mul: power_expressions,
+});
 const equation_shape = EquationShape(expression_shape);
 const paths = ExpressionPaths(expressions);
 const equations = Equations({
     expressions: expressions,
     scale_expressions: scale_expressions,
-    power_expressions: power_expressions,
+    ring_expressions: ring_expressions,
     expression_paths: paths,
 });
 const algebra = EquationDragOperations({
@@ -231,7 +236,7 @@ const ring_expression_cases = Object.freeze([
     expressions.constant(1),
     expressions.constant(2),
     x,
-    scale_expressions.negate(x),
+    ring_expressions.inverse('add', x),
     expressions.add([x, expressions.constant(2)]),
     expressions.add([x, expressions.constant(-3)]),
     expressions.mul([expressions.constant(3), x]),
@@ -249,16 +254,16 @@ const ring_expression_cases = Object.freeze([
 
 const field_expression_cases = Object.freeze([
     ...ring_expression_cases,
-    expressions.reciprocal(x),
-    expressions.reciprocal(
+    ring_expressions.inverse('mul', x),
+    ring_expressions.inverse('mul', 
         expressions.add([x, expressions.constant(1)])
     ),
-    expressions.reciprocal(
+    ring_expressions.inverse('mul', 
         expressions.add([x, expressions.constant(-2)])
     ),
     expressions.mul([
         expressions.constant(3),
-        expressions.reciprocal(x),
+        ring_expressions.inverse('mul', x),
     ]),
     expressions.pow(x, -2),
     expressions.div(
@@ -528,7 +533,7 @@ function enabledDragOperations() {
             'side:R',
             new Equation(
                 zero,
-                expressions.add([rhs, scale_expressions.negate(a)])
+                expressions.add([rhs, ring_expressions.inverse('add', a)])
             ),
             'enabled drag operations',
             `${context}\nadd only`,
@@ -542,7 +547,7 @@ function enabledDragOperations() {
             'side:R',
             new Equation(
                 one,
-                expressions.mul([rhs, expressions.reciprocal(a)])
+                expressions.mul([rhs, ring_expressions.inverse('mul', a)])
             ),
             'enabled drag operations',
             `${context}\nmultiply only`,
@@ -788,7 +793,7 @@ function fractionPreservation() {
     const two = expressions.constant(2);
     const three = expressions.constant(3);
     const six = expressions.constant(6);
-    const third = expressions.reciprocal(three);
+    const third = ring_expressions.inverse('mul', three);
     const one_third = expressions.mul([one, third]);
     const six_thirds = expressions.mul([six, third]);
 
@@ -844,6 +849,55 @@ function fractionPreservation() {
 }
 
 // -----------------------------------------------------------------------------
+// Ring-expression interface
+// additive and multiplicative groups expose inversion polymorphically.
+// -----------------------------------------------------------------------------
+
+function ringExpressionInterface() {
+    const negative_x = ring_expressions.inverse('add', x);
+    assert(
+        ring_expressions.is_inverse('add', negative_x),
+        'RingExpressions: additive inverse should be recognized'
+    );
+    assert(
+        !ring_expressions.is_inverse('add', x),
+        'RingExpressions: ordinary additive expression should not be inverse'
+    );
+    assertSameExpression(
+        ring_expressions.inverse('add', negative_x),
+        x,
+        'RingExpressions',
+        'additive inverse should be involutive'
+    );
+
+    const reciprocal_x = ring_expressions.inverse('mul', x);
+    assert(
+        ring_expressions.is_inverse('mul', reciprocal_x),
+        'RingExpressions: multiplicative inverse should be recognized'
+    );
+    assert(
+        !ring_expressions.is_inverse('mul', x),
+        'RingExpressions: ordinary multiplicative expression should not be inverse'
+    );
+    assertSameExpression(
+        ring_expressions.inverse('mul', reciprocal_x),
+        x,
+        'RingExpressions',
+        'multiplicative inverse should be involutive'
+    );
+    assert(
+        ring_expressions.inverse('mul', zero) == null,
+        'RingExpressions: zero should not have a multiplicative inverse'
+    );
+    assertSameExpression(
+        ring_expressions.inverse('mul', one),
+        one,
+        'RingExpressions',
+        'multiplicative identity should be its own inverse'
+    );
+}
+
+// -----------------------------------------------------------------------------
 // Additive closure
 // a + b is an Expression.
 // -----------------------------------------------------------------------------
@@ -878,7 +932,7 @@ function additiveCommutativity() {
             a.type !== 'add' &&
             b.type !== 'add' &&
             expressions.combine('add', a, b) == null &&
-            scale_expressions.combine(a, b) == null
+            ring_expressions.combine('add', a, b) == null
         ) {
             assertMoveTransforms(
                 left,
@@ -1001,7 +1055,7 @@ function additiveInverse() {
         const where = variables => isDefined(a, variables);
         if (!hasAdmissibleAssignment(where)) continue;
 
-        const negative_a = scale_expressions.negate(a);
+        const negative_a = ring_expressions.inverse('add', a);
         const left = expressions.add([a, negative_a]);
         const context = `a = ${describeCase(a)}`;
 
@@ -1057,7 +1111,7 @@ function multiplicativeCommutativity() {
             a.type !== 'mul' &&
             b.type !== 'mul' &&
             expressions.combine('mul', a, b) == null &&
-            power_expressions.combine(a, b) == null &&
+            ring_expressions.combine('mul', a, b) == null &&
             a.type !== 'add' &&
             b.type !== 'add'
         ) {
@@ -1180,7 +1234,7 @@ function multiplicativeInverse() {
         const where = variables => isDefinedNonzero(a, variables);
         if (!hasAdmissibleAssignment(where)) continue;
 
-        const reciprocal_a = expressions.reciprocal(a);
+        const reciprocal_a = ring_expressions.inverse('mul', a);
         const product = expressions.mul([a, reciprocal_a]);
         const context = `a = ${describeCase(a)}`;
 
@@ -1231,7 +1285,7 @@ function doubleReciprocal() {
         if (!hasAdmissibleAssignment(where)) continue;
 
         assertExpressionsEquivalent(
-            expressions.reciprocal(expressions.reciprocal(a)),
+            ring_expressions.inverse('mul', ring_expressions.inverse('mul', a)),
             a,
             'double reciprocal',
             `a = ${describeCase(a)}`,
@@ -1250,10 +1304,10 @@ function inverseOfProduct() {
         const where = variables => allDefinedNonzero([a, b], variables);
         if (!hasAdmissibleAssignment(where)) return;
 
-        const left = expressions.reciprocal(expressions.mul([a, b]));
+        const left = ring_expressions.inverse('mul', expressions.mul([a, b]));
         const right = expressions.mul([
-            expressions.reciprocal(a),
-            expressions.reciprocal(b),
+            ring_expressions.inverse('mul', a),
+            ring_expressions.inverse('mul', b),
         ]);
 
         assertExpressionsEquivalent(
@@ -1280,7 +1334,7 @@ function multiplicativeCancellation() {
         const left = expressions.mul([
             a,
             b,
-            expressions.reciprocal(b),
+            ring_expressions.inverse('mul', b),
         ]);
 
         assertExpressionsEquivalent(
@@ -1306,7 +1360,7 @@ function divisionDefinition() {
 
         assertExpressionsEquivalent(
             expressions.div(a, b),
-            expressions.mul([a, expressions.reciprocal(b)]),
+            expressions.mul([a, ring_expressions.inverse('mul', b)]),
             'division definition',
             `a = ${describeCase(a)}\nb = ${describeCase(b)}`,
             where
@@ -1332,7 +1386,7 @@ function multiplicativeBalance() {
             isDefinedNonzero(a, variables) && isDefined(b, variables);
         if (!hasAdmissibleAssignment(where)) continue;
 
-        const inverse_a = expressions.reciprocal(a);
+        const inverse_a = ring_expressions.inverse('mul', a);
         const before = new Equation(
             expressions.mul([a, x]),
             b
@@ -1362,7 +1416,7 @@ function multiplicativeBalance() {
             );
         }
 
-        const reciprocal_factor = expressions.reciprocal(a);
+        const reciprocal_factor = ring_expressions.inverse('mul', a);
         const reverse_before = new Equation(
             expressions.mul([x, reciprocal_factor]),
             b
@@ -1372,7 +1426,7 @@ function multiplicativeBalance() {
             expressions.append(
                 'mul',
                 b,
-                expressions.reciprocal(reciprocal_factor)
+                ring_expressions.inverse('mul', reciprocal_factor)
             )
         );
 
@@ -1446,15 +1500,15 @@ function distributivity() {
         expressions.constant(2),
         x,
         expressions.pow(x, 2),
-        expressions.reciprocal(x),
-        expressions.reciprocal(expressions.add([x, expressions.constant(1)])),
+        ring_expressions.inverse('mul', x),
+        ring_expressions.inverse('mul', expressions.add([x, expressions.constant(1)])),
     ];
     const addend_cases = [
         x,
-        scale_expressions.negate(x),
+        ring_expressions.inverse('add', x),
         expressions.mul([expressions.constant(3), x]),
         expressions.pow(x, 2),
-        expressions.reciprocal(expressions.add([x, expressions.constant(1)])),
+        ring_expressions.inverse('mul', expressions.add([x, expressions.constant(1)])),
     ];
 
     for (const a of factor_cases)
@@ -1520,6 +1574,7 @@ function distributivity() {
     operationToggleInvariant,
     automaticSimplification,
     fractionPreservation,
+    ringExpressionInterface,
     additiveClosure,
     additiveCommutativity,
     additiveAssociativity,

@@ -5,8 +5,7 @@ function EquationView(dependencies) {
     const html = dependencies.html;
     const equation_drag_ops = dependencies.equation_drag_operations;
     const paths = dependencies.expression_paths;
-    const expressions = dependencies.expressions;
-    const scales = dependencies.scale_expressions;
+    const ring = dependencies.ring_expressions;
     const expression_view = dependencies.expression_view;
     const render = dependencies.render;
 
@@ -60,9 +59,8 @@ function EquationView(dependencies) {
 
     function inverse_prefix(equation, source_path, inverse, drag_options) {
         const operation = operation_for_source(equation, source_path, drag_options);
-        if (operation === 'add' && scales.sign(inverse) >= 0) return '+';
-        if (operation === 'mul' && !expressions.is_reciprocal(inverse)) return '\\cdot';
-        return null;
+        if (operation == null || ring.is_inverse(operation, inverse)) return null;
+        return ({ add:'+', mul:'\\cdot' })[operation] || null;
     }
 
     function draw_ghosts(equation, drag_state, drag_options) {

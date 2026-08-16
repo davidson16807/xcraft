@@ -6,10 +6,14 @@ Operates on expressions that can be expressed as scales.
 */
 const ScaleExpressions = (expressions, scales) => {
 
-    function negate(expression) {
+    function inverse(expression) {
         return scales.to_expression(
             scales.negate(
                 scales.from_expression(expression)));
+    }
+
+    function is_inverse(expression) {
+        return sign(expression) < 0;
     }
 
     function scale(scale, expression) {
@@ -38,7 +42,8 @@ const ScaleExpressions = (expressions, scales) => {
     }
 
     return Object.freeze({
-        negate,
+        inverse,
+        is_inverse,
         scale,
         sign,
         absolute,

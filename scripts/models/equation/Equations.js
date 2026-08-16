@@ -12,8 +12,8 @@ than what can be provided by structures like `MonoidStructure`.
 function Equations(dependencies) {
     const expressions = dependencies.expressions;
     const paths = dependencies.expression_paths;
+    const ring = dependencies.ring_expressions;
     const scales = dependencies.scale_expressions;
-    const powers = dependencies.power_expressions;
 
     /* collapse two sibling operands into one replacement */
     function collapse(equation, parent_path, index1, index2, replacement) {
@@ -37,32 +37,12 @@ function Equations(dependencies) {
 
         if (is_alone) {
             if (enabled.length !== 1) return null; // ambiguous? no-op
-            if (enabled[0] === 'add') return scales.negate(source);
-            if (enabled[0] === 'mul' && !(source.type === 'constant' && source.contents === 0)) {
-                return expressions.reciprocal(source);
-            }
-            return null;
+            return ring.inverse(enabled[0], source);
         }
 
         if (!enabled_operations[source_root.type]) return null; // disabled? no-op
-
-        // a + b = c applies -b to both sides.
-        if (source_root.type === 'add' && 
-            parent_path === source_side) {
-            return scales.negate(source);
-        }
-
-        // ab = c applies a^-1 to both sides.  A reciprocal factor is its
-        // own inverse operation in the expected way: (a^-1)^-1 -> a.
-        if (
-            source_root.type === 'mul' &&
-            parent_path === source_side &&
-            !(source.type === 'constant' && source.contents === 0)
-        ) {
-            return expressions.reciprocal(source);
-        }
-
-        return null;
+        if (parent_path !== source_side) return null; // not top-level? no-op
+        return ring.inverse(source_root.type, source);
     }
 
     function balance(equation, source_path, target_side, enabled_operations) {
@@ -126,18 +106,12 @@ function Equations(dependencies) {
         return paths.replace(equation, parent_path, replacement);
     }
 
-    const _group_expressions_for_tag = {
-        'add': scales,
-        'mul': powers,
-    };
-
     function combine(equation, source_path, target_path) {
         const parent_path = paths.parent(source_path);
         if (parent_path == null || parent_path !== paths.parent(target_path)) return equation;
 
         const parent = paths.resolve(equation, parent_path);
-        const group_expressions = _group_expressions_for_tag[parent.type];
-        if (group_expressions == null) return equation;
+        if (parent == null) return equation;
 
         const source = paths.resolve(equation, source_path);
         const target = paths.resolve(equation, target_path);
@@ -145,8 +119,8 @@ function Equations(dependencies) {
         const target_index = Number(paths.segment(target_path));
 
         const combined = (
-            expressions.combine(parent.type, source, target) || 
-            group_expressions.combine(source, target)
+            expressions.combine(parent.type, source, target) ||
+            ring.combine(parent.type, source, target)
         );
         if (combined == null) return equation;
 
