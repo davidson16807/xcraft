@@ -779,6 +779,67 @@ function automaticSimplification() {
 }
 
 // -----------------------------------------------------------------------------
+// Fraction-preserving constant arithmetic
+// Exact reciprocal structure is retained unless evaluation yields a whole
+// number within the numerical tolerance.
+// -----------------------------------------------------------------------------
+
+function fractionPreservation() {
+    const two = expressions.constant(2);
+    const three = expressions.constant(3);
+    const six = expressions.constant(6);
+    const third = expressions.reciprocal(three);
+    const one_third = expressions.mul([one, third]);
+    const six_thirds = expressions.mul([six, third]);
+
+    assertSameExpression(
+        expressions.simplify(one_third),
+        one_third,
+        'fraction preservation',
+        'simplify should retain a non-integral constant quotient as a reciprocal'
+    );
+    assertSameExpression(
+        expressions.simplify(six_thirds),
+        two,
+        'fraction preservation',
+        'simplify should collapse an integral constant quotient'
+    );
+
+    assert(
+        power_expressions.combine(two, third) == null,
+        'fraction preservation: combine should decline 2/3 rather than produce a decimal'
+    );
+    assertSameExpression(
+        power_expressions.combine(six, third),
+        two,
+        'fraction preservation',
+        'combine should collapse 6/3 to 2'
+    );
+
+    const thirds = expressions.add([
+        expressions.mul([one, third]),
+        expressions.mul([two, third]),
+    ]);
+    assertSameExpression(
+        expressions.simplify(thirds),
+        one,
+        'fraction preservation',
+        'several constant fractions may collapse when their total is whole'
+    );
+
+    const ordinary_decimal = expressions.add([
+        expressions.constant(0.5),
+        expressions.constant(0.25),
+    ]);
+    assertSameExpression(
+        expressions.simplify(ordinary_decimal),
+        expressions.constant(0.75),
+        'fraction preservation',
+        'non-integral arithmetic without a reciprocal should still simplify normally'
+    );
+}
+
+// -----------------------------------------------------------------------------
 // Additive closure
 // a + b is an Expression.
 // -----------------------------------------------------------------------------
@@ -812,8 +873,7 @@ function additiveCommutativity() {
             a !== b &&
             a.type !== 'add' &&
             b.type !== 'add' &&
-            !expressions.is_identity('add', a) &&
-            !expressions.is_identity('add', b) &&
+            expressions.combine('add', a, b) == null &&
             scale_expressions.combine(a, b) == null
         ) {
             assertMoveTransforms(
@@ -992,8 +1052,7 @@ function multiplicativeCommutativity() {
             a !== b &&
             a.type !== 'mul' &&
             b.type !== 'mul' &&
-            !expressions.is_identity('mul', a) &&
-            !expressions.is_identity('mul', b) &&
+            expressions.combine('mul', a, b) == null &&
             power_expressions.combine(a, b) == null &&
             a.type !== 'add' &&
             b.type !== 'add'
@@ -1456,6 +1515,7 @@ function distributivity() {
     enabledDragOperations,
     operationToggleInvariant,
     automaticSimplification,
+    fractionPreservation,
     additiveClosure,
     additiveCommutativity,
     additiveAssociativity,
