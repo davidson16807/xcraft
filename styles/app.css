@@ -122,11 +122,6 @@ button {
     opacity: 0.8;
 }
 
-#theme {
-    width: 42px;
-    font-size: 1.1rem;
-}
-
 .operation-toggle[aria-pressed="false"] {
     background-color: var(--paper);
     color: var(--ink);

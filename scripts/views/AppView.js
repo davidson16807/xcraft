@@ -22,6 +22,8 @@ function AppView(dependencies, app_updater) {
         const previous_button = dom_io.getElementById('previous-level');
         const next_button = dom_io.getElementById('next-level');
         const theme_button = dom_io.getElementById('theme');
+        const light_button = dom_io.getElementById('light');
+        const dark_button = dom_io.getElementById('dark');
         const add_button = dom_io.getElementById('drag-add');
         const multiply_button = dom_io.getElementById('drag-multiply');
         const level_strip = dom_io.getElementById('level-strip');
@@ -41,8 +43,8 @@ function AppView(dependencies, app_updater) {
         redo_button.disabled = app.redo_history.length === 0;
         previous_button.disabled = app.level_index === 0;
         next_button.disabled = app.level_index === app.levels.length-1;
-        theme_button.textContent = app.theme === 'day'? '☾' : '☀';
-        theme_button.setAttribute('aria-label', app.theme === 'day'? 'Use night mode' : 'Use day mode');
+        light_button.style.display = app.theme !== 'day'? 'none' : '';
+        dark_button.style.display = app.theme !== 'night'? 'none' : '';
         add_button.setAttribute('aria-pressed', String(!!app.drag_options.enabled.add));
         multiply_button.setAttribute('aria-pressed', String(!!app.drag_options.enabled.mul));
         solved_mark.classList.toggle('visible', solved);
