@@ -193,6 +193,53 @@ function Equations(dependencies) {
         );
     }
 
+
+    function simplify(equation) {
+        function simplify_expression(expression) {
+            const value = expressions.evaluate(expression, {});
+            if (Number.isFinite(value)) return expressions.constant(value);
+            if (!Array.isArray(expression.contents)) return expression;
+
+            let contents = expression.contents.map(simplify_expression);
+
+            // Addition and multiplication are associative, so constant-valued
+            // siblings can be folded even when the entire expression still
+            // depends on a variable: e.g. x + 7 - 1 -> x + 6.
+            if (expression.type === 'add' || expression.type === 'mul') {
+                const constants = contents
+                    .map((item, index) => ({ item:item, index:index, value:expressions.evaluate(item, {}) }))
+                    .filter(item => Number.isFinite(item.value));
+
+                if (constants.length > 1) {
+                    const constant_expression = expression.with({
+                        contents: Object.freeze(constants.map(item => item.item)),
+                    });
+                    const combined_value = expressions.evaluate(constant_expression, {});
+                    if (Number.isFinite(combined_value)) {
+                        const combined = expressions.constant(combined_value);
+                        const first = constants[0].index;
+                        const constant_indexes = new Set(constants.map(item => item.index));
+                        contents = contents.flatMap((item, index) =>
+                            index === first? [combined] :
+                            constant_indexes.has(index)? [] : [item]
+                        );
+                    }
+                }
+            }
+
+            if (
+                contents.length === expression.contents.length &&
+                contents.every((item, i) => item === expression.contents[i])
+            ) return expression;
+            return expression.with({ contents: Object.freeze(contents) });
+        }
+
+        const left = simplify_expression(equation.left);
+        const right = simplify_expression(equation.right);
+        return left === equation.left && right === equation.right? equation :
+            equation.with({ left:left, right:right });
+    }
+
     return Object.freeze({
         collapse,
         balance,
@@ -200,5 +247,6 @@ function Equations(dependencies) {
         combine,
         distribute,
         invert,
+        simplify,
     });
 }

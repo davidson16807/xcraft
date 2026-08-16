@@ -64,5 +64,11 @@ function AppUpdater(dependencies) {
         toggle_theme: (app) => app.with({ theme: app.theme === 'day'? 'night' : 'day' }),
         toggle_add: (app) => toggle_operation(app, 'add', 'mul'),
         toggle_multiply: (app) => toggle_operation(app, 'mul', 'add'),
+        toggle_auto_simplify: (app) => release(app.with({
+            drag_options: {
+                ...app.drag_options,
+                auto_simplify: !app.drag_options.auto_simplify,
+            },
+        })),
     });
 }

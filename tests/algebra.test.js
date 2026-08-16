@@ -84,17 +84,21 @@ const app_updater = AppUpdater({
     equation_shape: equation_shape,
 });
 
-const default_drag_options = Object.freeze({
+const manual_drag_options = Object.freeze({
+    enabled: Object.freeze({ add:true, mul:true }),
+    auto_simplify: false,
+});
+const auto_simplify_drag_options = Object.freeze({
     enabled: Object.freeze({ add:true, mul:true }),
     auto_simplify: true,
 });
 const add_only_drag_options = Object.freeze({
     enabled: Object.freeze({ add:true, mul:false }),
-    auto_simplify: true,
+    auto_simplify: false,
 });
 const multiply_only_drag_options = Object.freeze({
     enabled: Object.freeze({ add:false, mul:true }),
-    auto_simplify: true,
+    auto_simplify: false,
 });
 
 function assert(condition, message) {
@@ -122,88 +126,88 @@ function move(equation, source, target, drag_options) {
 
 function solveLevel1() {
     let q = levels[0].equation;
-    q = move(q, 'L/1', 'side:R', default_drag_options);
-    q = move(q, 'R/1', 'path:R/0', default_drag_options);
+    q = move(q, 'L/1', 'side:R', manual_drag_options);
+    q = move(q, 'R/1', 'path:R/0', manual_drag_options);
     assertShape(q, levels[0].goal, 'level 1');
 }
 
 function solveLevel2() {
     let q = levels[1].equation;
-    q = move(q, 'L/1', 'side:R', default_drag_options);
-    q = move(q, 'R/1', 'path:R/0', default_drag_options);
+    q = move(q, 'L/1', 'side:R', manual_drag_options);
+    q = move(q, 'R/1', 'path:R/0', manual_drag_options);
     assertShape(q, levels[1].goal, 'level 2');
 }
 
 function solveLevel3() {
     let q = levels[2].equation;
-    q = move(q, 'L/0', 'side:R', default_drag_options);
-    q = move(q, 'R/1', 'path:R/0', default_drag_options);
+    q = move(q, 'L/0', 'side:R', manual_drag_options);
+    q = move(q, 'R/1', 'path:R/0', manual_drag_options);
     assertShape(q, levels[2].goal, 'level 3');
 }
 
 function solveLevel4() {
     let q = levels[3].equation;
-    q = move(q, 'L/1', 'side:R', default_drag_options);
-    q = move(q, 'R/1', 'path:R/0', default_drag_options);
+    q = move(q, 'L/1', 'side:R', manual_drag_options);
+    q = move(q, 'R/1', 'path:R/0', manual_drag_options);
     assertShape(q, levels[3].goal, 'level 4');
 }
 
 function solveLevel5() {
     let q = levels[4].equation;
-    q = move(q, 'L/0', 'path:L/1', default_drag_options);
-    q = move(q, 'L/0', 'side:R', default_drag_options);
-    q = move(q, 'R/1', 'path:R/0', default_drag_options);
+    q = move(q, 'L/0', 'path:L/1', manual_drag_options);
+    q = move(q, 'L/0', 'side:R', manual_drag_options);
+    q = move(q, 'R/1', 'path:R/0', manual_drag_options);
     assertShape(q, levels[4].goal, 'level 5');
 }
 
 function solveLevel6() {
     let q = levels[5].equation;
-    q = move(q, 'R/0', 'side:L', default_drag_options);
-    q = move(q, 'L/0', 'path:L/2', default_drag_options);
-    q = move(q, 'L/1', 'side:R', default_drag_options);
-    q = move(q, 'R/1', 'path:R/0', default_drag_options);
-    q = move(q, 'L/0', 'side:R', default_drag_options);
-    q = move(q, 'R/1', 'path:R/0', default_drag_options);
+    q = move(q, 'R/0', 'side:L', manual_drag_options);
+    q = move(q, 'L/0', 'path:L/2', manual_drag_options);
+    q = move(q, 'L/1', 'side:R', manual_drag_options);
+    q = move(q, 'R/1', 'path:R/0', manual_drag_options);
+    q = move(q, 'L/0', 'side:R', manual_drag_options);
+    q = move(q, 'R/1', 'path:R/0', manual_drag_options);
     assertShape(q, levels[5].goal, 'level 6');
 }
 
 function solveLevel7() {
     let q = levels[6].equation;
-    q = move(q, 'L/0', 'path:L/1', default_drag_options);
+    q = move(q, 'L/0', 'path:L/1', manual_drag_options);
     assertShape(q, levels[6].goal, 'level 7');
 }
 
 function solveLevel8() {
     let q = levels[7].equation;
-    q = move(q, 'L/0/0', 'path:L/0/1', default_drag_options);
-    q = move(q, 'L/1', 'side:R', default_drag_options);
-    q = move(q, 'R/1', 'path:R/0', default_drag_options);
-    q = move(q, 'L/1', 'side:R', default_drag_options);
-    q = move(q, 'R/1', 'path:R/0', default_drag_options);
-    q = move(q, 'L/0', 'side:R', default_drag_options);
-    q = move(q, 'R/1', 'path:R/0', default_drag_options);
+    q = move(q, 'L/0/0', 'path:L/0/1', manual_drag_options);
+    q = move(q, 'L/1', 'side:R', manual_drag_options);
+    q = move(q, 'R/1', 'path:R/0', manual_drag_options);
+    q = move(q, 'L/1', 'side:R', manual_drag_options);
+    q = move(q, 'R/1', 'path:R/0', manual_drag_options);
+    q = move(q, 'L/0', 'side:R', manual_drag_options);
+    q = move(q, 'R/1', 'path:R/0', manual_drag_options);
     assertShape(q, levels[7].goal, 'level 8');
 }
 
 function solveLevel9() {
     let q = levels[8].equation;
-    q = move(q, 'L/1', 'side:R', default_drag_options);
-    q = move(q, 'R/1', 'path:R/0', default_drag_options);
-    q = move(q, 'L/1', 'side:R', default_drag_options);
-    q = move(q, 'R/1', 'path:R/0', default_drag_options);
+    q = move(q, 'L/1', 'side:R', manual_drag_options);
+    q = move(q, 'R/1', 'path:R/0', manual_drag_options);
+    q = move(q, 'L/1', 'side:R', manual_drag_options);
+    q = move(q, 'R/1', 'path:R/0', manual_drag_options);
     assertShape(q, levels[8].goal, 'level 9');
 }
 
 function solveLevel10() {
     let q = levels[9].equation;
-    q = move(q, 'L/0/0', 'path:L/0/1', default_drag_options);
-    q = move(q, 'L/1', 'side:R', default_drag_options);
-    q = move(q, 'R/1', 'side:L', default_drag_options);
-    q = move(q, 'L/0', 'path:L/2', default_drag_options);
-    q = move(q, 'L/1', 'side:R', default_drag_options);
-    q = move(q, 'R/1', 'path:R/0', default_drag_options);
-    q = move(q, 'L/0', 'side:R', default_drag_options);
-    q = move(q, 'R/1', 'path:R/0', default_drag_options);
+    q = move(q, 'L/0/0', 'path:L/0/1', manual_drag_options);
+    q = move(q, 'L/1', 'side:R', manual_drag_options);
+    q = move(q, 'R/1', 'side:L', manual_drag_options);
+    q = move(q, 'L/0', 'path:L/2', manual_drag_options);
+    q = move(q, 'L/1', 'side:R', manual_drag_options);
+    q = move(q, 'R/1', 'path:R/0', manual_drag_options);
+    q = move(q, 'L/0', 'side:R', manual_drag_options);
+    q = move(q, 'R/1', 'path:R/0', manual_drag_options);
     assertShape(q, levels[9].goal, 'level 10');
 }
 
@@ -510,11 +514,11 @@ function enabledDragOperations() {
         const context = `lone expression a = ${describeCase(a)}`;
 
         assert(
-            algebra.moves_for_source(equation, 'L', default_drag_options).length === 0,
+            algebra.moves_for_source(equation, 'L', manual_drag_options).length === 0,
             `enabled drag operations: lone expression should be ambiguous when add and mul are enabled\n${context}`
         );
         assert(
-            !algebra.draggable_paths(equation, default_drag_options).includes('L'),
+            !algebra.draggable_paths(equation, manual_drag_options).includes('L'),
             `enabled drag operations: ambiguous lone expression should not be draggable\n${context}`
         );
 
@@ -588,7 +592,7 @@ function enabledDragOperations() {
         drag_options
     );
 
-    const ambiguous_app = make_app(default_drag_options);
+    const ambiguous_app = make_app(manual_drag_options);
     assert(
         app_updater.drag_start(ambiguous_app, 'L', 0, 0) === ambiguous_app,
         'enabled drag operations: AppUpdater should not start an ambiguous root drag'
@@ -655,6 +659,126 @@ function operationToggleInvariant() {
 }
 
 // -----------------------------------------------------------------------------
+// Automatic simplification
+// Constant-valued expressions fold only after successful new drags.
+// -----------------------------------------------------------------------------
+
+function automaticSimplification() {
+    const seven = expressions.constant(7);
+    const minus_one = expressions.constant(-1);
+    const unsimplified = expressions.add([seven, minus_one]);
+
+    const manual = algebra.move(
+        new Equation(expressions.add([x, one]), seven),
+        'L/1',
+        'side:R',
+        manual_drag_options
+    );
+    assertSameExpression(
+        manual.right,
+        unsimplified,
+        'automatic simplification',
+        'disabled should preserve the arithmetic expression'
+    );
+
+    const automatic = algebra.move(
+        new Equation(expressions.add([x, one]), seven),
+        'L/1',
+        'side:R',
+        auto_simplify_drag_options
+    );
+    assertSameExpression(
+        automatic.right,
+        expressions.constant(6),
+        'automatic simplification',
+        'enabled should fold 7 - 1 after the drag'
+    );
+
+    const nested = new Equation(
+        expressions.add([
+            x,
+            expressions.mul([
+                expressions.constant(2),
+                expressions.add([
+                    expressions.constant(3),
+                    expressions.constant(4),
+                ]),
+            ]),
+        ]),
+        zero
+    );
+    assertSameExpression(
+        equations.simplify(nested).left,
+        expressions.add([x, expressions.constant(14)]),
+        'automatic simplification',
+        'constant-valued subexpressions should fold recursively'
+    );
+
+    const flat = new Equation(
+        expressions.add([x, expressions.constant(7), expressions.constant(-1)]),
+        zero
+    );
+    assertSameExpression(
+        equations.simplify(flat).left,
+        expressions.add([x, expressions.constant(6)]),
+        'automatic simplification',
+        'constant-valued siblings should fold within a nonconstant expression'
+    );
+
+    const invalid = new Equation(unsimplified, x);
+    assert(
+        algebra.move(invalid, 'R', 'path:R', auto_simplify_drag_options) === invalid,
+        'automatic simplification: an invalid drag must not simplify unrelated arithmetic'
+    );
+
+    // A drag commits the already-simplified equation. Undo/redo then traverse
+    // those exact historical references without invoking simplification again.
+    const released = equation_drags.release();
+    const original_equation = new Equation(expressions.add([x, one]), seven);
+    let app = new AppState(
+        levels,
+        0,
+        original_equation,
+        released,
+        released.initialize(),
+        [],
+        [],
+        'day',
+        auto_simplify_drag_options
+    );
+    app = app_updater.drag_start(app, 'L/1', 0, 0);
+    app = app_updater.drag_drop(app, 'side:R');
+    const simplified_equation = app.equation;
+    assertSameExpression(
+        simplified_equation.right,
+        expressions.constant(6),
+        'automatic simplification',
+        'drag should commit the simplified result'
+    );
+
+    app = app_updater.undo(app);
+    assert(
+        app.equation === original_equation,
+        'automatic simplification: undo should restore the exact pre-drag equation reference'
+    );
+
+    app = app_updater.redo(app);
+    assert(
+        app.equation === simplified_equation,
+        'automatic simplification: redo should restore the exact simplified equation reference'
+    );
+
+    const before_toggle = app;
+    app = app_updater.toggle_auto_simplify(app);
+    assert(app.drag_options.auto_simplify === false,
+        'automatic simplification: toolbar toggle should disable auto-simplify');
+    assert(app.drag_options.enabled === before_toggle.drag_options.enabled,
+        'automatic simplification: toolbar toggle should preserve enabled operations');
+    assert(app.equation === before_toggle.equation,
+        'automatic simplification: toggling should not modify the equation');
+}
+
+// -----------------------------------------------------------------------------
 // Additive closure
 // a + b is an Expression.
 // -----------------------------------------------------------------------------
@@ -700,7 +824,7 @@ function additiveCommutativity() {
                 'additive commutativity',
                 context,
                 where,
-                default_drag_options
+                manual_drag_options
             );
         }
     });
@@ -773,7 +897,7 @@ function additiveIdentity() {
             'additive identity',
             `${context}\nidentity is the dragged source`,
             where,
-            default_drag_options
+            manual_drag_options
         );
 
         const identity_target = expressions.add([a, zero]);
@@ -786,7 +910,7 @@ function additiveIdentity() {
             'additive identity',
             `${context}\nidentity is the drop target`,
             where,
-            default_drag_options
+            manual_drag_options
         );
     }
 
@@ -828,7 +952,7 @@ function additiveInverse() {
                 'additive inverse',
                 context,
                 where,
-                default_drag_options
+                manual_drag_options
             );
         }
     }
@@ -882,7 +1006,7 @@ function multiplicativeCommutativity() {
                 'multiplicative commutativity',
                 context,
                 where,
-                default_drag_options
+                manual_drag_options
             );
         }
     });
@@ -953,7 +1077,7 @@ function multiplicativeIdentity() {
             'multiplicative identity',
             `${context}\nidentity is the dragged source`,
             where,
-            default_drag_options
+            manual_drag_options
         );
 
         const identity_target = expressions.mul([a, one]);
@@ -966,7 +1090,7 @@ function multiplicativeIdentity() {
             'multiplicative identity',
             `${context}\nidentity is the drop target`,
             where,
-            default_drag_options
+            manual_drag_options
         );
     }
 
@@ -1027,7 +1151,7 @@ function multiplicativeInverse() {
                 'multiplicative inverse',
                 context,
                 where,
-                default_drag_options
+                manual_drag_options
             );
         }
     }
@@ -1171,7 +1295,7 @@ function multiplicativeBalance() {
                 'multiplicative balance',
                 `${context}\ndivide both sides by a`,
                 where,
-                default_drag_options
+                manual_drag_options
             );
         }
 
@@ -1202,7 +1326,7 @@ function multiplicativeBalance() {
                 'multiplicative balance',
                 `${context}\nmultiply both sides by a`,
                 where,
-                default_drag_options
+                manual_drag_options
             );
         }
     }
@@ -1239,7 +1363,7 @@ function distributivity() {
             'left distributivity',
             context,
             where,
-            default_drag_options
+            manual_drag_options
         );
         assertExpressionsEquivalent(
             right_product,
@@ -1247,7 +1371,7 @@ function distributivity() {
             'right distributivity',
             context,
             where,
-            default_drag_options
+            manual_drag_options
         );
     });
 
@@ -1286,7 +1410,7 @@ function distributivity() {
             'left distributivity',
             context,
             where,
-            default_drag_options
+            manual_drag_options
         );
 
         assertMoveTransforms(
@@ -1297,7 +1421,7 @@ function distributivity() {
             'right distributivity',
             context,
             where,
-            default_drag_options
+            manual_drag_options
         );
     }
 }
@@ -1322,6 +1446,7 @@ function distributivity() {
 [
     enabledDragOperations,
     operationToggleInvariant,
+    automaticSimplification,
     additiveClosure,
     additiveCommutativity,
     additiveAssociativity,

@@ -19,10 +19,12 @@ function EquationDragOperations(dependencies) {
         const parent = parent_path == null? null : paths.resolve(equation, parent_path);
         if (parent != null && drag_options.enabled[parent.type] === false) return equation;
 
+        let moved = equation;
         switch(paths.domain(target_key))
         {
         case 'side':
-            return equations.balance(equation, source_path, target_key.slice(5), drag_options['enabled']);
+            moved = equations.balance(equation, source_path, target_key.slice(5), drag_options['enabled']);
+            break;
         case 'path':
             const target_path = paths.path(target_key);
             if (paths.resolve(equation, target_path) == null) return equation;
@@ -31,14 +33,18 @@ function EquationDragOperations(dependencies) {
                 paths.is_ancestor(source_path, target_path) ||
                 paths.is_ancestor(target_path, source_path)
             ) return equation;
-            const combined = equations.combine(equation, source_path, target_path);
-            if (combined !== equation) return combined;
-            const distributed = equations.distribute(equation, source_path, target_path);
-            return distributed !== equation? distributed : equations.swap(equation, source_path, target_path);
+            moved = equations.combine(equation, source_path, target_path);
+            if (moved !== equation) break;
+            moved = equations.distribute(equation, source_path, target_path);
+            if (moved !== equation) break;
+            moved = equations.swap(equation, source_path, target_path);
+            break;
         default:
             return equation;
         }
 
+        if (moved === equation) return equation;
+        return drag_options.auto_simplify? equations.simplify(moved) : moved;
     }
 
     function moves_for_source(equation, source_path, drag_options) {
