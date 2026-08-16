@@ -34,6 +34,10 @@ const Powers = (expressions, expression_shape) => {
         return expressions.pow(power.base, power.power);
     }
 
+    function reciprocal(power) {
+        return new Power(power.base, -power.power, power.key);
+    }
+
     function combine(power1, power2) {
         if (power1.key !== power2.key) return null;
         return new Power(
@@ -46,6 +50,7 @@ const Powers = (expressions, expression_shape) => {
     return Object.freeze({
         from_expression,
         to_expression,
+        reciprocal,
         combine,
     });
 };
