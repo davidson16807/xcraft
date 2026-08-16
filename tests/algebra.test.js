@@ -122,88 +122,88 @@ function move(equation, source, target, drag_options) {
 
 function solveLevel1() {
     let q = levels[0].equation;
-    q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/1', 'side:R', default_drag_options);
+    q = move(q, 'R/1', 'path:R/0', default_drag_options);
     assertShape(q, levels[0].goal, 'level 1');
 }
 
 function solveLevel2() {
     let q = levels[1].equation;
-    q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/1', 'side:R', default_drag_options);
+    q = move(q, 'R/1', 'path:R/0', default_drag_options);
     assertShape(q, levels[1].goal, 'level 2');
 }
 
 function solveLevel3() {
     let q = levels[2].equation;
-    q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/0', 'side:R', default_drag_options);
+    q = move(q, 'R/1', 'path:R/0', default_drag_options);
     assertShape(q, levels[2].goal, 'level 3');
 }
 
 function solveLevel4() {
     let q = levels[3].equation;
-    q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/1', 'side:R', default_drag_options);
+    q = move(q, 'R/1', 'path:R/0', default_drag_options);
     assertShape(q, levels[3].goal, 'level 4');
 }
 
 function solveLevel5() {
     let q = levels[4].equation;
-    q = move(q, 'L/0', 'path:L/1');
-    q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/0', 'path:L/1', default_drag_options);
+    q = move(q, 'L/0', 'side:R', default_drag_options);
+    q = move(q, 'R/1', 'path:R/0', default_drag_options);
     assertShape(q, levels[4].goal, 'level 5');
 }
 
 function solveLevel6() {
     let q = levels[5].equation;
-    q = move(q, 'R/0', 'side:L');
-    q = move(q, 'L/0', 'path:L/2');
-    q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
-    q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'R/0', 'side:L', default_drag_options);
+    q = move(q, 'L/0', 'path:L/2', default_drag_options);
+    q = move(q, 'L/1', 'side:R', default_drag_options);
+    q = move(q, 'R/1', 'path:R/0', default_drag_options);
+    q = move(q, 'L/0', 'side:R', default_drag_options);
+    q = move(q, 'R/1', 'path:R/0', default_drag_options);
     assertShape(q, levels[5].goal, 'level 6');
 }
 
 function solveLevel7() {
     let q = levels[6].equation;
-    q = move(q, 'L/0', 'path:L/1');
+    q = move(q, 'L/0', 'path:L/1', default_drag_options);
     assertShape(q, levels[6].goal, 'level 7');
 }
 
 function solveLevel8() {
     let q = levels[7].equation;
-    q = move(q, 'L/0/0', 'path:L/0/1');
-    q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
-    q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
-    q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/0/0', 'path:L/0/1', default_drag_options);
+    q = move(q, 'L/1', 'side:R', default_drag_options);
+    q = move(q, 'R/1', 'path:R/0', default_drag_options);
+    q = move(q, 'L/1', 'side:R', default_drag_options);
+    q = move(q, 'R/1', 'path:R/0', default_drag_options);
+    q = move(q, 'L/0', 'side:R', default_drag_options);
+    q = move(q, 'R/1', 'path:R/0', default_drag_options);
     assertShape(q, levels[7].goal, 'level 8');
 }
 
 function solveLevel9() {
     let q = levels[8].equation;
-    q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
-    q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/1', 'side:R', default_drag_options);
+    q = move(q, 'R/1', 'path:R/0', default_drag_options);
+    q = move(q, 'L/1', 'side:R', default_drag_options);
+    q = move(q, 'R/1', 'path:R/0', default_drag_options);
     assertShape(q, levels[8].goal, 'level 9');
 }
 
 function solveLevel10() {
     let q = levels[9].equation;
-    q = move(q, 'L/0/0', 'path:L/0/1');
-    q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'side:L');
-    q = move(q, 'L/0', 'path:L/2');
-    q = move(q, 'L/1', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
-    q = move(q, 'L/0', 'side:R');
-    q = move(q, 'R/1', 'path:R/0');
+    q = move(q, 'L/0/0', 'path:L/0/1', default_drag_options);
+    q = move(q, 'L/1', 'side:R', default_drag_options);
+    q = move(q, 'R/1', 'side:L', default_drag_options);
+    q = move(q, 'L/0', 'path:L/2', default_drag_options);
+    q = move(q, 'L/1', 'side:R', default_drag_options);
+    q = move(q, 'R/1', 'path:R/0', default_drag_options);
+    q = move(q, 'L/0', 'side:R', default_drag_options);
+    q = move(q, 'R/1', 'path:R/0', default_drag_options);
     assertShape(q, levels[9].goal, 'level 10');
 }
 
@@ -697,7 +697,8 @@ function additiveCommutativity() {
                 right,
                 'additive commutativity',
                 context,
-                where
+                where,
+                default_drag_options
             );
         }
     });
@@ -783,7 +784,8 @@ function additiveInverse() {
                 zero,
                 'additive inverse',
                 context,
-                where
+                where,
+                default_drag_options
             );
         }
     }
@@ -834,7 +836,8 @@ function multiplicativeCommutativity() {
                 right,
                 'multiplicative commutativity',
                 context,
-                where
+                where,
+                default_drag_options
             );
         }
     });
@@ -939,7 +942,8 @@ function multiplicativeInverse() {
                 one,
                 'multiplicative inverse',
                 context,
-                where
+                where,
+                default_drag_options
             );
         }
     }
@@ -1082,7 +1086,8 @@ function multiplicativeBalance() {
                 expected,
                 'multiplicative balance',
                 `${context}\ndivide both sides by a`,
-                where
+                where,
+                default_drag_options
             );
         }
 
@@ -1112,7 +1117,8 @@ function multiplicativeBalance() {
                 reverse_expected,
                 'multiplicative balance',
                 `${context}\nmultiply both sides by a`,
-                where
+                where,
+                default_drag_options
             );
         }
     }
@@ -1148,14 +1154,16 @@ function distributivity() {
             left_expanded,
             'left distributivity',
             context,
-            where
+            where,
+            default_drag_options
         );
         assertExpressionsEquivalent(
             right_product,
             right_expanded,
             'right distributivity',
             context,
-            where
+            where,
+            default_drag_options
         );
     });
 
@@ -1193,7 +1201,8 @@ function distributivity() {
             expanded,
             'left distributivity',
             context,
-            where
+            where,
+            default_drag_options
         );
 
         assertMoveTransforms(
@@ -1203,7 +1212,8 @@ function distributivity() {
             expanded,
             'right distributivity',
             context,
-            where
+            where,
+            default_drag_options
         );
     }
 }
