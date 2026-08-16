@@ -995,8 +995,8 @@ function multiplicativeCommutativity() {
             !expressions.is_identity('mul', a) &&
             !expressions.is_identity('mul', b) &&
             power_expressions.combine(a, b) == null &&
-            !((a.type === 'constant' && b.type === 'add') ||
-              (a.type === 'add' && b.type === 'constant'))
+            a.type !== 'add' &&
+            b.type !== 'add'
         ) {
             assertMoveTransforms(
                 left,
@@ -1375,12 +1375,16 @@ function distributivity() {
         );
     });
 
-    const scalar_cases = [
+    const factor_cases = [
         expressions.constant(-3),
         expressions.constant(-1),
         expressions.constant(0),
         expressions.constant(1),
         expressions.constant(2),
+        x,
+        expressions.pow(x, 2),
+        expressions.reciprocal(x),
+        expressions.reciprocal(expressions.add([x, expressions.constant(1)])),
     ];
     const addend_cases = [
         x,
@@ -1390,15 +1394,20 @@ function distributivity() {
         expressions.reciprocal(expressions.add([x, expressions.constant(1)])),
     ];
 
-    for (const a of scalar_cases)
+    for (const a of factor_cases)
     for (const b of addend_cases)
     for (const c of addend_cases) {
         const where = variables => allDefined([a, b, c], variables);
         if (!hasAdmissibleAssignment(where)) continue;
 
         const sum = expressions.add([b, c]);
-        const expanded = expressions.add(
-            sum.contents.map(term => scale_expressions.scale(a, term))
+        const left_expanded = expressions.add(
+            sum.contents.map(term => a.type === 'constant'?
+                scale_expressions.scale(a, term) : expressions.mul([a, term]))
+        );
+        const right_expanded = expressions.add(
+            sum.contents.map(term => a.type === 'constant'?
+                scale_expressions.scale(a, term) : expressions.mul([term, a]))
         );
         const context = `a = ${describeCase(a)}\nb = ${describeCase(b)}\nc = ${describeCase(c)}`;
 
@@ -1406,7 +1415,7 @@ function distributivity() {
             expressions.mul([a, sum]),
             'L/0',
             'path:L/1',
-            expanded,
+            left_expanded,
             'left distributivity',
             context,
             where,
@@ -1417,7 +1426,7 @@ function distributivity() {
             expressions.mul([sum, a]),
             'L/1',
             'path:L/0',
-            expanded,
+            right_expanded,
             'right distributivity',
             context,
             where,

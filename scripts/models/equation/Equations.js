@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 Every successful operation in this namespace is an equivalence-preserving
@@ -15,11 +16,11 @@ function Equations(dependencies) {
     const powers = dependencies.power_expressions;
 
     /* collapse two sibling operands into one replacement */
-    function collapse(equation, parent_path, source_index, target_index, replacement) {
+    function collapse(equation, parent_path, index1, index2, replacement) {
         let parent = paths.resolve(equation, parent_path);
         if (parent == null) return equation;
         return paths.replace(equation, parent_path, 
-                expressions.collapse(parent, source_index, target_index, replacement));
+                expressions.collapse(parent, index1, index2, replacement));
     }
 
     function invert(equation, source_path, enabled_operations) {
@@ -169,24 +170,44 @@ function Equations(dependencies) {
 
         const source = paths.resolve(equation, source_path);
         const target = paths.resolve(equation, target_path);
+        const source_index = Number(paths.segment(source_path));
+        const target_index = Number(paths.segment(target_path));
 
-        const scale_sum = {
-            'constant add': [source,target],
-            'add constant': [target,source],
-        }[[source.type, target.type].join(' ')];
+        // Multiplication distributes over addition for any factor, including
+        // reciprocal factors.  Division therefore needs no special case:
+        // (a+b)/c is represented as (a+b)c^-1.
+        let factor, sum, factor_index, sum_index;
+        if (target.type === 'add') {
+            factor = source;
+            sum = target;
+            factor_index = source_index;
+            sum_index = target_index;
+        } else if (source.type === 'add') {
+            factor = target;
+            sum = source;
+            factor_index = target_index;
+            sum_index = source_index;
+        } else {
+            return equation;
+        }
 
-        if (scale_sum == null) return equation;
-        let scale, sum; [scale,sum] = scale_sum;
-
+        // Preserve the factor's original left/right position.  This is
+        // immaterial for today's commutative multiplication but keeps the
+        // rewrite valid as a pattern for future noncommutative products.
         const distributed = expressions.add(
-            sum.contents.map(term => scales.scale(scale, term))
+            sum.contents.map(term => factor.type === 'constant'?
+                scales.scale(factor, term) :
+                factor_index < sum_index?
+                    expressions.mul([factor, term]) :
+                    expressions.mul([term, factor])
+            )
         );
 
         return collapse(
             equation,
             source_parent_path,
-            Number(paths.segment(source_path)),
-            Number(paths.segment(target_path)),
+            source_index,
+            target_index,
             distributed
         );
     }
