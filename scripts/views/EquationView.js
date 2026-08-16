@@ -4,7 +4,7 @@
 function EquationView(dependencies) {
 
     const html = dependencies.html;
-    const equations = dependencies.equations;
+    const equation_drag_ops = dependencies.equation_drag_operations;
     const paths = dependencies.expression_paths;
     const expression_view = dependencies.expression_view;
     const render = dependencies.render;
@@ -39,7 +39,7 @@ function EquationView(dependencies) {
         return node;
     }
 
-    function draw_ghosts(equation, drag_state) {
+    function draw_ghosts(equation, drag_state, drag_options) {
         if (!drag_state || !drag_state.source_path) return [];
 
         const target_key = drag_state.target_key;
@@ -48,7 +48,7 @@ function EquationView(dependencies) {
             target_key.startsWith('side:');
 
         if (is_balance_move) {
-            const inverse = equations.invert(equation, drag_state.source_path);
+            const inverse = equation_drag_ops.invert(equation, drag_state.source_path, drag_options);
             if (inverse != null) {
                 return [
                     draw_ghost(inverse, {
@@ -68,10 +68,10 @@ function EquationView(dependencies) {
 
     return Object.freeze({
 
-        draw: function(equation, drag_state, div_io) {
+        draw: function(equation, drag_state, drag_options, div_io) {
 
             const valid_targets = new Set(drag_state && drag_state.candidates || []);
-            const draggable_paths = new Set(equations.draggable_paths(equation));
+            const draggable_paths = new Set(equation_drag_ops.draggable_paths(equation, drag_options));
 
             div_io.replaceChildren(
                 html.div({ class:'equation-row' }, [
@@ -81,7 +81,7 @@ function EquationView(dependencies) {
                 ])
             );
 
-            draw_ghosts(equation, drag_state).forEach(ghost =>
+            draw_ghosts(equation, drag_state, drag_options).forEach(ghost =>
                 div_io.appendChild(ghost)
             );
 

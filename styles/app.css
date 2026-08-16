@@ -127,6 +127,17 @@ button {
     font-size: 1.1rem;
 }
 
+.operation-toggle[aria-pressed="false"] {
+    background-color: var(--paper);
+    color: var(--ink);
+}
+
+.operation-toggle[aria-pressed="false"]:hover,
+.operation-toggle[aria-pressed="false"]:focus-visible {
+    background-color: var(--offpaper);
+    color: var(--ink);
+}
+
 .level-strip {
     width: min(1120px, calc(100% - 32px));
     margin: 2px auto 0;

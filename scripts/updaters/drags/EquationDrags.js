@@ -13,13 +13,13 @@ function EquationDrags(equations) {
     }
 
     return Object.freeze({
-        symbol: function(equation, source_path, start) {
+        symbol: function(equation, source_path, start, drag_options) {
             return Object.freeze({
                 id: DragState.symbol,
-                initialize: () => drag_value(source_path, start, start, equations.moves_for_source(equation, source_path), null),
+                initialize: () => drag_value(source_path, start, start, equations.moves_for_source(equation, source_path, drag_options), null),
                 move: (state, point, target_key) => drag_value(source_path, state.start, point, state.candidates, target_key),
                 command: (state, target_key) => equation_input =>
-                    equations.move(equation_input, state.source_path, target_key),
+                    equations.move(equation_input, state.source_path, target_key, drag_options),
             });
         },
 

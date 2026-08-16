@@ -77,6 +77,16 @@
                 <div>☾</div>
             </button>
 
+            <button id="drag-add" type="button" class="btn operation-toggle" aria-pressed="true">
+                <div>Add</div>
+                <div>+</div>
+            </button>
+
+            <button id="drag-multiply" type="button" class="btn operation-toggle" aria-pressed="true">
+                <div>Multiply</div>
+                <div>×</div>
+            </button>
+
         </div>
 
     </div>
@@ -150,7 +160,7 @@
     const powers = Powers(expressions, expression_shape);
     const power_expressions = PowerExpressions(expressions, powers);
     const expression_paths = ExpressionPaths(expressions);
-    const equations = EquationDragOperations({
+    const equation_drag_ops = EquationDragOperations({
         expression_paths: expression_paths,
         equations: Equations({
             expressions: expressions,
@@ -163,7 +173,7 @@
 
     const history = AppHistoryTraversal(Infinity);
 
-    const equation_drags = EquationDrags(equations);
+    const equation_drags = EquationDrags(equation_drag_ops);
     const app_updater = AppUpdater({
         app_history_traversal: history,
         drag_ops: AppDragOperations(equation_drags, history),
@@ -184,7 +194,7 @@
     const equation_view = EquationView({
         html: html,
         render: katex.render,
-        equations: equations,
+        equation_drag_operations: equation_drag_ops,
         expression_paths: expression_paths,
         expression_view: expression_view,
     });
@@ -205,7 +215,8 @@
             released, released.initialize(), // drag
             [], [], // history
             window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches?
-                'night' : 'day'
+                'night' : 'day',
+            { enabled:{ add:true, mul:true }, auto_simplify:true }
         ), document
     );
 

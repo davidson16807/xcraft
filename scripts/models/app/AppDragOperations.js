@@ -4,7 +4,7 @@
 function AppDragOperations(drags, history) {
     return Object.freeze({
         start: function(app, source_path, x,y) {
-            const drag_type = drags.symbol(app.equation, source_path, {x:x,y:y});
+            const drag_type = drags.symbol(app.equation, source_path, {x:x,y:y}, app.drag_options);
             if (drag_type.initialize().candidates.length === 0) return app;
             return app.with({
                 drag_type: drag_type,

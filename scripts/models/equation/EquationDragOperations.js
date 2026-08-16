@@ -11,16 +11,21 @@ Unsupported drags return the original equation reference.
 function EquationDragOperations(dependencies) {
     const paths = dependencies.expression_paths;
     const equations = dependencies.equations;
+    const default_drag_options = Object.freeze({
+        enabled: Object.freeze({ add:true, mul:true }),
+        auto_simplify: true,
+    });
 
-    function move(equation, source_path, target_key) {
+    function move(equation, source_path, target_key, drag_options) {
         if (source_path == null || target_key == null) return equation;
 
         switch(paths.domain(target_key))
         {
         case 'side':
-            return equations.balance(equation, source_path, target_key.slice(5));
+            return equations.balance(equation, source_path, target_key.slice(5), drag_options['enabled']);
         case 'path':
             const target_path = paths.path(target_key);
+            if (paths.resolve(equation, target_path) == null) return equation;
             if (
                 source_path === target_path ||
                 paths.is_ancestor(source_path, target_path) ||
@@ -36,7 +41,7 @@ function EquationDragOperations(dependencies) {
 
     }
 
-    function moves_for_source(equation, source_path) {
+    function moves_for_source(equation, source_path, drag_options) {
         const parsed = paths.split(source_path);
         const other_side = parsed.side === 'L'? 'R' : 'L';
         const candidates = [
@@ -44,19 +49,23 @@ function EquationDragOperations(dependencies) {
             ...paths.all(equation).map(path => `path:${path}`),
         ];
         return Object.freeze(candidates.filter(target_key =>
-            move(equation, source_path, target_key) !== equation
+            move(equation, source_path, target_key, drag_options) !== equation
         ));
     }
 
 
-    function draggable_paths(equation) {
+    function draggable_paths(equation, drag_options) {
         return Object.freeze(paths.all(equation).filter(path =>
-            moves_for_source(equation, path).length > 0
+            moves_for_source(equation, path, drag_options).length > 0
         ));
+    }
+
+    function invert(equation, source_path, drag_options) {
+        return equations.invert(equation, source_path, drag_options['enabled']);
     }
 
     return Object.freeze({
-        invert: equations.invert,
+        invert,
         move,
         moves_for_source,
         draggable_paths,

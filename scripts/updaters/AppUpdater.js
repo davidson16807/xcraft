@@ -36,6 +36,20 @@ function AppUpdater(dependencies) {
         return app.with({ drag_type: drag_type, drag_state: drag_type.initialize() });
     }
 
+    function toggle_operation(app, operation, alternative) {
+        const enabled = { ...app.drag_options.enabled };
+        enabled[operation] = !enabled[operation];
+        if (!enabled[operation] && !Object.values(enabled).some(Boolean)) {
+            enabled[alternative] = true;
+        }
+        return release(app.with({
+            drag_options: {
+                ...app.drag_options,
+                enabled: enabled,
+            },
+        }));
+    }
+
     return Object.freeze({
         drag_start: (app, source_path, x,y) => drag_ops.start(app, source_path, x,y),
         drag_move: (app, x,y, target_key) => drag_ops.move(app, x,y, target_key),
@@ -48,5 +62,7 @@ function AppUpdater(dependencies) {
         next_level: (app) => release(load_level(app, app.level_index+1)),
         select_level: (app, level_index) => release(load_level(app, level_index)),
         toggle_theme: (app) => app.with({ theme: app.theme === 'day'? 'night' : 'day' }),
+        toggle_add: (app) => toggle_operation(app, 'add', 'mul'),
+        toggle_multiply: (app) => toggle_operation(app, 'mul', 'add'),
     });
 }

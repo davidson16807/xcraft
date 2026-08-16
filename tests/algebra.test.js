@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 const fs = require('fs');
 const vm = require('vm');
@@ -7,6 +6,8 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 [
+    'scripts/models/structure/MonoidStructure.js',
+    'scripts/models/structure/PowerStructure.js',
     'scripts/models/expression/Expression.js',
     'scripts/models/expression/ExpressionShape.js',
     'scripts/models/expression/Expressions.js',
@@ -20,6 +21,13 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/equation/EquationShape.js',
     'scripts/models/expression/ExpressionPaths.js',
     'scripts/models/equation/Equations.js',
+    'scripts/models/equation/EquationDragOperations.js',
+    'scripts/models/app/AppState.js',
+    'scripts/models/app/AppHistoryTraversal.js',
+    'scripts/models/app/AppDragOperations.js',
+    'scripts/updaters/drags/DragState.js',
+    'scripts/updaters/drags/EquationDrags.js',
+    'scripts/updaters/AppUpdater.js',
     'scripts/levels/Levels.js',
 ].forEach(file => {
     vm.runInThisContext(
@@ -56,13 +64,38 @@ const powers = Powers(expressions, expression_shape);
 const power_expressions = PowerExpressions(expressions, powers);
 const equation_shape = EquationShape(expression_shape);
 const paths = ExpressionPaths(expressions);
-const algebra = Equations({
+const equations = Equations({
     expressions: expressions,
     scale_expressions: scale_expressions,
     power_expressions: power_expressions,
     expression_paths: paths,
 });
+const algebra = EquationDragOperations({
+    expression_paths: paths,
+    equations: equations,
+});
 const levels = Levels(expressions);
+const history = AppHistoryTraversal(Infinity);
+const equation_drags = EquationDrags(algebra);
+const app_updater = AppUpdater({
+    app_history_traversal: history,
+    drag_ops: AppDragOperations(equation_drags, history),
+    equation_drags: equation_drags,
+    equation_shape: equation_shape,
+});
+
+const default_drag_options = Object.freeze({
+    enabled: Object.freeze({ add:true, mul:true }),
+    auto_simplify: true,
+});
+const add_only_drag_options = Object.freeze({
+    enabled: Object.freeze({ add:true, mul:false }),
+    auto_simplify: true,
+});
+const multiply_only_drag_options = Object.freeze({
+    enabled: Object.freeze({ add:false, mul:true }),
+    auto_simplify: true,
+});
 
 function assert(condition, message) {
     if (!condition) throw new Error(message);
@@ -77,8 +110,8 @@ function assertShape(actual, expected, message) {
     );
 }
 
-function move(equation, source, target) {
-    const updated = algebra.move(equation, source, target);
+function move(equation, source, target, drag_options) {
+    const updated = algebra.move(equation, source, target, drag_options);
     assert(updated !== equation, `move should be valid: ${source} -> ${target}`);
     return updated;
 }
@@ -143,7 +176,8 @@ function solveLevel7() {
 function solveLevel8() {
     let q = levels[7].equation;
     q = move(q, 'L/0/0', 'path:L/0/1');
-    q = move(q, 'L/1', 'path:L/2');
+    q = move(q, 'L/1', 'side:R');
+    q = move(q, 'R/1', 'path:R/0');
     q = move(q, 'L/1', 'side:R');
     q = move(q, 'R/1', 'path:R/0');
     q = move(q, 'L/0', 'side:R');
@@ -163,6 +197,8 @@ function solveLevel9() {
 function solveLevel10() {
     let q = levels[9].equation;
     q = move(q, 'L/0/0', 'path:L/0/1');
+    q = move(q, 'L/1', 'side:R');
+    q = move(q, 'R/1', 'side:L');
     q = move(q, 'L/0', 'path:L/2');
     q = move(q, 'L/1', 'side:R');
     q = move(q, 'R/1', 'path:R/0');
@@ -171,9 +207,6 @@ function solveLevel10() {
     assertShape(q, levels[9].goal, 'level 10');
 }
 
-// -----------------------------------------------------------------------------
-// Property-test vocabulary and cases
-// -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 // Property-test vocabulary and cases
 // -----------------------------------------------------------------------------
@@ -361,10 +394,10 @@ Verify the whole public local-move contract for a property: the move is
 advertised, changes the equation, produces the expected expression, leaves the
 other side alone, and is semantically valid throughout the property's domain.
 */
-function assertMoveTransforms(before, source, target, expected, property, context, where) {
+function assertMoveTransforms(before, source, target, expected, property, context, where, drag_options) {
     const sentinel = expressions.constant(17);
     const equation = new Equation(before, sentinel);
-    const advertised = algebra.moves_for_source(equation, source);
+    const advertised = algebra.moves_for_source(equation, source, drag_options);
 
     assert(
         advertised.includes(target),
@@ -373,7 +406,7 @@ function assertMoveTransforms(before, source, target, expected, property, contex
         `advertised: ${advertised.join(', ')}`
     );
 
-    const updated = algebra.move(equation, source, target);
+    const updated = algebra.move(equation, source, target, drag_options);
     assert(
         updated !== equation,
         `${property}: advertised move returned the original equation\n${context}`
@@ -428,8 +461,8 @@ function assertEquationsEquivalent(before, after, property, context, where) {
     stats.semantic_cases++;
 }
 
-function assertEquationMoveTransforms(before, source, target, expected, property, context, where) {
-    const advertised = algebra.moves_for_source(before, source);
+function assertEquationMoveTransforms(before, source, target, expected, property, context, where, drag_options) {
+    const advertised = algebra.moves_for_source(before, source, drag_options);
     assert(
         advertised.includes(target),
         `${property}: expected balance move was not advertised\n`+
@@ -437,7 +470,7 @@ function assertEquationMoveTransforms(before, source, target, expected, property
         `advertised: ${advertised.join(', ')}`
     );
 
-    const updated = algebra.move(before, source, target);
+    const updated = algebra.move(before, source, target, drag_options);
     assert(
         updated !== before,
         `${property}: advertised balance move returned the original equation\n${context}`
@@ -460,6 +493,165 @@ function forEachTriple(callback) {
     for (const b of field_expression_cases)
     for (const c of field_expression_cases)
         callback(a, b, c);
+}
+
+// -----------------------------------------------------------------------------
+// Enabled drag operations
+// Only enabled operations are draggable. A lone root is draggable only when
+// exactly one operation is enabled, which supplies its otherwise-ambiguous
+// additive or multiplicative meaning.
+// -----------------------------------------------------------------------------
+
+function enabledDragOperations() {
+    const rhs = expressions.constant(2);
+
+    for (const a of [x, expressions.constant(2)]) {
+        const equation = new Equation(a, rhs);
+        const context = `lone expression a = ${describeCase(a)}`;
+
+        assert(
+            algebra.moves_for_source(equation, 'L', default_drag_options).length === 0,
+            `enabled drag operations: lone expression should be ambiguous when add and mul are enabled\n${context}`
+        );
+        assert(
+            !algebra.draggable_paths(equation, default_drag_options).includes('L'),
+            `enabled drag operations: ambiguous lone expression should not be draggable\n${context}`
+        );
+
+        assertEquationMoveTransforms(
+            equation,
+            'L',
+            'side:R',
+            new Equation(
+                zero,
+                expressions.add([rhs, scale_expressions.negate(a)])
+            ),
+            'enabled drag operations',
+            `${context}\nadd only`,
+            variables => isDefined(a, variables),
+            add_only_drag_options
+        );
+
+        assertEquationMoveTransforms(
+            equation,
+            'L',
+            'side:R',
+            new Equation(
+                one,
+                expressions.mul([rhs, expressions.reciprocal(a)])
+            ),
+            'enabled drag operations',
+            `${context}\nmultiply only`,
+            variables => isDefinedNonzero(a, variables),
+            multiply_only_drag_options
+        );
+    }
+
+    const sum = new Equation(expressions.add([x, expressions.constant(3)]), rhs);
+    assert(
+        algebra.move(sum, 'L/0', 'side:R', multiply_only_drag_options) === sum,
+        'enabled drag operations: additive drag should be a no-op when add is disabled'
+    );
+    assert(
+        !algebra.moves_for_source(sum, 'L/0', multiply_only_drag_options).includes('side:R'),
+        'enabled drag operations: disabled additive drag should not be advertised'
+    );
+
+    const product = new Equation(expressions.mul([expressions.constant(3), x]), rhs);
+    assert(
+        algebra.move(product, 'L/1', 'side:R', add_only_drag_options) === product,
+        'enabled drag operations: multiplicative drag should be a no-op when mul is disabled'
+    );
+    assert(
+        !algebra.moves_for_source(product, 'L/1', add_only_drag_options).includes('side:R'),
+        'enabled drag operations: disabled multiplicative drag should not be advertised'
+    );
+
+    const zero_equation = new Equation(zero, rhs);
+    assert(
+        algebra.move(zero_equation, 'L', 'side:R', multiply_only_drag_options) === zero_equation,
+        'enabled drag operations: zero must not be draggable multiplicatively'
+    );
+
+    // Verify the same options make it through AppUpdater -> AppDragOperations
+    // -> EquationDrags rather than only working through direct algebra calls.
+    const released = equation_drags.release();
+    const make_app = drag_options => new AppState(
+        levels,
+        0,
+        new Equation(x, rhs),
+        released,
+        released.initialize(),
+        [],
+        [],
+        'day',
+        drag_options
+    );
+
+    const ambiguous_app = make_app(default_drag_options);
+    assert(
+        app_updater.drag_start(ambiguous_app, 'L', 0, 0) === ambiguous_app,
+        'enabled drag operations: AppUpdater should not start an ambiguous root drag'
+    );
+
+    const additive_app = make_app(add_only_drag_options);
+    const additive_drag = app_updater.drag_start(additive_app, 'L', 0, 0);
+    assert(additive_drag !== additive_app,
+        'enabled drag operations: AppUpdater should start an Add-only root drag');
+    const additive_drop = app_updater.drag_drop(additive_drag, 'side:R');
+    assertSameExpression(additive_drop.equation.left, zero,
+        'enabled drag operations', 'AppUpdater Add-only root drag');
+
+    const multiplicative_app = make_app(multiply_only_drag_options);
+    const multiplicative_drag = app_updater.drag_start(multiplicative_app, 'L', 0, 0);
+    assert(multiplicative_drag !== multiplicative_app,
+        'enabled drag operations: AppUpdater should start a Multiply-only root drag');
+    const multiplicative_drop = app_updater.drag_drop(multiplicative_drag, 'side:R');
+    assertSameExpression(multiplicative_drop.equation.left, one,
+        'enabled drag operations', 'AppUpdater Multiply-only root drag');
+}
+
+// -----------------------------------------------------------------------------
+// Operation toggle invariant
+// At least one of add/mul is always enabled, and unrelated drag options survive.
+// -----------------------------------------------------------------------------
+
+function operationToggleInvariant() {
+    const released = equation_drags.release();
+    const make_app = enabled => new AppState(
+        levels,
+        0,
+        levels[0].equation,
+        released,
+        released.initialize(),
+        [],
+        [],
+        'day',
+        { enabled:enabled, auto_simplify:false }
+    );
+
+    let app = make_app({ add:true, mul:true });
+    app = app_updater.toggle_add(app);
+    assert(!app.drag_options.enabled.add && app.drag_options.enabled.mul,
+        'operation toggle invariant: disabling Add from both should leave Multiply enabled');
+    assert(app.drag_options.auto_simplify === false,
+        'operation toggle invariant: toggling operations should preserve auto_simplify');
+
+    app = app_updater.toggle_multiply(app);
+    assert(app.drag_options.enabled.add && !app.drag_options.enabled.mul,
+        'operation toggle invariant: disabling the last enabled operation should switch to the other operation');
+
+    app = app_updater.toggle_multiply(app);
+    assert(app.drag_options.enabled.add && app.drag_options.enabled.mul,
+        'operation toggle invariant: enabling an inactive operation should enable both');
+
+    app = app_updater.toggle_multiply(app);
+    assert(app.drag_options.enabled.add && !app.drag_options.enabled.mul,
+        'operation toggle invariant: disabling Multiply from both should leave Add enabled');
+
+    app = app_updater.toggle_add(app);
+    assert(!app.drag_options.enabled.add && app.drag_options.enabled.mul,
+        'operation toggle invariant: disabling the last Add should switch to Multiply');
 }
 
 // -----------------------------------------------------------------------------
@@ -1034,6 +1226,8 @@ function distributivity() {
 ].forEach(test => test());
 
 [
+    enabledDragOperations,
+    operationToggleInvariant,
     additiveClosure,
     additiveCommutativity,
     additiveAssociativity,

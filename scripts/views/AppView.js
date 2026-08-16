@@ -22,6 +22,8 @@ function AppView(dependencies, app_updater) {
         const previous_button = dom_io.getElementById('previous-level');
         const next_button = dom_io.getElementById('next-level');
         const theme_button = dom_io.getElementById('theme');
+        const add_button = dom_io.getElementById('drag-add');
+        const multiply_button = dom_io.getElementById('drag-multiply');
         const level_strip = dom_io.getElementById('level-strip');
         const solved_mark = dom_io.getElementById('solved-mark');
 
@@ -41,6 +43,8 @@ function AppView(dependencies, app_updater) {
         next_button.disabled = app.level_index === app.levels.length-1;
         theme_button.textContent = app.theme === 'day'? '☾' : '☀';
         theme_button.setAttribute('aria-label', app.theme === 'day'? 'Use night mode' : 'Use day mode');
+        add_button.setAttribute('aria-pressed', String(!!app.drag_options.enabled.add));
+        multiply_button.setAttribute('aria-pressed', String(!!app.drag_options.enabled.mul));
         solved_mark.classList.toggle('visible', solved);
 
         level_strip.replaceChildren(
@@ -55,6 +59,7 @@ function AppView(dependencies, app_updater) {
         equation_view.draw(
             app.equation,
             app.drag_type.id === DragState.symbol? app.drag_state : null,
+            app.drag_options,
             equation_element,
         );
     }
@@ -69,6 +74,8 @@ function AppView(dependencies, app_updater) {
         const previous_button = dom_io.getElementById('previous-level');
         const next_button = dom_io.getElementById('next-level');
         const theme_button = dom_io.getElementById('theme');
+        const add_button = dom_io.getElementById('drag-add');
+        const multiply_button = dom_io.getElementById('drag-multiply');
         const level_strip = dom_io.getElementById('level-strip');
 
         function dispatch(updated) {
@@ -117,6 +124,8 @@ function AppView(dependencies, app_updater) {
         previous_button.addEventListener('click', () => dispatch(app_updater.last_level(app), dom_io));
         next_button.addEventListener('click', () => dispatch(app_updater.next_level(app), dom_io));
         theme_button.addEventListener('click', () => dispatch(app_updater.toggle_theme(app), dom_io));
+        add_button.addEventListener('click', () => dispatch(app_updater.toggle_add(app), dom_io));
+        multiply_button.addEventListener('click', () => dispatch(app_updater.toggle_multiply(app), dom_io));
 
         level_strip.addEventListener('click', event => {
             const button = event.target.closest('[data-level-index]');
