@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN WRITTEN
 
 /*
 In math, a "monoid" is a structure featuring an operation that has an identity and is everywhere associative.
@@ -23,9 +22,10 @@ const MonoidStructure = (label, identity, is_commutative, evaluator) => {
                 flat.push(term);
             }
         });
-        if (flat.length === 0) return identity;
-        if (flat.length === 1) return flat[0];
-        else return new Expression(label, Object.freeze(flat));
+        const nonidentity = flat.filter(term => !is_identity(term));
+        if (nonidentity.length === 0) return identity;
+        if (nonidentity.length === 1) return nonidentity[0];
+        else return new Expression(label, Object.freeze(nonidentity));
     }
 
     function is_identity(expression) {

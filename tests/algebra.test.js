@@ -573,6 +573,30 @@ function enabledDragOperations() {
         'enabled drag operations: zero must not be draggable multiplicatively'
     );
 
+    // Inverting a lone root creates the identity on its source side. If the
+    // target is already that identity, appending the inverse must respect the
+    // identity law rather than retaining a redundant 0 term or 1 factor.
+    assertEquationMoveTransforms(
+        new Equation(x, zero),
+        'L',
+        'side:R',
+        new Equation(zero, scale_expressions.negate(x)),
+        'enabled drag operations',
+        'lone additive inversion should respect additive identity',
+        variables => isDefined(x, variables),
+        add_only_drag_options
+    );
+    assertEquationMoveTransforms(
+        new Equation(x, one),
+        'L',
+        'side:R',
+        new Equation(one, expressions.reciprocal(x)),
+        'enabled drag operations',
+        'lone multiplicative inversion should respect multiplicative identity',
+        variables => isDefinedNonzero(x, variables),
+        multiply_only_drag_options
+    );
+
     // Verify the same options make it through AppUpdater -> AppDragOperations
     // -> EquationDrags rather than only working through direct algebra calls.
     const released = equation_drags.release();
@@ -685,6 +709,10 @@ function additiveCommutativity() {
         assertExpressionsEquivalent(left, right, 'additive commutativity', context, where);
 
         if (
+            left.type === 'add' &&
+            left.contents.length === 2 &&
+            left.contents[0] === a &&
+            left.contents[1] === b &&
             a !== b &&
             a.type !== 'add' &&
             b.type !== 'add' &&
@@ -743,19 +771,33 @@ function additiveIdentity() {
         if (!hasAdmissibleAssignment(where)) continue;
 
         const context = `a = ${describeCase(a)}`;
+        const right = expressions.add([a, zero]);
+        const left = expressions.add([zero, a]);
         assertExpressionsEquivalent(
-            expressions.add([a, zero]),
+            right,
             a,
             'additive identity',
             `${context}\nright identity`,
             where
         );
         assertExpressionsEquivalent(
-            expressions.add([zero, a]),
+            left,
             a,
             'additive identity',
             `${context}\nleft identity`,
             where
+        );
+        assertSameExpression(
+            right,
+            a,
+            'additive identity',
+            `${context}\nright identity should normalize structurally`
+        );
+        assertSameExpression(
+            left,
+            a,
+            'additive identity',
+            `${context}\nleft identity should normalize structurally`
         );
     }
 }
@@ -776,7 +818,13 @@ function additiveInverse() {
 
         assertExpressionsEquivalent(left, zero, 'additive inverse', context, where);
 
-        if (a.type !== 'add') {
+        if (
+            left.type === 'add' &&
+            left.contents.length === 2 &&
+            left.contents[0] === a &&
+            left.contents[1] === negative_a &&
+            a.type !== 'add'
+        ) {
             assertMoveTransforms(
                 left,
                 'L/0',
@@ -822,6 +870,10 @@ function multiplicativeCommutativity() {
         assertExpressionsEquivalent(left, right, 'multiplicative commutativity', context, where);
 
         if (
+            left.type === 'mul' &&
+            left.contents.length === 2 &&
+            left.contents[0] === a &&
+            left.contents[1] === b &&
             a !== b &&
             a.type !== 'mul' &&
             b.type !== 'mul' &&
@@ -882,19 +934,33 @@ function multiplicativeIdentity() {
         if (!hasAdmissibleAssignment(where)) continue;
 
         const context = `a = ${describeCase(a)}`;
+        const right = expressions.mul([a, one]);
+        const left = expressions.mul([one, a]);
         assertExpressionsEquivalent(
-            expressions.mul([a, one]),
+            right,
             a,
             'multiplicative identity',
             `${context}\nright identity`,
             where
         );
         assertExpressionsEquivalent(
-            expressions.mul([one, a]),
+            left,
             a,
             'multiplicative identity',
             `${context}\nleft identity`,
             where
+        );
+        assertSameExpression(
+            right,
+            a,
+            'multiplicative identity',
+            `${context}\nright identity should normalize structurally`
+        );
+        assertSameExpression(
+            left,
+            a,
+            'multiplicative identity',
+            `${context}\nleft identity should normalize structurally`
         );
     }
 }
@@ -1194,27 +1260,43 @@ function distributivity() {
         );
         const context = `a = ${describeCase(a)}\nb = ${describeCase(b)}\nc = ${describeCase(c)}`;
 
-        assertMoveTransforms(
-            expressions.mul([a, sum]),
-            'L/0',
-            'path:L/1',
-            expanded,
-            'left distributivity',
-            context,
-            where,
-            default_drag_options
-        );
+        const left = expressions.mul([a, sum]);
+        if (
+            left.type === 'mul' &&
+            left.contents.length === 2 &&
+            left.contents[0] === a &&
+            left.contents[1] === sum
+        ) {
+            assertMoveTransforms(
+                left,
+                'L/0',
+                'path:L/1',
+                expanded,
+                'left distributivity',
+                context,
+                where,
+                default_drag_options
+            );
+        }
 
-        assertMoveTransforms(
-            expressions.mul([sum, a]),
-            'L/1',
-            'path:L/0',
-            expanded,
-            'right distributivity',
-            context,
-            where,
-            default_drag_options
-        );
+        const right = expressions.mul([sum, a]);
+        if (
+            right.type === 'mul' &&
+            right.contents.length === 2 &&
+            right.contents[0] === sum &&
+            right.contents[1] === a
+        ) {
+            assertMoveTransforms(
+                right,
+                'L/1',
+                'path:L/0',
+                expanded,
+                'right distributivity',
+                context,
+                where,
+                default_drag_options
+            );
+        }
     }
 }
 
