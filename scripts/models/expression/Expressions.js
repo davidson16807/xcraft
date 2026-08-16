@@ -30,7 +30,13 @@ const Expressions = (structures) => {
     function combine(type, left, right) {
         const structure = structures[type];
         if (structure == null) return null;
-        return structure.combine(left, right);
+
+        const combined = structure.combine(left, right);
+        if (combined != null) return combined;
+
+        return constant_result(
+            new Expression(type, Object.freeze([left, right]))
+        );
     }
 
     function remove(expression, index) {
@@ -65,9 +71,32 @@ const Expressions = (structures) => {
 
     const evaluate = (expression, variables) => evaluator(variables)(expression);
 
-    function simplify(expression) {
+    const whole_threshold = 1e-10;
+
+    function is_whole(value) {
+        return Math.abs(value - Math.round(value)) <= whole_threshold;
+    }
+
+    function contains_reciprocal(expression) {
+        if (is_reciprocal(expression)) return true;
+        return Array.isArray(expression.contents) &&
+            expression.contents.some(contains_reciprocal);
+    }
+
+    /*
+    Constant arithmetic may collapse to a Number unless doing so would turn an
+    exact reciprocal expression into a non-integral decimal approximation.
+    */
+    function constant_result(expression) {
         const value = evaluate(expression, {});
-        if (Number.isFinite(value)) return constant(value);
+        if (!Number.isFinite(value)) return null;
+        if (contains_reciprocal(expression) && !is_whole(value)) return null;
+        return constant(is_whole(value)? Math.round(value) : value);
+    }
+
+    function simplify(expression) {
+        const simplified_constant = constant_result(expression);
+        if (simplified_constant != null) return simplified_constant;
         if (!Array.isArray(expression.contents)) return expression;
 
         let contents = expression.contents.map(simplify);
@@ -84,9 +113,8 @@ const Expressions = (structures) => {
                 const constant_expression = expression.with({
                     contents: Object.freeze(constants.map(item => item.item)),
                 });
-                const combined_value = evaluate(constant_expression, {});
-                if (Number.isFinite(combined_value)) {
-                    const combined = constant(combined_value);
+                const combined = constant_result(constant_expression);
+                if (combined != null) {
                     const first = constants[0].index;
                     const constant_indexes = new Set(constants.map(item => item.index));
                     contents = contents.flatMap((item, index) =>
