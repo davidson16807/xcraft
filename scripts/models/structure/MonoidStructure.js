@@ -54,15 +54,6 @@ const MonoidStructure = (label, identity, is_commutative, evaluator) => {
         return expression.type !== label? expression : create(contents);
     }
 
-    function collapse(expression, index1, index2, replacement) {
-        const low = Math.min(index1, index2);
-        const high = Math.max(index1, index2);
-        const contents = expression.contents.slice();
-        contents[low] = replacement;
-        contents.splice(high, 1);
-        return create(contents);
-    }
-
     return Object.freeze({
         label,
         create,
@@ -70,7 +61,6 @@ const MonoidStructure = (label, identity, is_commutative, evaluator) => {
         combine,
         swap,
         remove,
-        collapse,
         evaluator,
         is_identity,
     });

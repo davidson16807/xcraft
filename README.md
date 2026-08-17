@@ -4,7 +4,7 @@
 
 A small browser game for building algebraic intuition. Symbols can be dragged and dropped to apply them to each side of an equation.
 
-This application is a low priority effort. Its creation was taken as an opportunity to experiment with vibe coding. The goal of the experiment was to see whether an application could be vibe coded in a single prompt in such a way that a human maintainer could take the code and adapt it to a well-architected, well-maintained, well-understood code base. 
+This application is a low priority effort. Its creation was taken as an opportunity to experiment with vibe coding. The goal of the experiment was to see whether an application could be vibe coded in such a way that a human maintainer could take the code and adapt it to a well-architected, well-maintained, well-understood code base. 
 
 The prompt was as follows:
 

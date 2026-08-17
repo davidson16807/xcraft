@@ -44,7 +44,12 @@ const Expressions = (structures) => {
     function collapse(expression, index1, index2, replacement) {
         const structure = structures[expression.type];
         if (structure == null) return expression;
-        return structure.collapse(expression, index1, index2, replacement);
+        const lo = Math.min(index1, index2);
+        const hi = Math.max(index1, index2);
+        const contents = expression.contents.slice();
+        contents[lo] = replacement;
+        contents.splice(hi, 1);
+        return structure.create(contents);
     }
 
     const evaluator = variables => expression => {
@@ -147,6 +152,7 @@ const Expressions = (structures) => {
         div,
         append,
         combine,
+        // swap,
         remove,
         collapse,
         simplify,

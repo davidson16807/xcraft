@@ -14,14 +14,6 @@ function Equations(dependencies) {
     const paths = dependencies.expression_paths;
     const ring = dependencies.ring_expressions;
 
-    /* collapse two sibling operands into one replacement */
-    function collapse(equation, parent_path, index1, index2, replacement) {
-        let parent = paths.resolve(equation, parent_path);
-        if (parent == null) return equation;
-        return paths.replace(equation, parent_path, 
-                expressions.collapse(parent, index1, index2, replacement));
-    }
-
     function invert(equation, source_path, enabled_operations) {
         if (source_path == null) return null; // no source? no-op
 
@@ -123,13 +115,8 @@ function Equations(dependencies) {
         );
         if (combined == null) return equation;
 
-        return collapse(
-            equation,
-            parent_path,
-            source_index,
-            target_index,
-            combined
-        );
+        return paths.replace(equation, parent_path, 
+                expressions.collapse(parent, source_index, target_index, combined));
 
     }
 
@@ -146,25 +133,15 @@ function Equations(dependencies) {
         const parent = paths.resolve(equation, parent_path);
         if (parent == null) return equation;
 
-        /*
-        Preserve the factor's original left/right position.  This is
-        immaterial for today's commutative multiplication but keeps the
-        rewrite valid as a pattern for future noncommutative products.
-        The source always distributes across the target,
-        so their position determines whether the distribution is left or right.
-        */
+        // The source always distributes across the target,
+        // so source and target position determines whether the distribution is left or right.
         const distributed = source_index < target_index?
             ring.left_distribute(target.type, parent, source, target)
           : ring.right_distribute(target.type, parent, target, source);
         if (distributed == null) return equation;
 
-        return collapse(
-            equation,
-            parent_path,
-            source_index,
-            target_index,
-            distributed
-        );
+        return paths.replace(equation, parent_path, 
+                expressions.collapse(parent, source_index, target_index, distributed));
     }
 
     function simplify(equation) {

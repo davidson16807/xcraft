@@ -30,10 +30,6 @@ const PowerStructure = (label) => {
         return expression;
     }
 
-    function collapse(expression, index1, index2, replacement) {
-        return expression;
-    }
-
     return Object.freeze({
         label,
         create,
@@ -41,7 +37,6 @@ const PowerStructure = (label) => {
         combine,
         swap,
         remove,
-        collapse,
         evaluator, 
     });
 }
