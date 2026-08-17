@@ -6,31 +6,37 @@ Operates on expressions through the group associated with a ring operation.
 const RingExpressions = group_expressions_for_tag => {
 
     function combine(type, left, right) {
-        const group_expressions = group_expressions_for_tag[type];
-        return group_expressions == null? null :
-            group_expressions.combine(left, right);
+        const group_expression_for_type = group_expressions_for_tag[type];
+        return group_expression_for_type == null? null :
+            group_expression_for_type.combine(left, right);
     }
 
     function inverse(type, expression) {
-        const group_expressions = group_expressions_for_tag[type];
-        return group_expressions == null? null :
-            group_expressions.inverse(expression);
+        const group_expression_for_type = group_expressions_for_tag[type];
+        return group_expression_for_type == null? null :
+            group_expression_for_type.inverse(expression);
     }
 
     function is_inverse(type, expression) {
-        const group_expressions = group_expressions_for_tag[type];
-        return group_expressions != null &&
-            group_expressions.is_inverse(expression);
+        const group_expression_for_type = group_expressions_for_tag[type];
+        return group_expression_for_type != null &&
+            group_expression_for_type.is_inverse(expression);
     }
 
     function absolute(type, expression) {
         return is_inverse(type, expression)? inverse(type, expression) : expression;
     }
 
-    function distribute(type, left, right) {
-        const group_expressions = group_expressions_for_tag[type];
-        return group_expressions == null || group_expressions.distribute == null? null :
-            group_expressions.distribute(left, right);
+    function left_distribute(type, left, right) {
+        const group_expression_for_type = group_expressions_for_tag[type];
+        return group_expression_for_type == null || group_expression_for_type.left_distribute == null? null :
+            group_expression_for_type.left_distribute(left, right);
+    }
+
+    function right_distribute(type, left, right) {
+        const group_expression_for_type = group_expressions_for_tag[type];
+        return group_expression_for_type == null || group_expression_for_type.right_distribute == null? null :
+            group_expression_for_type.right_distribute(left, right);
     }
 
     return Object.freeze({
@@ -38,6 +44,7 @@ const RingExpressions = group_expressions_for_tag => {
         inverse,
         is_inverse,
         absolute,
-        distribute,
+        left_distribute,
+        right_distribute,
     });
 };

@@ -922,22 +922,33 @@ function ringExpressionInterface() {
     );
 
     const two = expressions.constant(2);
-    const x_plus_one = expressions.add([x, one]);
+    const three = expressions.constant(3);
+    const x_plus_three = expressions.add([x, three]);
     assertSameExpression(
-        ring_expressions.distribute('add', two, x_plus_one),
-        expressions.mul([two, x_plus_one]),
+        ring_expressions.left_distribute('add', two, x_plus_three),
+        expressions.add([
+            expressions.mul([two, x]),
+            expressions.constant(6),
+        ]),
         'RingExpressions',
-        'distribute should delegate through the additive group expression'
+        'left distribution should delegate through the additive group expression'
     );
     assertSameExpression(
-        ring_expressions.distribute('add', x, two),
-        expressions.mul([two, x]),
+        ring_expressions.right_distribute('add', x_plus_three, two),
+        expressions.add([
+            expressions.mul([two, x]),
+            expressions.constant(6),
+        ]),
         'RingExpressions',
-        'additive distribution should absorb a constant into a scale'
+        'right distribution should delegate through the additive group expression'
     );
     assert(
-        ring_expressions.distribute('mul', x, two) == null,
-        'RingExpressions: unsupported distribution should return null'
+        ring_expressions.left_distribute('mul', two, x_plus_three) == null,
+        'RingExpressions: unsupported left distribution should return null'
+    );
+    assert(
+        ring_expressions.right_distribute('mul', x_plus_three, two) == null,
+        'RingExpressions: unsupported right distribution should return null'
     );
 }
 
@@ -1563,10 +1574,10 @@ function distributivity() {
 
         const sum = expressions.add([b, c]);
         const left_expanded = expressions.add(
-            sum.contents.map(term => ring_expressions.distribute('add', a, term))
+            ring_expressions.left_distribute('add', a, sum).contents
         );
         const right_expanded = expressions.add(
-            sum.contents.map(term => ring_expressions.distribute('add', term, a))
+            ring_expressions.right_distribute('add', sum, a).contents
         );
         const context = `a = ${describeCase(a)}\nb = ${describeCase(b)}\nc = ${describeCase(c)}`;
 

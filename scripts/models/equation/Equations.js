@@ -145,34 +145,19 @@ function Equations(dependencies) {
         const target = paths.resolve(equation, target_path);
         const source_index = Number(paths.segment(source_path));
         const target_index = Number(paths.segment(target_path));
+        if (target.type === 'constant') return equation;
 
-        // Multiplication distributes over addition for any factor, including
-        // reciprocal factors.  Division therefore needs no special case:
-        // (a+b)/c is represented as (a+b)c^-1.
-        let factor, sum, factor_index, sum_index;
-        if (target.type === 'add') {
-            factor = source;
-            sum = target;
-            factor_index = source_index;
-            sum_index = target_index;
-        } else if (source.type === 'add') {
-            factor = target;
-            sum = source;
-            factor_index = target_index;
-            sum_index = source_index;
-        } else {
-            return equation;
-        }
-
-        // Preserve the factor's original left/right position.  This is
-        // immaterial for today's commutative multiplication but keeps the
-        // rewrite valid as a pattern for future noncommutative products.
-        const distributed = expressions.add(
-            sum.contents.map(term => factor_index < sum_index?
-                ring.distribute('add', factor, term) :
-                ring.distribute('add', term, factor)
-            )
-        );
+        /*
+        Preserve the factor's original left/right position.  This is
+        immaterial for today's commutative multiplication but keeps the
+        rewrite valid as a pattern for future noncommutative products.
+        The source always distributes across the target,
+        so their position determines whether the distribution is left or right.
+        */
+        const distributed = source_index < target_index?
+            ring.left_distribute(target.type, source, target)
+          : ring.right_distribute(target.type, target, source);
+        if (distributed == null) return equation;
 
         return collapse(
             equation,
