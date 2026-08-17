@@ -43,6 +43,7 @@ const grouplikes = Grouplike({
         new Expression('constant', 0),
         true,
         true,
+        true,
         evaluate => expression => expression.contents.reduce(
             (accumulator, item) => accumulator + evaluate(item),
             0
@@ -53,26 +54,37 @@ const grouplikes = Grouplike({
         new Expression('constant', 1),
         true,
         true,
+        true,
         evaluate => expression => expression.contents.reduce(
             (accumulator, item) => accumulator * evaluate(item),
             1
         )
     ),
-    'pow': PowerlikeExpressions('pow'),
+    'pow': Magma(
+        'pow',
+        undefined,
+        false,
+        false,
+        false,
+        evaluate => expression => Math.pow(
+            evaluate(expression.contents[0]),
+            evaluate(expression.contents[1])
+        )
+    ),
 });
 const scales = Scales(grouplikes, expression_shape);
-const scale_grouplikes = ScaleExpressions(grouplikes, scales);
+const scale_expressions = ScaleExpressions(grouplikes, scales);
 const powers = Powers(grouplikes, expression_shape);
-const power_grouplikes = PowerExpressions(grouplikes, powers);
-const ring_grouplikes = Ringlike({
-    add: scale_grouplikes,
-    mul: power_grouplikes,
+const power_expressions = PowerExpressions(grouplikes, powers);
+const ringlikes = Ringlike({
+    add: scale_expressions,
+    mul: power_expressions,
 });
 const equation_shape = EquationShape(expression_shape);
 const paths = ExpressionPaths(grouplikes);
 const equations = Equations({
     grouplikes: grouplikes,
-    ring_grouplikes: ring_grouplikes,
+    ringlikes: ringlikes,
     expression_paths: paths,
 });
 const algebra = EquationDragOperations({
@@ -237,7 +249,7 @@ const ring_expression_cases = Object.freeze([
     grouplikes.constant(1),
     grouplikes.constant(2),
     x,
-    ring_grouplikes.inverse('add', x),
+    ringlikes.inverse('add', x),
     grouplikes.add([x, grouplikes.constant(2)]),
     grouplikes.add([x, grouplikes.constant(-3)]),
     grouplikes.mul([grouplikes.constant(3), x]),
@@ -255,16 +267,16 @@ const ring_expression_cases = Object.freeze([
 
 const field_expression_cases = Object.freeze([
     ...ring_expression_cases,
-    ring_grouplikes.inverse('mul', x),
-    ring_grouplikes.inverse('mul', 
+    ringlikes.inverse('mul', x),
+    ringlikes.inverse('mul', 
         grouplikes.add([x, grouplikes.constant(1)])
     ),
-    ring_grouplikes.inverse('mul', 
+    ringlikes.inverse('mul', 
         grouplikes.add([x, grouplikes.constant(-2)])
     ),
     grouplikes.mul([
         grouplikes.constant(3),
-        ring_grouplikes.inverse('mul', x),
+        ringlikes.inverse('mul', x),
     ]),
     grouplikes.pow(x, -2),
     grouplikes.div(
@@ -534,7 +546,7 @@ function enabledDragOperations() {
             'side:R',
             new Equation(
                 zero,
-                grouplikes.add([rhs, ring_grouplikes.inverse('add', a)])
+                grouplikes.add([rhs, ringlikes.inverse('add', a)])
             ),
             'enabled drag operations',
             `${context}\nadd only`,
@@ -548,7 +560,7 @@ function enabledDragOperations() {
             'side:R',
             new Equation(
                 one,
-                grouplikes.mul([rhs, ring_grouplikes.inverse('mul', a)])
+                grouplikes.mul([rhs, ringlikes.inverse('mul', a)])
             ),
             'enabled drag operations',
             `${context}\nmultiply only`,
@@ -794,7 +806,7 @@ function fractionPreservation() {
     const two = grouplikes.constant(2);
     const three = grouplikes.constant(3);
     const six = grouplikes.constant(6);
-    const third = ring_grouplikes.inverse('mul', three);
+    const third = ringlikes.inverse('mul', three);
     const one_third = grouplikes.mul([one, third]);
     const six_thirds = grouplikes.mul([six, third]);
 
@@ -822,7 +834,7 @@ function fractionPreservation() {
         'combine should collapse 6/3 to 2'
     );
     assert(
-        power_grouplikes.combine(six, third) == null,
+        power_expressions.combine(six, third) == null,
         'fraction preservation: PowerExpressions.combine should remain limited to power laws'
     );
 
@@ -855,43 +867,43 @@ function fractionPreservation() {
 // -----------------------------------------------------------------------------
 
 function ringExpressionInterface() {
-    const negative_x = ring_grouplikes.inverse('add', x);
+    const negative_x = ringlikes.inverse('add', x);
     assert(
-        ring_grouplikes.is_inverse('add', negative_x),
+        ringlikes.is_inverse('add', negative_x),
         'Ringlike: additive inverse should be recognized'
     );
     assert(
-        !ring_grouplikes.is_inverse('add', x),
+        !ringlikes.is_inverse('add', x),
         'Ringlike: ordinary additive expression should not be inverse'
     );
     assertSameExpression(
-        ring_grouplikes.inverse('add', negative_x),
+        ringlikes.inverse('add', negative_x),
         x,
         'Ringlike',
         'additive inverse should be involutive'
     );
 
-    const reciprocal_x = ring_grouplikes.inverse('mul', x);
+    const reciprocal_x = ringlikes.inverse('mul', x);
     assert(
-        ring_grouplikes.is_inverse('mul', reciprocal_x),
+        ringlikes.is_inverse('mul', reciprocal_x),
         'Ringlike: multiplicative inverse should be recognized'
     );
     assert(
-        !ring_grouplikes.is_inverse('mul', x),
+        !ringlikes.is_inverse('mul', x),
         'Ringlike: ordinary multiplicative expression should not be inverse'
     );
     assertSameExpression(
-        ring_grouplikes.inverse('mul', reciprocal_x),
+        ringlikes.inverse('mul', reciprocal_x),
         x,
         'Ringlike',
         'multiplicative inverse should be involutive'
     );
     assert(
-        ring_grouplikes.inverse('mul', zero) == null,
+        ringlikes.inverse('mul', zero) == null,
         'Ringlike: zero should not have a multiplicative inverse'
     );
     assertSameExpression(
-        ring_grouplikes.inverse('mul', one),
+        ringlikes.inverse('mul', one),
         one,
         'Ringlike',
         'multiplicative identity should be its own inverse'
@@ -899,25 +911,25 @@ function ringExpressionInterface() {
 
 
     assertSameExpression(
-        ring_grouplikes.absolute('add', negative_x),
+        ringlikes.absolute('add', negative_x),
         x,
         'Ringlike',
         'absolute should invert an additive inverse'
     );
     assertSameExpression(
-        ring_grouplikes.absolute('add', x),
+        ringlikes.absolute('add', x),
         x,
         'Ringlike',
         'absolute should preserve a non-inverse expression'
     );
     assertSameExpression(
-        ring_grouplikes.absolute('mul', reciprocal_x),
+        ringlikes.absolute('mul', reciprocal_x),
         x,
         'Ringlike',
         'absolute should invert a multiplicative inverse'
     );
     assertSameExpression(
-        ring_grouplikes.absolute('mul', x),
+        ringlikes.absolute('mul', x),
         x,
         'Ringlike',
         'absolute should preserve an ordinary multiplicative expression'
@@ -927,7 +939,7 @@ function ringExpressionInterface() {
     const three = grouplikes.constant(3);
     const x_plus_three = grouplikes.add([x, three]);
     assertSameExpression(
-        ring_grouplikes.left_distribute(
+        ringlikes.left_distribute(
             'add',
             grouplikes.mul([two, x_plus_three]),
             two,
@@ -941,7 +953,7 @@ function ringExpressionInterface() {
         'left distribution should delegate through the additive group expression'
     );
     assertSameExpression(
-        ring_grouplikes.right_distribute(
+        ringlikes.right_distribute(
             'add',
             grouplikes.mul([x_plus_three, two]),
             x_plus_three,
@@ -955,18 +967,18 @@ function ringExpressionInterface() {
         'right distribution should delegate through the additive group expression'
     );
     assert(
-        ring_grouplikes.left_distribute('mul', grouplikes.mul([two, x_plus_three]), two, x_plus_three) == null,
+        ringlikes.left_distribute('mul', grouplikes.mul([two, x_plus_three]), two, x_plus_three) == null,
         'Ringlike: unsupported left distribution should return null'
     );
     assert(
-        ring_grouplikes.right_distribute('mul', grouplikes.mul([x_plus_three, two]), x_plus_three, two) == null,
+        ringlikes.right_distribute('mul', grouplikes.mul([x_plus_three, two]), x_plus_three, two) == null,
         'Ringlike: unsupported right distribution should return null'
     );
 
     const product = grouplikes.mul([x, three]);
     const square = grouplikes.pow(product, two);
     assertSameExpression(
-        ring_grouplikes.right_distribute('mul', square, product, two),
+        ringlikes.right_distribute('mul', square, product, two),
         grouplikes.mul([
             grouplikes.pow(x, two),
             grouplikes.pow(three, two),
@@ -1025,7 +1037,7 @@ function additiveCommutativity() {
             a.type !== 'add' &&
             b.type !== 'add' &&
             grouplikes.combine('add', a, b) == null &&
-            ring_grouplikes.combine('add', a, b) == null
+            ringlikes.combine('add', a, b) == null
         ) {
             assertMoveTransforms(
                 left,
@@ -1148,7 +1160,7 @@ function additiveInverse() {
         const where = variables => isDefined(a, variables);
         if (!hasAdmissibleAssignment(where)) continue;
 
-        const negative_a = ring_grouplikes.inverse('add', a);
+        const negative_a = ringlikes.inverse('add', a);
         const left = grouplikes.add([a, negative_a]);
         const context = `a = ${describeCase(a)}`;
 
@@ -1204,7 +1216,7 @@ function multiplicativeCommutativity() {
             a.type !== 'mul' &&
             b.type !== 'mul' &&
             grouplikes.combine('mul', a, b) == null &&
-            ring_grouplikes.combine('mul', a, b) == null &&
+            ringlikes.combine('mul', a, b) == null &&
             a.type !== 'add' &&
             b.type !== 'add'
         ) {
@@ -1327,7 +1339,7 @@ function multiplicativeInverse() {
         const where = variables => isDefinedNonzero(a, variables);
         if (!hasAdmissibleAssignment(where)) continue;
 
-        const reciprocal_a = ring_grouplikes.inverse('mul', a);
+        const reciprocal_a = ringlikes.inverse('mul', a);
         const product = grouplikes.mul([a, reciprocal_a]);
         const context = `a = ${describeCase(a)}`;
 
@@ -1344,7 +1356,7 @@ function multiplicativeInverse() {
         // currently recognizes them as a combinable pair.  For example x*x^-1
         // is supported, while (x^2)*(x^2)^-1 would require power-of-a-power
         // normalization that the game does not yet implement.
-        const combined = power_grouplikes.combine(a, reciprocal_a);
+        const combined = power_expressions.combine(a, reciprocal_a);
         if (
             combined != null &&
             orderedExpressionKey(combined) === orderedExpressionKey(one) &&
@@ -1378,7 +1390,7 @@ function doubleReciprocal() {
         if (!hasAdmissibleAssignment(where)) continue;
 
         assertExpressionsEquivalent(
-            ring_grouplikes.inverse('mul', ring_grouplikes.inverse('mul', a)),
+            ringlikes.inverse('mul', ringlikes.inverse('mul', a)),
             a,
             'double reciprocal',
             `a = ${describeCase(a)}`,
@@ -1397,10 +1409,10 @@ function inverseOfProduct() {
         const where = variables => allDefinedNonzero([a, b], variables);
         if (!hasAdmissibleAssignment(where)) return;
 
-        const left = ring_grouplikes.inverse('mul', grouplikes.mul([a, b]));
+        const left = ringlikes.inverse('mul', grouplikes.mul([a, b]));
         const right = grouplikes.mul([
-            ring_grouplikes.inverse('mul', a),
-            ring_grouplikes.inverse('mul', b),
+            ringlikes.inverse('mul', a),
+            ringlikes.inverse('mul', b),
         ]);
 
         assertExpressionsEquivalent(
@@ -1427,7 +1439,7 @@ function multiplicativeCancellation() {
         const left = grouplikes.mul([
             a,
             b,
-            ring_grouplikes.inverse('mul', b),
+            ringlikes.inverse('mul', b),
         ]);
 
         assertExpressionsEquivalent(
@@ -1453,7 +1465,7 @@ function divisionDefinition() {
 
         assertExpressionsEquivalent(
             grouplikes.div(a, b),
-            grouplikes.mul([a, ring_grouplikes.inverse('mul', b)]),
+            grouplikes.mul([a, ringlikes.inverse('mul', b)]),
             'division definition',
             `a = ${describeCase(a)}\nb = ${describeCase(b)}`,
             where
@@ -1479,7 +1491,7 @@ function multiplicativeBalance() {
             isDefinedNonzero(a, variables) && isDefined(b, variables);
         if (!hasAdmissibleAssignment(where)) continue;
 
-        const inverse_a = ring_grouplikes.inverse('mul', a);
+        const inverse_a = ringlikes.inverse('mul', a);
         const before = new Equation(
             grouplikes.mul([a, x]),
             b
@@ -1509,7 +1521,7 @@ function multiplicativeBalance() {
             );
         }
 
-        const reciprocal_factor = ring_grouplikes.inverse('mul', a);
+        const reciprocal_factor = ringlikes.inverse('mul', a);
         const reverse_before = new Equation(
             grouplikes.mul([x, reciprocal_factor]),
             b
@@ -1519,7 +1531,7 @@ function multiplicativeBalance() {
             grouplikes.append(
                 'mul',
                 b,
-                ring_grouplikes.inverse('mul', reciprocal_factor)
+                ringlikes.inverse('mul', reciprocal_factor)
             )
         );
 
@@ -1593,15 +1605,15 @@ function distributivity() {
         grouplikes.constant(2),
         x,
         grouplikes.pow(x, 2),
-        ring_grouplikes.inverse('mul', x),
-        ring_grouplikes.inverse('mul', grouplikes.add([x, grouplikes.constant(1)])),
+        ringlikes.inverse('mul', x),
+        ringlikes.inverse('mul', grouplikes.add([x, grouplikes.constant(1)])),
     ];
     const addend_cases = [
         x,
-        ring_grouplikes.inverse('add', x),
+        ringlikes.inverse('add', x),
         grouplikes.mul([grouplikes.constant(3), x]),
         grouplikes.pow(x, 2),
-        ring_grouplikes.inverse('mul', grouplikes.add([x, grouplikes.constant(1)])),
+        ringlikes.inverse('mul', grouplikes.add([x, grouplikes.constant(1)])),
     ];
 
     for (const a of factor_cases)
@@ -1613,13 +1625,13 @@ function distributivity() {
         const sum = grouplikes.add([b, c]);
         if (
             grouplikes.combine('mul', a, sum) != null ||
-            ring_grouplikes.combine('mul', a, sum) != null
+            ringlikes.combine('mul', a, sum) != null
         ) continue;
         const left_expanded = grouplikes.add(
-            ring_grouplikes.left_distribute('add', grouplikes.mul([a, sum]), a, sum).contents
+            ringlikes.left_distribute('add', grouplikes.mul([a, sum]), a, sum).contents
         );
         const right_expanded = grouplikes.add(
-            ring_grouplikes.right_distribute('add', grouplikes.mul([sum, a]), sum, a).contents
+            ringlikes.right_distribute('add', grouplikes.mul([sum, a]), sum, a).contents
         );
         const context = `a = ${describeCase(a)}\nb = ${describeCase(b)}\nc = ${describeCase(c)}`;
 
