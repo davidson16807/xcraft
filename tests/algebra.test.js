@@ -8,7 +8,7 @@ const root = path.resolve(__dirname, '..');
 [
     'scripts/models/expression/Expression.js',
     'scripts/models/expression/ExpressionShape.js',
-    'scripts/models/grouplike/MagmaExpressions.js',
+    'scripts/models/grouplike/Magma.js',
     'scripts/models/grouplike/GrouplikeExpressions.js',
     'scripts/models/ringlike/Scale.js',
     'scripts/models/ringlike/Scales.js',
@@ -16,7 +16,7 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/ringlike/Power.js',
     'scripts/models/ringlike/Powers.js',
     'scripts/models/ringlike/PowerExpressions.js',
-    'scripts/models/ringlike/RinglikeExpressions.js',
+    'scripts/models/ringlike/Ringlike.js',
     'scripts/models/equation/Equation.js',
     'scripts/models/equation/EquationShape.js',
     'scripts/models/expression/ExpressionPaths.js',
@@ -38,7 +38,7 @@ const root = path.resolve(__dirname, '..');
 
 const expression_shape = ExpressionShape();
 const expressions = GrouplikeExpressions({
-    'add': MagmaExpressions(
+    'add': Magma(
         'add',
         new Expression('constant', 0),
         true,
@@ -48,7 +48,7 @@ const expressions = GrouplikeExpressions({
             0
         )
     ),
-    'mul': MagmaExpressions(
+    'mul': Magma(
         'mul',
         new Expression('constant', 1),
         true,
@@ -64,7 +64,7 @@ const scales = Scales(expressions, expression_shape);
 const scale_expressions = ScaleExpressions(expressions, scales);
 const powers = Powers(expressions, expression_shape);
 const power_expressions = PowerExpressions(expressions, powers);
-const ring_expressions = RinglikeExpressions({
+const ring_expressions = Ringlike({
     add: scale_expressions,
     mul: power_expressions,
 });
@@ -858,42 +858,42 @@ function ringExpressionInterface() {
     const negative_x = ring_expressions.inverse('add', x);
     assert(
         ring_expressions.is_inverse('add', negative_x),
-        'RinglikeExpressions: additive inverse should be recognized'
+        'Ringlike: additive inverse should be recognized'
     );
     assert(
         !ring_expressions.is_inverse('add', x),
-        'RinglikeExpressions: ordinary additive expression should not be inverse'
+        'Ringlike: ordinary additive expression should not be inverse'
     );
     assertSameExpression(
         ring_expressions.inverse('add', negative_x),
         x,
-        'RinglikeExpressions',
+        'Ringlike',
         'additive inverse should be involutive'
     );
 
     const reciprocal_x = ring_expressions.inverse('mul', x);
     assert(
         ring_expressions.is_inverse('mul', reciprocal_x),
-        'RinglikeExpressions: multiplicative inverse should be recognized'
+        'Ringlike: multiplicative inverse should be recognized'
     );
     assert(
         !ring_expressions.is_inverse('mul', x),
-        'RinglikeExpressions: ordinary multiplicative expression should not be inverse'
+        'Ringlike: ordinary multiplicative expression should not be inverse'
     );
     assertSameExpression(
         ring_expressions.inverse('mul', reciprocal_x),
         x,
-        'RinglikeExpressions',
+        'Ringlike',
         'multiplicative inverse should be involutive'
     );
     assert(
         ring_expressions.inverse('mul', zero) == null,
-        'RinglikeExpressions: zero should not have a multiplicative inverse'
+        'Ringlike: zero should not have a multiplicative inverse'
     );
     assertSameExpression(
         ring_expressions.inverse('mul', one),
         one,
-        'RinglikeExpressions',
+        'Ringlike',
         'multiplicative identity should be its own inverse'
     );
 
@@ -901,25 +901,25 @@ function ringExpressionInterface() {
     assertSameExpression(
         ring_expressions.absolute('add', negative_x),
         x,
-        'RinglikeExpressions',
+        'Ringlike',
         'absolute should invert an additive inverse'
     );
     assertSameExpression(
         ring_expressions.absolute('add', x),
         x,
-        'RinglikeExpressions',
+        'Ringlike',
         'absolute should preserve a non-inverse expression'
     );
     assertSameExpression(
         ring_expressions.absolute('mul', reciprocal_x),
         x,
-        'RinglikeExpressions',
+        'Ringlike',
         'absolute should invert a multiplicative inverse'
     );
     assertSameExpression(
         ring_expressions.absolute('mul', x),
         x,
-        'RinglikeExpressions',
+        'Ringlike',
         'absolute should preserve an ordinary multiplicative expression'
     );
 
@@ -937,7 +937,7 @@ function ringExpressionInterface() {
             expressions.mul([two, x]),
             expressions.mul([two, three]),
         ]),
-        'RinglikeExpressions',
+        'Ringlike',
         'left distribution should delegate through the additive group expression'
     );
     assertSameExpression(
@@ -951,16 +951,16 @@ function ringExpressionInterface() {
             expressions.mul([x, two]),
             expressions.mul([three, two]),
         ]),
-        'RinglikeExpressions',
+        'Ringlike',
         'right distribution should delegate through the additive group expression'
     );
     assert(
         ring_expressions.left_distribute('mul', expressions.mul([two, x_plus_three]), two, x_plus_three) == null,
-        'RinglikeExpressions: unsupported left distribution should return null'
+        'Ringlike: unsupported left distribution should return null'
     );
     assert(
         ring_expressions.right_distribute('mul', expressions.mul([x_plus_three, two]), x_plus_three, two) == null,
-        'RinglikeExpressions: unsupported right distribution should return null'
+        'Ringlike: unsupported right distribution should return null'
     );
 
     const product = expressions.mul([x, three]);
@@ -971,7 +971,7 @@ function ringExpressionInterface() {
             expressions.pow(x, two),
             expressions.pow(three, two),
         ]),
-        'RinglikeExpressions',
+        'Ringlike',
         'right distribution should distribute powers over multiplication'
     );
 

@@ -1,10 +1,10 @@
 'use strict';
 
 /*
-In math, a "monoid" is a structure featuring an operation that has an identity and is everywhere associative.
-`Monoid` manages expressions that only require awareness of a single operation with these properties.
-so `Monoid` can commute, append, and remove but not invert, combine, or distribute,
-since expressing those either requires other properties or knowledge of operations outside the monoid.
+In math, a "magma" is any set to which a binary operation can be applied to always produce another member of the set
+`Magma` manages operations on expressions that require knowledge of at least a magma and at most a group,
+so `Magma` can commute, append, and cancel but not invert, combine, or distribute,
+since expressing those either requires other properties or knowledge of operations beyond a group.
 
 label           String
 is_commutative  Boolean
@@ -12,7 +12,7 @@ identity        Expression
 evaluator       (Expression->T) -> (Expression->T)
                 e.g. subevaluate => expression => expression.contents.reduce((accumulator, item) => accumulator + subevaluate(item, variables), 0)
 */
-const MagmaExpressions = (label, identity, is_commutative, is_associative, is_invertible, evaluator) => {
+const Magma = (label, identity, is_commutative, is_associative, is_invertible, evaluator) => {
 
     function create(contents) {
         let formatted = [];

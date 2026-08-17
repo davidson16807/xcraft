@@ -4,7 +4,7 @@
 /*
 Operates on expressions through the group associated with a ring operation.
 */
-const RinglikeExpressions = ringlikes_expressions_for_tag => {
+const Ringlike = ringlikes_expressions_for_tag => {
 
     function combine(type, left, right) {
         const group_expression_for_type = ringlikes_expressions_for_tag[type];
