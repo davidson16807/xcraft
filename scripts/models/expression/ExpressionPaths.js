@@ -1,7 +1,7 @@
 'use strict';
 // HUMAN VETTED
 
-const ExpressionPaths = (expressions) => {
+const ExpressionPaths = (grouplikes) => {
 
     function domain(path) {
         return path.split(':')[0];

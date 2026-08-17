@@ -5,8 +5,8 @@ function ExpressionView(dependencies) {
 
     const html = dependencies.html;
     const paths = dependencies.expression_paths;
-    const expressions = dependencies.expressions;
-    const ring = dependencies.ring_expressions;
+    const grouplikes = dependencies.grouplikes;
+    const ringlikes = dependencies.ringlikes;
     const render = dependencies.render;
 
     const empty_paths = new Set();
@@ -19,7 +19,7 @@ function ExpressionView(dependencies) {
 
     function maybe_parenthesize(node, expression, parent_precedence, is_power_base) {
         const needs_parentheses =
-            expressions.precedence(expression) < parent_precedence ||
+            grouplikes.precedence(expression) < parent_precedence ||
             (is_power_base && expression.type === 'pow');
 
         if (!needs_parentheses) return node;
@@ -78,8 +78,8 @@ function ExpressionView(dependencies) {
         const items = expression.contents.map(
             (factor, i) => ({ factor:factor, path:paths.nary(path, i) })
         );
-        const numerator = items.filter(item => !ring.is_inverse('mul', item.factor));
-        const denominator = items.filter(item => ring.is_inverse('mul', item.factor));
+        const numerator = items.filter(item => !ringlikes.is_inverse('mul', item.factor));
+        const denominator = items.filter(item => ringlikes.is_inverse('mul', item.factor));
 
         if (denominator.length === 0) {
             return html.span(
@@ -166,8 +166,8 @@ function ExpressionView(dependencies) {
             case 'add':
                 return html.span(path_attributes(path, draggable_paths, valid_targets, 'expression-add'),
                     expression.contents.map((term, i) => {
-                        const is_inverse = ring.is_inverse('add', term);
-                        const absolute = ring.absolute('add', term);
+                        const is_inverse = ringlikes.is_inverse('add', term);
+                        const absolute = ringlikes.absolute('add', term);
                         const term_path = paths.nary(path, i);
                         return html.span(path_attributes(term_path, draggable_paths, valid_targets, 'addend'),
                             [
@@ -193,7 +193,7 @@ function ExpressionView(dependencies) {
                 const base = expression.contents[0];
                 const exponent = expression.contents[1];
 
-                if (ring.is_inverse('mul', expression)) {
+                if (ringlikes.is_inverse('mul', expression)) {
                     return html.span(
                         path_attributes(path, draggable_paths, valid_targets, 'expression-fraction'),
                         [

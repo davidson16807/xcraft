@@ -2,8 +2,8 @@
 
 /*
 In math, a "magma" is any set to which a binary operation can be applied to always produce another member of the set
-`Magma` manages operations on expressions that require knowledge of at least a magma and at most a group,
-so `Magma` can commute, append, and cancel but not invert, combine, or distribute,
+`Magma` manages operations on grouplikes that require knowledge of at least a magma and at most a group,
+so `Magma` can commute, append, combine, and cancel but not combine, or distribute,
 since expressing those either requires other properties or knowledge of operations beyond a group.
 
 label           String

@@ -10,9 +10,9 @@ Unsupported drags return the original equation reference.
 than what can be provided by structures like `Magma`.
 */
 function Equations(dependencies) {
-    const expressions = dependencies.expressions;
+    const grouplikes = dependencies.grouplikes;
     const paths = dependencies.expression_paths;
-    const ring = dependencies.ring_expressions;
+    const ringlikes = dependencies.ringlikes;
 
     function invert(equation, source_path, enabled_operations) {
         if (source_path == null) return null; // no source? no-op
@@ -28,12 +28,12 @@ function Equations(dependencies) {
 
         if (is_alone) {
             if (enabled.length !== 1) return null; // ambiguous? no-op
-            return ring.inverse(enabled[0], source);
+            return ringlikes.inverse(enabled[0], source);
         }
 
         if (!enabled_operations[source_root.type]) return null; // disabled? no-op
         if (parent_path !== source_side) return null; // not top-level? no-op
-        return ring.inverse(source_root.type, source);
+        return ringlikes.inverse(source_root.type, source);
     }
 
     function balance(equation, source_path, target_side, enabled_operations) {
@@ -59,9 +59,9 @@ function Equations(dependencies) {
         // ab = c  ->  b = c/a
         // a/b = c is represented as a*b^-1 = c, so dragging b^-1 across
         // uses the same inverse operation and reciprocal(b^-1) becomes b.
-        const new_source = is_alone? expressions[operation]([]) :
-            expressions.cancel(source_root, Number(paths.segment(source_path)));
-        const new_target = expressions.append(operation, target_root, inverse);
+        const new_source = is_alone? grouplikes[operation]([]) :
+            grouplikes.cancel(source_root, Number(paths.segment(source_path)));
+        const new_target = grouplikes.append(operation, target_root, inverse);
         let left, right;
         [left,right] = target_side==='L'? [new_target, new_source] : [new_source, new_target];
         return equation.with({left: left, right: right});
@@ -85,7 +85,7 @@ function Equations(dependencies) {
         const index2 = Number(segment2);
         if (index1 >= parent.contents.length || index2 >= parent.contents.length) return equation;
 
-        const commuted = expressions.commute(parent, index1, index2);
+        const commuted = grouplikes.commute(parent, index1, index2);
 
         return paths.replace(equation, parent_path, commuted);
     }
@@ -103,13 +103,13 @@ function Equations(dependencies) {
         const target_index = Number(paths.segment(target_path));
 
         const combined = (
-            expressions.combine(parent.type, source, target) ||
-            ring.combine(parent.type, source, target)
+            grouplikes.combine(parent.type, source, target) ||
+            ringlikes.combine(parent.type, source, target)
         );
         if (combined == null) return equation;
 
         return paths.replace(equation, parent_path, 
-                expressions.collapse(parent, source_index, target_index, combined));
+                grouplikes.collapse(parent, source_index, target_index, combined));
 
     }
 
@@ -129,17 +129,17 @@ function Equations(dependencies) {
         // The source always distributes across the target,
         // so source and target position determines whether the distribution is left or right.
         const distributed = source_index < target_index?
-            ring.left_distribute(target.type, parent, source, target)
-          : ring.right_distribute(target.type, parent, target, source);
+            ringlikes.left_distribute(target.type, parent, source, target)
+          : ringlikes.right_distribute(target.type, parent, target, source);
         if (distributed == null) return equation;
 
         return paths.replace(equation, parent_path, 
-                expressions.collapse(parent, source_index, target_index, distributed));
+                grouplikes.collapse(parent, source_index, target_index, distributed));
     }
 
     function simplify(equation) {
-        const left = expressions.simplify(equation.left);
-        const right = expressions.simplify(equation.right);
+        const left = grouplikes.simplify(equation.left);
+        const right = grouplikes.simplify(equation.right);
         return left === equation.left && right === equation.right? equation :
             equation.with({ left:left, right:right });
     }

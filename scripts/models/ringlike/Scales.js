@@ -2,11 +2,11 @@
 // HUMAN VETTED
 
 /*
-Decomposes expressions into a numeric coefficient and algebraic basis.
+Decomposes grouplikes into a numeric coefficient and algebraic basis.
 Operations in this namespace preserve that representation without making it
 part of the Expression value itself.
 */
-const Scales = (expressions, expression_shape) => {
+const Scales = (grouplikes, expression_shape) => {
     const shape = expression_shape;
 
     function from_expression(expression) {
@@ -21,7 +21,7 @@ const Scales = (expressions, expression_shape) => {
                 1
             );
             const basis_factors = expression.contents.filter(factor => factor.type !== 'constant');
-            const basis = expressions.mul(basis_factors);
+            const basis = grouplikes.mul(basis_factors);
             return basis_factors.length === 0?
                 new Scale(coefficient, null, '1')
               : new Scale(coefficient, basis, shape.encode(basis));
@@ -32,11 +32,11 @@ const Scales = (expressions, expression_shape) => {
     }
 
     function to_expression(scale) {
-        if (scale.basis == null) return expressions.constant(scale.coefficient);
-        if (scale.coefficient === 0) return expressions.constant(0);
+        if (scale.basis == null) return grouplikes.constant(scale.coefficient);
+        if (scale.coefficient === 0) return grouplikes.constant(0);
         if (scale.coefficient === 1) return scale.basis;
-        else return expressions.mul([
-            expressions.constant(scale.coefficient),
+        else return grouplikes.mul([
+            grouplikes.constant(scale.coefficient),
             scale.basis
         ]);
     }

@@ -2,9 +2,9 @@
 // HUMAN VETTED
 
 /*
-Operates on expressions that can be expressed as scales.
+Operates on grouplikes that can be expressed as scales.
 */
-const ScaleExpressions = (expressions, scales) => {
+const ScaleExpressions = (grouplikes, scales) => {
 
     function inverse(expression) {
         return scales.to_expression(
@@ -26,13 +26,13 @@ const ScaleExpressions = (expressions, scales) => {
     function left_distribute(parent, left, right) {
         if (parent.type !== 'mul') return null;
         if (right.type !== 'add') return null;
-        return expressions.add(right.contents.map(term => expressions.mul([left, term])));
+        return grouplikes.add(right.contents.map(term => grouplikes.mul([left, term])));
     }
 
     function right_distribute(parent, left, right) {
         if (parent.type !== 'mul') return null;
         if (left.type !== 'add') return null;
-        return expressions.add(left.contents.map(term => expressions.mul([term, right])));
+        return grouplikes.add(left.contents.map(term => grouplikes.mul([term, right])));
     }
 
     return Object.freeze({

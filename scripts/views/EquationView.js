@@ -5,7 +5,7 @@ function EquationView(dependencies) {
     const html = dependencies.html;
     const equation_drag_ops = dependencies.equation_drag_operations;
     const paths = dependencies.expression_paths;
-    const ring = dependencies.ring_expressions;
+    const ringlikes = dependencies.ringlikes;
     const expression_view = dependencies.expression_view;
     const render = dependencies.render;
 
@@ -59,7 +59,7 @@ function EquationView(dependencies) {
 
     function inverse_prefix(equation, source_path, inverse, drag_options) {
         const operation = operation_for_source(equation, source_path, drag_options);
-        if (operation == null || ring.is_inverse(operation, inverse)) return null;
+        if (operation == null || ringlikes.is_inverse(operation, inverse)) return null;
         return ({ add:'+', mul:'\\cdot' })[operation] || null;
     }
 

@@ -2,9 +2,9 @@
 // HUMAN VETTED
 
 /*
-Operates on expressions that can be expressed as powers.
+Operates on grouplikes that can be expressed as powers.
 */
-const PowerExpressions = (expressions, powers) => {
+const PowerExpressions = (grouplikes, powers) => {
 
     function inverse(expression) {
         if (expression.type === 'constant' && expression.contents === 0) return null;
@@ -33,7 +33,7 @@ const PowerExpressions = (expressions, powers) => {
     function right_distribute(parent, left, right) {
         if (parent.type !== 'pow') return null;
         if (left.type !== 'mul') return null;
-        return expressions.mul(left.contents.map(term => expressions.pow(term, right)));
+        return grouplikes.mul(left.contents.map(term => grouplikes.pow(term, right)));
     }
 
     return Object.freeze({

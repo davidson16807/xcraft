@@ -18,7 +18,7 @@
     <script src="./scripts/models/expression/ExpressionShape.js"></script>
     <script src="./scripts/models/expression/ExpressionPaths.js"></script>
     <script src="./scripts/models/grouplike/Magma.js"></script>
-    <script src="./scripts/models/grouplike/GrouplikeExpressions.js"></script>
+    <script src="./scripts/models/grouplike/Grouplike.js"></script>
     <script src="./scripts/models/ringlike/Scale.js"></script>
     <script src="./scripts/models/ringlike/Scales.js"></script>
     <script src="./scripts/models/ringlike/ScaleExpressions.js"></script>
@@ -155,7 +155,7 @@
     document.getElementById('subtitle').replaceChildren(subtitles[Math.floor(Math.random()*subtitles.length)]);
 
     const expression_shape = ExpressionShape();
-    const expressions = GrouplikeExpressions({
+    const grouplikes = Grouplike({
         'add': Magma('add', new Expression('constant', 0), true, true, true, 
             evaluate => expression => expression.contents.reduce((accumulator, item) => accumulator + evaluate(item), 0)
         ),
@@ -166,21 +166,21 @@
             evaluate => expression => Math.pow(evaluate(expression.contents[0]), evaluate(expression.contents[1]))
         ),
     });
-    const scales = Scales(expressions, expression_shape);
-    const scale_expressions = ScaleExpressions(expressions, scales);
-    const powers = Powers(expressions, expression_shape);
-    const power_expressions = PowerExpressions(expressions, powers);
-    const ring_expressions = Ringlike({
+    const scales = Scales(grouplikes, expression_shape);
+    const scale_expressions = ScaleExpressions(grouplikes, scales);
+    const powers = Powers(grouplikes, expression_shape);
+    const power_expressions = PowerExpressions(grouplikes, powers);
+    const ringlikes = Ringlike({
         add: scale_expressions,
         mul: power_expressions,
     });
-    const expression_paths = ExpressionPaths(expressions);
+    const expression_paths = ExpressionPaths(grouplikes);
     const equation_drag_ops = EquationDragOperations({
         expression_paths: expression_paths,
         equations: Equations({
-            expressions: expressions,
+            grouplikes: grouplikes,
             expression_paths: expression_paths,
-            ring_expressions: ring_expressions,
+            ringlikes: ringlikes,
         })
     });
     const equation_shape = EquationShape(expression_shape);
@@ -200,9 +200,9 @@
     const expression_view = ExpressionView({
         html: html,
         render: katex.render,
-        expressions: expressions,
+        grouplikes: grouplikes,
         expression_paths: expression_paths,
-        ring_expressions: ring_expressions,
+        ringlikes: ringlikes,
     });
 
     const equation_view = EquationView({
@@ -210,7 +210,7 @@
         render: katex.render,
         equation_drag_operations: equation_drag_ops,
         expression_paths: expression_paths,
-        ring_expressions: ring_expressions,
+        ringlikes: ringlikes,
         expression_view: expression_view,
     });
 
@@ -222,7 +222,7 @@
     }, app_updater);
 
     const released = equation_drags.release();
-    const levels = Levels(expressions);
+    const levels = Levels(grouplikes);
     app_view.wire(
         new AppState(
             levels, 0, // levels

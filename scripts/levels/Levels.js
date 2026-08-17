@@ -1,12 +1,12 @@
 'use strict';
 // HUMAN VETTED
 
-function Levels(expressions) {
-    const c = expressions.constant;
-    const v = expressions.variable;
-    const a = expressions.add;
-    const m = expressions.mul;
-    const d = expressions.div;
+function Levels(grouplikes) {
+    const c = grouplikes.constant;
+    const v = grouplikes.variable;
+    const a = grouplikes.add;
+    const m = grouplikes.mul;
+    const d = grouplikes.div;
     const nonzero_context = 'Assume x is nonzero whenever it appears as a divisor.';
     const e = (left, right) => new Equation(left, right);
     const x = () => v('x');

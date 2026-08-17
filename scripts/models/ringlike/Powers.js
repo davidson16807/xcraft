@@ -2,11 +2,11 @@
 // HUMAN VETTED
 
 /*
-Decomposes expressions into a numeric power and algebraic base.
+Decomposes grouplikes into a numeric power and algebraic base.
 Operations in this namespace preserve that representation without making it
 part of the Expression value itself.
 */
-const Powers = (expressions, expression_shape) => {
+const Powers = (grouplikes, expression_shape) => {
     const shape = expression_shape;
 
     function from_expression(expression) {
@@ -30,9 +30,9 @@ const Powers = (expressions, expression_shape) => {
     }
 
     function to_expression(power) {
-        if (power.power === 0) return expressions.constant(1);
+        if (power.power === 0) return grouplikes.constant(1);
         if (power.power === 1) return power.base;
-        return expressions.pow(power.base, power.power);
+        return grouplikes.pow(power.base, power.power);
     }
 
     function invert(power) {

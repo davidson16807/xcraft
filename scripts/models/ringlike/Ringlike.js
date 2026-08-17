@@ -2,7 +2,7 @@
 // HUMAN VETTED
 
 /*
-Operates on expressions through the group associated with a ring operation.
+Operates on grouplikes through the group associated with a ringlikes operation.
 */
 const Ringlike = ringlikes_expressions_for_tag => {
 
