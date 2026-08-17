@@ -17,54 +17,6 @@ const Expressions = (structures) => {
     // provided only as a convenience
     const div = (numerator, denominator) => mul([numerator, pow(denominator, constant(-1))]);
 
-    function append(type, left, right) {
-        const structure = structures[type];
-        if (structure == null) return left;
-        return structure.append(left, right);
-    }
-
-    function combine(type, left, right) {
-        const structure = structures[type];
-        if (structure == null) return null;
-
-        const combined = structure.combine(left, right);
-        if (combined != null) return combined;
-
-        return constant_result(
-            new Expression(type, Object.freeze([left, right]))
-        );
-    }
-
-    function remove(expression, index) {
-        const structure = structures[expression.type];
-        if (structure == null) return expression;
-        return structure.remove(expression, index);
-    }
-
-    function collapse(expression, index1, index2, replacement) {
-        const structure = structures[expression.type];
-        if (structure == null) return expression;
-        const lo = Math.min(index1, index2);
-        const hi = Math.max(index1, index2);
-        const contents = expression.contents.slice();
-        contents[lo] = replacement;
-        contents.splice(hi, 1);
-        return structure.create(contents);
-    }
-
-    const evaluator = variables => expression => {
-        const subevaluate = expression => evaluator(variables)(expression);
-        const structure = structures[expression.type];
-        if (structure != null) { return structure.evaluator(subevaluate)(expression); }
-        switch (expression.type) {
-            case 'constant': return expression.contents;
-            case 'variable': return variables[expression.contents];
-            default: return NaN;
-        }
-    }
-
-    const evaluate = (expression, variables) => evaluator(variables)(expression);
-
     const whole_threshold = 1e-10;
 
     function is_whole(value) {
@@ -133,6 +85,60 @@ const Expressions = (structures) => {
         ) return expression;
         return expression.with({ contents: Object.freeze(contents) });
     }
+    
+    function append(type, left, right) {
+        const structure = structures[type];
+        if (structure == null) return left;
+        return structure.append(left, right);
+    }
+
+    function combine(type, left, right) {
+        const structure = structures[type];
+        if (structure == null) return null;
+
+        const combined = structure.combine(left, right);
+        if (combined != null) return combined;
+
+        return constant_result(
+            new Expression(type, Object.freeze([left, right]))
+        );
+    }
+
+    function swap(expression, index1, index2) {
+        const structure = structures[expression.type];
+        if (structure == null) return expression;
+        return structure.swap(expression, index1, index2);
+    }
+
+    function remove(expression, index) {
+        const structure = structures[expression.type];
+        if (structure == null) return expression;
+        return structure.remove(expression, index);
+    }
+
+    function collapse(expression, index1, index2, replacement) {
+        const structure = structures[expression.type];
+        if (structure == null) return expression;
+        const lo = Math.min(index1, index2);
+        const hi = Math.max(index1, index2);
+        const contents = expression.contents.slice();
+        contents[lo] = replacement;
+        contents.splice(hi, 1);
+        return structure.create(contents);
+    }
+
+    const evaluator = variables => expression => {
+        const subevaluate = expression => evaluator(variables)(expression);
+        const structure = structures[expression.type];
+        if (structure != null) { return structure.evaluator(subevaluate)(expression); }
+        switch (expression.type) {
+            case 'constant': return expression.contents;
+            case 'variable': return variables[expression.contents];
+            default: return NaN;
+        }
+    }
+
+    const evaluate = (expression, variables) => evaluator(variables)(expression);
 
     function precedence(expression) {
         switch (expression.type) {
@@ -150,13 +156,13 @@ const Expressions = (structures) => {
         mul,
         pow,
         div,
-        append,
-        combine,
-        // swap,
-        remove,
-        collapse,
         simplify,
         precedence,
         evaluate,
+        append,
+        combine,
+        swap,
+        remove,
+        collapse,
     });
 };

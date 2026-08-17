@@ -75,7 +75,7 @@ function Equations(dependencies) {
         if (parent_path == null || parent_path !== paths.parent(path2)) return equation;
 
         const parent = paths.resolve(equation, parent_path);
-        if (parent == null || (parent.type !== 'add' && parent.type !== 'mul')) return equation;
+        if (parent == null) return equation;
 
         const segment1 = paths.segment(path1);
         const segment2 = paths.segment(path2);
@@ -85,16 +85,9 @@ function Equations(dependencies) {
         const index2 = Number(segment2);
         if (index1 >= parent.contents.length || index2 >= parent.contents.length) return equation;
 
-        if (parent.contents[index1] === parent.contents[index2]) return equation;
+        const swapped = expressions.swap(parent, index1, index2);
 
-        const contents = parent.contents.slice();
-        [contents[index1], contents[index2]] = [contents[index2], contents[index1]];
-
-        const replacement = parent.type === 'add'?
-            expressions.add(contents) :
-            expressions.mul(contents);
-
-        return paths.replace(equation, parent_path, replacement);
+        return paths.replace(equation, parent_path, swapped);
     }
 
     function combine(equation, source_path, target_path) {
