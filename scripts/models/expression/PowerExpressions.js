@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 Operates on expressions that can be expressed as powers.
@@ -13,13 +14,9 @@ const PowerExpressions = (expressions, powers) => {
                 powers.from_expression(expression)));
     }
 
-    function is_reciprocal(expression) {
+    function is_inverse(expression) {
         const power = powers.from_expression(expression);
         return power.power === -1;
-    }
-
-    function is_inverse(expression) {
-        return is_reciprocal(expression);
     }
 
     function combine(left, right) {

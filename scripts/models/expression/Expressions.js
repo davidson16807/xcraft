@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 `Expression` is the immutable model for algebraic expressions.
@@ -85,7 +86,7 @@ const Expressions = (structures) => {
         ) return expression;
         return expression.with({ contents: Object.freeze(contents) });
     }
-    
+
     function append(type, left, right) {
         const structure = structures[type];
         if (structure == null) return left;
@@ -156,13 +157,13 @@ const Expressions = (structures) => {
         mul,
         pow,
         div,
-        simplify,
-        precedence,
-        evaluate,
         append,
         combine,
         swap,
         remove,
         collapse,
+        simplify,
+        evaluate,
+        precedence,
     });
 };
