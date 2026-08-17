@@ -14,12 +14,8 @@ const Expressions = (structures) => {
     const mul = structures['mul'].create;
     const pow = structures['pow'].create;
 
-    function reciprocal(expression) {
-        if (is_identity('mul', expression)) return expression;
-        return is_reciprocal(expression)? expression.contents[0] : pow(expression, constant(-1));
-    }
-
-    const div = (numerator, denominator) => mul([numerator, reciprocal(denominator)]);
+    // provided only as a convenience
+    const div = (numerator, denominator) => mul([numerator, pow(denominator, constant(-1))]);
 
     function append(type, left, right) {
         const structure = structures[type];
@@ -51,13 +47,6 @@ const Expressions = (structures) => {
         return structure.collapse(expression, index1, index2, replacement);
     }
 
-    function is_identity(type, expression) {
-        const structure = structures[type];
-        return structure != null &&
-            structure.is_identity != null &&
-            structure.is_identity(expression);
-    }
-
     const evaluator = variables => expression => {
         const subevaluate = expression => evaluator(variables)(expression);
         const structure = structures[expression.type];
@@ -75,6 +64,12 @@ const Expressions = (structures) => {
 
     function is_whole(value) {
         return Math.abs(value - Math.round(value)) <= whole_threshold;
+    }
+
+    function is_reciprocal(expression) {
+        return expression.type === 'pow' &&
+            expression.contents[1].type === 'constant' &&
+            expression.contents[1].contents === -1;
     }
 
     function contains_reciprocal(expression) {
@@ -104,6 +99,8 @@ const Expressions = (structures) => {
         // Addition and multiplication are associative, so constant-valued
         // siblings can be folded even when the entire expression still
         // depends on a variable: e.g. x + 7 - 1 -> x + 6.
+        // TODO: This hardcodes expression types and should be replaced 
+        // when a suitable replacement becomes available
         if (expression.type === 'add' || expression.type === 'mul') {
             const constants = contents
                 .map((item, index) => ({ item:item, index:index, value:evaluate(item, {}) }))
@@ -139,12 +136,6 @@ const Expressions = (structures) => {
             case 'pow': return 3;
             default: return 4;
         }
-    }
-
-    function is_reciprocal(expression) {
-        return expression.type === 'pow' &&
-            expression.contents[1].type === 'constant' &&
-            expression.contents[1].contents === -1;
     }
 
     return Object.freeze({
