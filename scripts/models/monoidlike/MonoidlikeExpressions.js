@@ -6,14 +6,14 @@
 Constructors return deeply immutable values.  Transformations never modify
 an input expression; they return either the original reference or a new tree.
 */
-const Expressions = (monoidlikes) => {
+const MonoidlikeExpressions = (monoidlike_expressions_for_tag) => {
 
     const constant = value => new Expression('constant', Number(value));
     const variable = name => new Expression('variable', String(name));
 
-    const add = monoidlikes['add'].create;
-    const mul = monoidlikes['mul'].create;
-    const pow = (base, exponent) => monoidlikes['pow'].create([base, exponent]);
+    const add = monoidlike_expressions_for_tag['add'].create;
+    const mul = monoidlike_expressions_for_tag['mul'].create;
+    const pow = (base, exponent) => monoidlike_expressions_for_tag['pow'].create([base, exponent]);
 
     // provided only as a convenience
     const div = (numerator, denominator) => mul([numerator, pow(denominator, constant(-1))]);
@@ -88,13 +88,13 @@ const Expressions = (monoidlikes) => {
     }
 
     function append(type, left, right) {
-        const structure = monoidlikes[type];
+        const structure = monoidlike_expressions_for_tag[type];
         if (structure == null) return left;
         return structure.append(left, right);
     }
 
     function combine(type, left, right) {
-        const structure = monoidlikes[type];
+        const structure = monoidlike_expressions_for_tag[type];
         if (structure == null) return null;
 
         const combined = structure.combine(left, right);
@@ -106,19 +106,19 @@ const Expressions = (monoidlikes) => {
     }
 
     function swap(expression, index1, index2) {
-        const structure = monoidlikes[expression.type];
+        const structure = monoidlike_expressions_for_tag[expression.type];
         if (structure == null) return expression;
         return structure.swap(expression, index1, index2);
     }
 
     function remove(expression, index) {
-        const structure = monoidlikes[expression.type];
+        const structure = monoidlike_expressions_for_tag[expression.type];
         if (structure == null) return expression;
         return structure.remove(expression, index);
     }
 
     function collapse(expression, index1, index2, replacement) {
-        const structure = monoidlikes[expression.type];
+        const structure = monoidlike_expressions_for_tag[expression.type];
         if (structure == null) return expression;
         const lo = Math.min(index1, index2);
         const hi = Math.max(index1, index2);
@@ -130,7 +130,7 @@ const Expressions = (monoidlikes) => {
 
     const evaluator = variables => expression => {
         const subevaluate = expression => evaluator(variables)(expression);
-        const structure = monoidlikes[expression.type];
+        const structure = monoidlike_expressions_for_tag[expression.type];
         if (structure != null) { return structure.evaluator(subevaluate)(expression); }
         switch (expression.type) {
             case 'constant': return expression.contents;

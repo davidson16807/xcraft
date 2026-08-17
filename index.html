@@ -14,19 +14,19 @@
 
     <script src="https://cdn.jsdelivr.net/npm/katex@0.18.1/dist/katex.min.js"></script>
     <script src="./scripts/dom/Html.js"></script>
-    <script src="./scripts/models/monoidlike/MonoidExpressions.js"></script>
-    <script src="./scripts/models/monoidlike/PowerlikeExpressions.js"></script>
     <script src="./scripts/models/expression/Expression.js"></script>
-    <script src="./scripts/models/expression/Expressions.js"></script>
     <script src="./scripts/models/expression/ExpressionShape.js"></script>
     <script src="./scripts/models/expression/ExpressionPaths.js"></script>
+    <script src="./scripts/models/monoidlike/MonoidExpressions.js"></script>
+    <script src="./scripts/models/monoidlike/PowerlikeExpressions.js"></script>
+    <script src="./scripts/models/monoidlike/MonoidlikeExpressions.js"></script>
     <script src="./scripts/models/ringlike/Scale.js"></script>
     <script src="./scripts/models/ringlike/Scales.js"></script>
     <script src="./scripts/models/ringlike/ScaleExpressions.js"></script>
     <script src="./scripts/models/ringlike/Power.js"></script>
     <script src="./scripts/models/ringlike/Powers.js"></script>
     <script src="./scripts/models/ringlike/PowerExpressions.js"></script>
-    <script src="./scripts/models/ringlike/RingExpressions.js"></script>
+    <script src="./scripts/models/ringlike/RinglikeExpressions.js"></script>
     <script src="./scripts/models/equation/Equation.js"></script>
     <script src="./scripts/models/equation/Equations.js"></script>
     <script src="./scripts/models/equation/EquationDragOperations.js"></script>
@@ -156,11 +156,11 @@
     document.getElementById('subtitle').replaceChildren(subtitles[Math.floor(Math.random()*subtitles.length)]);
 
     const expression_shape = ExpressionShape();
-    const expressions = Expressions({
-        'add': MonoidExpressions('add', new Expression('constant', 0), true,
+    const expressions = MonoidlikeExpressions({
+        'add': MonoidExpressions('add', new Expression('constant', 0), true, true,  
             evaluate => expression => expression.contents.reduce((accumulator, item) => accumulator + evaluate(item), 0)
         ),
-        'mul': MonoidExpressions('mul', new Expression('constant', 1), true,
+        'mul': MonoidExpressions('mul', new Expression('constant', 1), true, true, 
             evaluate => expression => expression.contents.reduce((accumulator, item) => accumulator * evaluate(item), 1)
         ),
         'pow': PowerlikeExpressions('pow'),
@@ -169,7 +169,7 @@
     const scale_expressions = ScaleExpressions(expressions, scales);
     const powers = Powers(expressions, expression_shape);
     const power_expressions = PowerExpressions(expressions, powers);
-    const ring_expressions = RingExpressions({
+    const ring_expressions = RinglikeExpressions({
         add: scale_expressions,
         mul: power_expressions,
     });
