@@ -3,7 +3,7 @@
 /*
 In math, a "monoid" is a structure featuring an operation that has an identity and is everywhere associative.
 `Monoid` manages expressions that only require awareness of a single operation with these properties.
-so `Monoid` can swap, append, and remove but not invert, combine, or distribute,
+so `Monoid` can commute, append, and remove but not invert, combine, or distribute,
 since expressing those either requires other properties or knowledge of operations outside the monoid.
 
 label           String
@@ -50,7 +50,7 @@ const MonoidExpressions = (label, identity, is_commutative, is_associative, eval
         return null;
     }
 
-    function swap(expression, index1, index2) {
+    function commute(expression, index1, index2) {
         if (!is_commutative) { return expression; }
         const contents = expression.contents.slice();
         [contents[index1], contents[index2]] = [contents[index2], contents[index1]];
@@ -68,7 +68,7 @@ const MonoidExpressions = (label, identity, is_commutative, is_associative, eval
         create,
         append,
         combine,
-        swap,
+        commute,
         cancel,
         evaluator,
         is_identity,

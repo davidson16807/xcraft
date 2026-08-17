@@ -6,14 +6,14 @@
 Constructors return deeply immutable values.  Transformations never modify
 an input expression; they return either the original reference or a new tree.
 */
-const MonoidlikeExpressions = (monoidlike_expressions_for_tag) => {
+const MonoidlikeExpressions = (grouplike_expressions_for_tag) => {
 
     const constant = value => new Expression('constant', Number(value));
     const variable = name => new Expression('variable', String(name));
 
-    const add = monoidlike_expressions_for_tag['add'].create;
-    const mul = monoidlike_expressions_for_tag['mul'].create;
-    const pow = (base, exponent) => monoidlike_expressions_for_tag['pow'].create([base, exponent]);
+    const add = grouplike_expressions_for_tag['add'].create;
+    const mul = grouplike_expressions_for_tag['mul'].create;
+    const pow = (base, exponent) => grouplike_expressions_for_tag['pow'].create([base, exponent]);
 
     // provided only as a convenience
     const div = (numerator, denominator) => mul([numerator, pow(denominator, constant(-1))]);
@@ -88,13 +88,13 @@ const MonoidlikeExpressions = (monoidlike_expressions_for_tag) => {
     }
 
     function append(type, left, right) {
-        const structure = monoidlike_expressions_for_tag[type];
+        const structure = grouplike_expressions_for_tag[type];
         if (structure == null) return left;
         return structure.append(left, right);
     }
 
     function combine(type, left, right) {
-        const structure = monoidlike_expressions_for_tag[type];
+        const structure = grouplike_expressions_for_tag[type];
         if (structure == null) return null;
 
         const combined = structure.combine(left, right);
@@ -105,20 +105,20 @@ const MonoidlikeExpressions = (monoidlike_expressions_for_tag) => {
         );
     }
 
-    function swap(expression, index1, index2) {
-        const structure = monoidlike_expressions_for_tag[expression.type];
+    function commute(expression, index1, index2) {
+        const structure = grouplike_expressions_for_tag[expression.type];
         if (structure == null) return expression;
-        return structure.swap(expression, index1, index2);
+        return structure.commute(expression, index1, index2);
     }
 
     function cancel(expression, index) {
-        const structure = monoidlike_expressions_for_tag[expression.type];
+        const structure = grouplike_expressions_for_tag[expression.type];
         if (structure == null) return expression;
         return structure.cancel(expression, index);
     }
 
     function collapse(expression, index1, index2, replacement) {
-        const structure = monoidlike_expressions_for_tag[expression.type];
+        const structure = grouplike_expressions_for_tag[expression.type];
         if (structure == null) return expression;
         const lo = Math.min(index1, index2);
         const hi = Math.max(index1, index2);
@@ -130,7 +130,7 @@ const MonoidlikeExpressions = (monoidlike_expressions_for_tag) => {
 
     const evaluator = variables => expression => {
         const subevaluate = expression => evaluator(variables)(expression);
-        const structure = monoidlike_expressions_for_tag[expression.type];
+        const structure = grouplike_expressions_for_tag[expression.type];
         if (structure != null) { return structure.evaluator(subevaluate)(expression); }
         switch (expression.type) {
             case 'constant': return expression.contents;
@@ -159,7 +159,7 @@ const MonoidlikeExpressions = (monoidlike_expressions_for_tag) => {
         div,
         append,
         combine,
-        swap,
+        commute,
         cancel,
         collapse,
         simplify,

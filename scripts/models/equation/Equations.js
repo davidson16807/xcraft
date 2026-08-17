@@ -68,7 +68,7 @@ function Equations(dependencies) {
 
     }
 
-    function swap(equation, path1, path2) {
+    function commute(equation, path1, path2) {
         if (path1 == null || path2 == null || path1 === path2) return equation;
 
         const parent_path = paths.parent(path1);
@@ -85,9 +85,9 @@ function Equations(dependencies) {
         const index2 = Number(segment2);
         if (index1 >= parent.contents.length || index2 >= parent.contents.length) return equation;
 
-        const swapped = expressions.swap(parent, index1, index2);
+        const commuted = expressions.commute(parent, index1, index2);
 
-        return paths.replace(equation, parent_path, swapped);
+        return paths.replace(equation, parent_path, commuted);
     }
 
     function combine(equation, source_path, target_path) {
@@ -146,7 +146,7 @@ function Equations(dependencies) {
 
     return Object.freeze({
         balance,
-        swap,
+        commute,
         combine,
         distribute,
         invert,

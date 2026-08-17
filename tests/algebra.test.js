@@ -8,9 +8,9 @@ const root = path.resolve(__dirname, '..');
 [
     'scripts/models/expression/Expression.js',
     'scripts/models/expression/ExpressionShape.js',
-    'scripts/models/monoidlike/MonoidExpressions.js',
-    'scripts/models/monoidlike/PowerlikeExpressions.js',
-    'scripts/models/monoidlike/MonoidlikeExpressions.js',
+    'scripts/models/grouplike/MonoidExpressions.js',
+    'scripts/models/grouplike/PowerlikeExpressions.js',
+    'scripts/models/grouplike/MonoidlikeExpressions.js',
     'scripts/models/ringlike/Scale.js',
     'scripts/models/ringlike/Scales.js',
     'scripts/models/ringlike/ScaleExpressions.js',

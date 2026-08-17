@@ -37,7 +37,7 @@ function EquationDragOperations(dependencies) {
             if (moved !== equation) break;
             moved = equations.distribute(equation, source_path, target_path);
             if (moved !== equation) break;
-            moved = equations.swap(equation, source_path, target_path);
+            moved = equations.commute(equation, source_path, target_path);
             break;
         default:
             return equation;

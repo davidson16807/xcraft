@@ -33,7 +33,7 @@ const PowerlikeExpressions = (label) => {
         return null;
     }
 
-    function swap(expression, index1, index2) {
+    function commute(expression, index1, index2) {
         return expression
     }
 
@@ -46,7 +46,7 @@ const PowerlikeExpressions = (label) => {
         create,
         append,
         combine,
-        swap,
+        commute,
         cancel,
         evaluator, 
     });
