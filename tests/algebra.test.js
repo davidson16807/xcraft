@@ -6,8 +6,8 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 [
-    'scripts/models/structure/MonoidStructure.js',
-    'scripts/models/structure/PowerStructure.js',
+    'scripts/models/structure/MonoidExpressions.js',
+    'scripts/models/structure/PowerlikeExpressions.js',
     'scripts/models/expression/Expression.js',
     'scripts/models/expression/ExpressionShape.js',
     'scripts/models/expression/Expressions.js',
@@ -39,7 +39,7 @@ const root = path.resolve(__dirname, '..');
 
 const expression_shape = ExpressionShape();
 const expressions = Expressions({
-    'add': MonoidStructure(
+    'add': MonoidExpressions(
         'add',
         new Expression('constant', 0),
         true,
@@ -48,7 +48,7 @@ const expressions = Expressions({
             0
         )
     ),
-    'mul': MonoidStructure(
+    'mul': MonoidExpressions(
         'mul',
         new Expression('constant', 1),
         true,
@@ -57,7 +57,7 @@ const expressions = Expressions({
             1
         )
     ),
-    'pow': PowerStructure('pow'),
+    'pow': PowerlikeExpressions('pow'),
 });
 const scales = Scales(expressions, expression_shape);
 const scale_expressions = ScaleExpressions(expressions, scales);

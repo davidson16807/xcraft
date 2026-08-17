@@ -7,7 +7,7 @@ rewrite under the nonzero-divisor assumptions supplied by the active level.
 Unsupported drags return the original equation reference.
 
 `Equations` introduces properties that require more knowledge 
-than what can be provided by structures like `MonoidStructure`.
+than what can be provided by structures like `MonoidExpressions`.
 */
 function Equations(dependencies) {
     const expressions = dependencies.expressions;

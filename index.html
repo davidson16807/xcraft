@@ -14,8 +14,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/katex@0.18.1/dist/katex.min.js"></script>
     <script src="./scripts/dom/Html.js"></script>
-    <script src="./scripts/models/monoidlike/MonoidStructure.js"></script>
-    <script src="./scripts/models/monoidlike/PowerStructure.js"></script>
+    <script src="./scripts/models/monoidlike/MonoidExpressions.js"></script>
+    <script src="./scripts/models/monoidlike/PowerlikeExpressions.js"></script>
     <script src="./scripts/models/expression/Expression.js"></script>
     <script src="./scripts/models/expression/Expressions.js"></script>
     <script src="./scripts/models/expression/ExpressionShape.js"></script>
@@ -157,13 +157,13 @@
 
     const expression_shape = ExpressionShape();
     const expressions = Expressions({
-        'add': MonoidStructure('add', new Expression('constant', 0), true,
+        'add': MonoidExpressions('add', new Expression('constant', 0), true,
             evaluate => expression => expression.contents.reduce((accumulator, item) => accumulator + evaluate(item), 0)
         ),
-        'mul': MonoidStructure('mul', new Expression('constant', 1), true,
+        'mul': MonoidExpressions('mul', new Expression('constant', 1), true,
             evaluate => expression => expression.contents.reduce((accumulator, item) => accumulator * evaluate(item), 1)
         ),
-        'pow': PowerStructure('pow'),
+        'pow': PowerlikeExpressions('pow'),
     });
     const scales = Scales(expressions, expression_shape);
     const scale_expressions = ScaleExpressions(expressions, scales);

@@ -6,14 +6,14 @@
 Constructors return deeply immutable values.  Transformations never modify
 an input expression; they return either the original reference or a new tree.
 */
-const Expressions = (structures) => {
+const Expressions = (monoidlikes) => {
 
     const constant = value => new Expression('constant', Number(value));
     const variable = name => new Expression('variable', String(name));
 
-    const add = structures['add'].create;
-    const mul = structures['mul'].create;
-    const pow = (base, exponent) => structures['pow'].create([base, exponent]);
+    const add = monoidlikes['add'].create;
+    const mul = monoidlikes['mul'].create;
+    const pow = (base, exponent) => monoidlikes['pow'].create([base, exponent]);
 
     // provided only as a convenience
     const div = (numerator, denominator) => mul([numerator, pow(denominator, constant(-1))]);
@@ -88,13 +88,13 @@ const Expressions = (structures) => {
     }
 
     function append(type, left, right) {
-        const structure = structures[type];
+        const structure = monoidlikes[type];
         if (structure == null) return left;
         return structure.append(left, right);
     }
 
     function combine(type, left, right) {
-        const structure = structures[type];
+        const structure = monoidlikes[type];
         if (structure == null) return null;
 
         const combined = structure.combine(left, right);
@@ -106,19 +106,19 @@ const Expressions = (structures) => {
     }
 
     function swap(expression, index1, index2) {
-        const structure = structures[expression.type];
+        const structure = monoidlikes[expression.type];
         if (structure == null) return expression;
         return structure.swap(expression, index1, index2);
     }
 
     function remove(expression, index) {
-        const structure = structures[expression.type];
+        const structure = monoidlikes[expression.type];
         if (structure == null) return expression;
         return structure.remove(expression, index);
     }
 
     function collapse(expression, index1, index2, replacement) {
-        const structure = structures[expression.type];
+        const structure = monoidlikes[expression.type];
         if (structure == null) return expression;
         const lo = Math.min(index1, index2);
         const hi = Math.max(index1, index2);
@@ -130,7 +130,7 @@ const Expressions = (structures) => {
 
     const evaluator = variables => expression => {
         const subevaluate = expression => evaluator(variables)(expression);
-        const structure = structures[expression.type];
+        const structure = monoidlikes[expression.type];
         if (structure != null) { return structure.evaluator(subevaluate)(expression); }
         switch (expression.type) {
             case 'constant': return expression.contents;

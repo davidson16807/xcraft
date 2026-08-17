@@ -1,7 +1,7 @@
 'use strict';
 // HUMAN WRITTEN
 
-const PowerStructure = (label) => {
+const PowerlikeExpressions = (label) => {
     function create(contents) {
         if (contents.length === 1)
             return contents[0];

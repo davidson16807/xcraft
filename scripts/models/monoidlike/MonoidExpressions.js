@@ -12,7 +12,7 @@ identity        Expression
 evaluator       (Expression->T) -> (Expression->T)
                 e.g. subevaluate => expression => expression.contents.reduce((accumulator, item) => accumulator + subevaluate(item, variables), 0)
 */
-const MonoidStructure = (label, identity, is_commutative, evaluator) => {
+const MonoidExpressions = (label, identity, is_commutative, evaluator) => {
     const is_associative = true;
 
     function create(contents) {
