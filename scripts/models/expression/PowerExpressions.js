@@ -29,9 +29,20 @@ const PowerExpressions = (expressions, powers) => {
         return combined == null? null : powers.to_expression(combined);
     }
 
+    function left_distribute(parent, left, right) {
+        return null;
+    }
+
+    function right_distribute(parent, left, right) {
+        if (parent.type !== 'pow') return null;
+        return expressions.add(left.contents.map(term => expressions.mul([term, right])));
+    }
+
     return Object.freeze({
         inverse,
         is_inverse,
         combine,
+        left_distribute,
+        right_distribute,
     });
 };

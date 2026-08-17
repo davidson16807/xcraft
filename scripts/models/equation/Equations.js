@@ -134,18 +134,17 @@ function Equations(dependencies) {
     }
 
     function distribute(equation, source_path, target_path) {
-        const source_parent_path = paths.parent(source_path);
-        const target_parent_path = paths.parent(target_path);
-        if (source_parent_path == null || source_parent_path !== target_parent_path) return equation;
-
-        const parent = paths.resolve(equation, source_parent_path);
-        if (parent == null || parent.type !== 'mul') return equation;
+        const parent_path = paths.parent(source_path);
+        if (parent_path == null || parent_path !== paths.parent(target_path)) return equation;
 
         const source = paths.resolve(equation, source_path);
         const target = paths.resolve(equation, target_path);
         const source_index = Number(paths.segment(source_path));
         const target_index = Number(paths.segment(target_path));
         if (target.type === 'constant') return equation;
+
+        const parent = paths.resolve(equation, parent_path);
+        if (parent == null) return equation;
 
         /*
         Preserve the factor's original left/right position.  This is
@@ -155,19 +154,18 @@ function Equations(dependencies) {
         so their position determines whether the distribution is left or right.
         */
         const distributed = source_index < target_index?
-            ring.left_distribute(target.type, source, target)
-          : ring.right_distribute(target.type, target, source);
+            ring.left_distribute(target.type, parent, source, target)
+          : ring.right_distribute(target.type, parent, target, source);
         if (distributed == null) return equation;
 
         return collapse(
             equation,
-            source_parent_path,
+            parent_path,
             source_index,
             target_index,
             distributed
         );
     }
-
 
     function simplify(equation) {
         const left = expressions.simplify(equation.left);
@@ -177,7 +175,6 @@ function Equations(dependencies) {
     }
 
     return Object.freeze({
-        collapse,
         balance,
         swap,
         combine,

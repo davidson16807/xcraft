@@ -16,14 +16,6 @@ const ScaleExpressions = (expressions, scales) => {
         return sign(expression) < 0;
     }
 
-    function left_distribute(left, right) {
-        return expressions.add(right.contents.map(term => expressions.mul([left, term])));
-    }
-
-    function right_distribute(left, right) {
-        return expressions.add(left.contents.map(term => expressions.mul([term, right])));
-    }
-
     function sign(expression) {
         return scales.sign(scales.from_expression(expression));
     }
@@ -35,12 +27,22 @@ const ScaleExpressions = (expressions, scales) => {
         return combined == null? null : scales.to_expression(combined);
     }
 
+    function left_distribute(parent, left, right) {
+        if (parent.type !== 'mul') return null;
+        return expressions.add(right.contents.map(term => expressions.mul([left, term])));
+    }
+
+    function right_distribute(parent, left, right) {
+        if (parent.type !== 'mul') return null;
+        return expressions.add(left.contents.map(term => expressions.mul([term, right])));
+    }
+
     return Object.freeze({
         inverse,
         is_inverse,
-        left_distribute,
-        right_distribute,
         sign,
         combine,
+        left_distribute,
+        right_distribute,
     });
 };
