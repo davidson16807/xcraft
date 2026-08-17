@@ -157,13 +157,15 @@
 
     const expression_shape = ExpressionShape();
     const expressions = MonoidlikeExpressions({
-        'add': MonoidExpressions('add', new Expression('constant', 0), true, true,  
+        'add': MonoidExpressions('add', new Expression('constant', 0), true, true, true, 
             evaluate => expression => expression.contents.reduce((accumulator, item) => accumulator + evaluate(item), 0)
         ),
-        'mul': MonoidExpressions('mul', new Expression('constant', 1), true, true, 
+        'mul': MonoidExpressions('mul', new Expression('constant', 1), true, true, true, 
             evaluate => expression => expression.contents.reduce((accumulator, item) => accumulator * evaluate(item), 1)
         ),
-        'pow': PowerlikeExpressions('pow'),
+        'pow': MonoidExpressions('pow', undefined, false, false, false, 
+            evaluate => expression => Math.pow(evaluate(expression.contents[0]), evaluate(expression.contents[1]))
+        ),
     });
     const scales = Scales(expressions, expression_shape);
     const scale_expressions = ScaleExpressions(expressions, scales);
