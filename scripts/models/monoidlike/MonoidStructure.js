@@ -13,15 +13,21 @@ evaluator       (Expression->T) -> (Expression->T)
                 e.g. subevaluate => expression => expression.contents.reduce((accumulator, item) => accumulator + subevaluate(item, variables), 0)
 */
 const MonoidStructure = (label, identity, is_commutative, evaluator) => {
+    const is_associative = true;
+
     function create(contents) {
-        const flat = [];
-        contents.forEach(term => {
-            if (term.type === label) {
-                term.contents.forEach(x => flat.push(x));
-            } else {
-                flat.push(term);
-            }
-        });
+        let flat = [];
+        if (!is_associative) {
+            flat = contents;
+        } else {
+            contents.forEach(term => {
+                if (term.type === label) {
+                    term.contents.forEach(x => flat.push(x));
+                } else {
+                    flat.push(term);
+                }
+            });
+        }
         if (flat.length === 0) return identity;
         if (flat.length === 1) return flat[0];
         else return new Expression(label, Object.freeze(flat));
@@ -64,4 +70,5 @@ const MonoidStructure = (label, identity, is_commutative, evaluator) => {
         evaluator,
         is_identity,
     });
+
 }
