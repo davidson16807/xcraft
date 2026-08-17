@@ -41,26 +41,8 @@ const Scales = (expressions, expression_shape) => {
         ]);
     }
 
-    function negate(scale) {
+    function invert(scale) {
         return new Scale(-scale.coefficient, scale.basis, scale.key);
-    }
-
-    function scale(scalar, scale) {
-        return new Scale(
-            scalar.contents * scale.coefficient,
-            scale.basis,
-            scale.key
-        );
-    }
-
-    function sign(scale) {
-        return Math.sign(scale.coefficient);
-    }
-
-    function absolute(scale) {
-        return scale.coefficient >= 0?
-            scale :
-            new Scale(-scale.coefficient, scale.basis, scale.key);
     }
 
     function combine(scale1, scale2) {
@@ -75,10 +57,7 @@ const Scales = (expressions, expression_shape) => {
     return Object.freeze({
         from_expression,
         to_expression,
-        negate,
-        scale,
-        sign,
-        absolute,
+        invert,
         combine,
     });
 

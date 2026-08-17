@@ -10,7 +10,7 @@ const PowerExpressions = (expressions, powers) => {
         if (expression.type === 'constant' && expression.contents === 0) return null;
         if (expression.type === 'constant' && expression.contents === 1) return expression;
         return powers.to_expression(
-            powers.reciprocal(
+            powers.invert(
                 powers.from_expression(expression)));
     }
 

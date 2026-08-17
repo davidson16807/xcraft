@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 Decomposes expressions into a numeric power and algebraic base.
@@ -34,7 +35,7 @@ const Powers = (expressions, expression_shape) => {
         return expressions.pow(power.base, power.power);
     }
 
-    function reciprocal(power) {
+    function invert(power) {
         return new Power(power.base, -power.power, power.key);
     }
 
@@ -50,7 +51,7 @@ const Powers = (expressions, expression_shape) => {
     return Object.freeze({
         from_expression,
         to_expression,
-        reciprocal,
+        invert,
         combine,
     });
 };

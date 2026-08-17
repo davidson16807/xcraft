@@ -8,16 +8,12 @@ const ScaleExpressions = (expressions, scales) => {
 
     function inverse(expression) {
         return scales.to_expression(
-            scales.negate(
+            scales.invert(
                 scales.from_expression(expression)));
     }
 
     function is_inverse(expression) {
-        return sign(expression) < 0;
-    }
-
-    function sign(expression) {
-        return scales.sign(scales.from_expression(expression));
+        return scales.from_expression(expression).coefficient < 0;
     }
 
     function combine(left, right) {
@@ -40,7 +36,6 @@ const ScaleExpressions = (expressions, scales) => {
     return Object.freeze({
         inverse,
         is_inverse,
-        sign,
         combine,
         left_distribute,
         right_distribute,
