@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 Every successful operation in this namespace is an equivalence-preserving
@@ -13,7 +12,7 @@ function Equations(dependencies) {
     const paths = dependencies.expression_paths;
     const ringlikes = dependencies.ringlikes;
 
-    function invert(equation, source_path, enabled_operations) {
+    function invert(equation, source_path, enabled) {
         if (source_path == null) return null; // no source? no-op
 
         const source_side = paths.split(source_path).side;
@@ -23,20 +22,17 @@ function Equations(dependencies) {
         const source_root = paths.resolve(equation, source_side);
         const parent_path = paths.parent(source_path);
         const is_alone = source_path === source_side;
-        const enabled = Object.keys(enabled_operations).filter(operation => enabled_operations[operation]);
+        if (is_alone && enabled.size !== 1) return null; // ambiguous? no-op
 
-        if (is_alone) {
-            if (enabled.length !== 1) return null; // ambiguous? no-op
-            return ringlikes.inverse(enabled[0], source);
-        }
+        if (is_alone) return ringlikes.inverse([...enabled][0], source); 
 
-        if (!enabled_operations[source_root.type]) return null; // disabled? no-op
+        if (!enabled.has(source_root.type)) return null; // disabled? no-op
         if (parent_path !== source_side) return null; // not top-level? no-op
         return ringlikes.inverse(source_root.type, source);
     }
 
-    function balance(equation, source_path, target_side, enabled_operations) {
-        if (source_path == null) return null; // no source? no-op
+    function balance(equation, source_path, target_side, enabled) {
+        if (source_path == null) return equation; // no source? no-op
 
         const source_side = paths.split(source_path).side;
         if (source_side === target_side) return equation; // same on both sides? no-op
@@ -44,15 +40,15 @@ function Equations(dependencies) {
         const parent_path = paths.parent(source_path);
         const is_alone = source_path === source_side;
         if (!is_alone && parent_path !== source_side) return equation; // not top-level? no-op
+        if (is_alone && enabled.size !== 1) return equation; // ambiguous? no-op
 
-        const inverse = invert(equation, source_path, enabled_operations);
+        const inverse = invert(equation, source_path, enabled);
         if (inverse == null) return equation; // non-invertible operation? no-op
 
         const source_root = paths.resolve(equation, source_side);
         const target_root = paths.resolve(equation, target_side);
-        const operation = is_alone?
-            Object.keys(enabled_operations).find(operation => enabled_operations[operation]) :
-            source_root.type;
+
+        const operation = is_alone? [...enabled][0] : source_root.type;
 
         // a + b = c  ->  a = c - b
         // ab = c  ->  b = c/a

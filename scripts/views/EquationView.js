@@ -51,10 +51,7 @@ function EquationView(dependencies) {
             }
         }
 
-        const enabled = Object.keys(drag_options.enabled).filter(
-            operation => drag_options.enabled[operation]
-        );
-        return enabled.length === 1? enabled[0] : null;
+        return drag_options.enabled.size === 1? [...enabled][0] : null;
     }
 
     function inverse_prefix(equation, source_path, inverse, drag_options) {

@@ -102,19 +102,19 @@ const app_updater = AppUpdater({
 });
 
 const manual_drag_options = Object.freeze({
-    enabled: Object.freeze({ add:true, mul:true }),
+    enabled: new Set(['add', 'mul', 'pow']),
     auto_simplify: false,
 });
 const auto_simplify_drag_options = Object.freeze({
-    enabled: Object.freeze({ add:true, mul:true }),
+    enabled: new Set(['add', 'mul', 'pow']),
     auto_simplify: true,
 });
 const add_only_drag_options = Object.freeze({
-    enabled: Object.freeze({ add:true, mul:false }),
+    enabled: new Set(['add', 'pow']),
     auto_simplify: false,
 });
 const multiply_only_drag_options = Object.freeze({
-    enabled: Object.freeze({ add:false, mul:true }),
+    enabled: new Set(['mul', 'pow']),
     auto_simplify: false,
 });
 
@@ -652,28 +652,30 @@ function operationToggleInvariant() {
         { enabled:enabled, auto_simplify:false }
     );
 
-    let app = make_app({ add:true, mul:true });
+    let app = make_app(new Set(['add', 'mul', 'pow']));
     app = app_updater.toggle_add(app);
-    assert(!app.drag_options.enabled.add && app.drag_options.enabled.mul,
+    assert(!app.drag_options.enabled.has('add') && app.drag_options.enabled.has('mul'),
         'operation toggle invariant: disabling Add from both should leave Multiply enabled');
     assert(app.drag_options.auto_simplify === false,
         'operation toggle invariant: toggling operations should preserve auto_simplify');
 
     app = app_updater.toggle_multiply(app);
-    assert(app.drag_options.enabled.add && !app.drag_options.enabled.mul,
+    assert(app.drag_options.enabled.has('add') && !app.drag_options.enabled.has('mul'),
         'operation toggle invariant: disabling the last enabled operation should switch to the other operation');
 
     app = app_updater.toggle_multiply(app);
-    assert(app.drag_options.enabled.add && app.drag_options.enabled.mul,
+    assert(app.drag_options.enabled.has('add') && app.drag_options.enabled.has('mul'),
         'operation toggle invariant: enabling an inactive operation should enable both');
 
     app = app_updater.toggle_multiply(app);
-    assert(app.drag_options.enabled.add && !app.drag_options.enabled.mul,
+    assert(app.drag_options.enabled.has('add') && !app.drag_options.enabled.has('mul'),
         'operation toggle invariant: disabling Multiply from both should leave Add enabled');
 
     app = app_updater.toggle_add(app);
-    assert(!app.drag_options.enabled.add && app.drag_options.enabled.mul,
+    assert(!app.drag_options.enabled.has('add') && app.drag_options.enabled.has('mul'),
         'operation toggle invariant: disabling the last Add should switch to Multiply');
+    assert(app.drag_options.enabled.has('pow'),
+        'operation toggle invariant: toggling Add/Multiply should preserve unrelated enabled operations');
 }
 
 // -----------------------------------------------------------------------------

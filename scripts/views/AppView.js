@@ -49,11 +49,11 @@ function AppView(dependencies, app_updater) {
         next_button.disabled = app.level_index === app.levels.length-1;
         light_button.style.display = app.theme !== 'day'? 'none' : '';
         dark_button.style.display = app.theme !== 'night'? 'none' : '';
-        add_button.setAttribute('aria-pressed', String(!!app.drag_options.enabled.add));
-        multiply_button.setAttribute('aria-pressed', String(!!app.drag_options.enabled.mul));
+        add_button.setAttribute('aria-pressed', String(app.drag_options.enabled.has('add')));
+        multiply_button.setAttribute('aria-pressed', String(app.drag_options.enabled.has('mul')));
         auto_simplify_button.setAttribute('aria-pressed', String(!!app.drag_options.auto_simplify));
-        add_indicator.textContent = app.drag_options.enabled.add? 'On' : 'Off';
-        multiply_indicator.textContent = app.drag_options.enabled.mul? 'On' : 'Off';
+        add_indicator.textContent = app.drag_options.enabled.has('add')? 'On' : 'Off';
+        multiply_indicator.textContent = app.drag_options.enabled.has('mul')? 'On' : 'Off';
         auto_simplify_indicator.textContent = app.drag_options.auto_simplify? 'On' : 'Off';
         solved_mark.classList.toggle('visible', solved);
 

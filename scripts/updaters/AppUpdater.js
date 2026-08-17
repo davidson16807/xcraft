@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 `AppUpdater` is the update function in the Model-View-Updater architecture.
@@ -37,11 +36,10 @@ function AppUpdater(dependencies) {
     }
 
     function toggle_operation(app, operation, alternative) {
-        const enabled = { ...app.drag_options.enabled };
-        enabled[operation] = !enabled[operation];
-        if (!enabled[operation] && !Object.values(enabled).some(Boolean)) {
-            enabled[alternative] = true;
-        }
+        const enabled = new Set(app.drag_options.enabled);
+        if (enabled.has(operation)) enabled.delete(operation);
+        else enabled.add(operation);
+        if (!enabled.has(operation) && !enabled.has(alternative)) enabled.add(alternative);
         return release(app.with({
             drag_options: {
                 ...app.drag_options,

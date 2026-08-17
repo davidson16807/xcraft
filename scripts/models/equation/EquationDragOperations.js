@@ -17,7 +17,7 @@ function EquationDragOperations(dependencies) {
 
         const parent_path = paths.parent(source_path);
         const parent = parent_path == null? null : paths.resolve(equation, parent_path);
-        if (parent != null && drag_options.enabled[parent.type] === false) return equation;
+        if (parent != null && !drag_options.enabled.has(parent.type)) return equation;
 
         let moved = equation;
         switch(paths.domain(target_key))
