@@ -27,13 +27,17 @@ const MonoidExpressions = (label, identity, is_commutative, is_associative, eval
                 }
             });
         }
-        if (flat.length === 0) return identity;
+        if (flat.length === 0 && identity != null) return identity;
         if (flat.length === 1) return flat[0];
         else return new Expression(label, Object.freeze(flat));
     }
 
     function is_identity(expression) {
-        return expression.type === identity.type && expression.contents === identity.contents;
+        return (
+            identity != null && 
+            expression.type === identity.type && 
+            expression.contents === identity.contents
+        );
     }
 
     function append(left, right) {
@@ -53,7 +57,7 @@ const MonoidExpressions = (label, identity, is_commutative, is_associative, eval
         return create(contents);
     }
 
-    function remove(expression, index) {
+    function cancel(expression, index) {
         const contents = expression.contents.slice();
         contents.splice(index, 1);
         return expression.type !== label? expression : create(contents);
@@ -65,7 +69,7 @@ const MonoidExpressions = (label, identity, is_commutative, is_associative, eval
         append,
         combine,
         swap,
-        remove,
+        cancel,
         evaluator,
         is_identity,
     });

@@ -60,7 +60,7 @@ function Equations(dependencies) {
         // a/b = c is represented as a*b^-1 = c, so dragging b^-1 across
         // uses the same inverse operation and reciprocal(b^-1) becomes b.
         const new_source = is_alone? expressions[operation]([]) :
-            expressions.remove(source_root, Number(paths.segment(source_path)));
+            expressions.cancel(source_root, Number(paths.segment(source_path)));
         const new_target = expressions.append(operation, target_root, inverse);
         let left, right;
         [left,right] = target_side==='L'? [new_target, new_source] : [new_source, new_target];

@@ -111,10 +111,10 @@ const MonoidlikeExpressions = (monoidlike_expressions_for_tag) => {
         return structure.swap(expression, index1, index2);
     }
 
-    function remove(expression, index) {
+    function cancel(expression, index) {
         const structure = monoidlike_expressions_for_tag[expression.type];
         if (structure == null) return expression;
-        return structure.remove(expression, index);
+        return structure.cancel(expression, index);
     }
 
     function collapse(expression, index1, index2, replacement) {
@@ -160,7 +160,7 @@ const MonoidlikeExpressions = (monoidlike_expressions_for_tag) => {
         append,
         combine,
         swap,
-        remove,
+        cancel,
         collapse,
         simplify,
         evaluate,

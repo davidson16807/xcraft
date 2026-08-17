@@ -37,7 +37,7 @@ const PowerlikeExpressions = (label) => {
         return expression
     }
 
-    function remove(expression, index) {
+    function cancel(expression, index) {
         return expression;
     }
 
@@ -47,7 +47,7 @@ const PowerlikeExpressions = (label) => {
         append,
         combine,
         swap,
-        remove,
+        cancel,
         evaluator, 
     });
 }
