@@ -25,11 +25,13 @@ const ScaleExpressions = (expressions, scales) => {
 
     function left_distribute(parent, left, right) {
         if (parent.type !== 'mul') return null;
+        if (right.type !== 'add') return null;
         return expressions.add(right.contents.map(term => expressions.mul([left, term])));
     }
 
     function right_distribute(parent, left, right) {
         if (parent.type !== 'mul') return null;
+        if (left.type !== 'add') return null;
         return expressions.add(left.contents.map(term => expressions.mul([term, right])));
     }
 

@@ -178,6 +178,7 @@ function solveLevel6() {
 function solveLevel7() {
     let q = levels[6].equation;
     q = move(q, 'L/0', 'path:L/1', manual_drag_options);
+    q = move(q, 'L/1/0', 'path:L/1/1', manual_drag_options);
     assertShape(q, levels[6].goal, 'level 7');
 }
 
@@ -925,30 +926,47 @@ function ringExpressionInterface() {
     const three = expressions.constant(3);
     const x_plus_three = expressions.add([x, three]);
     assertSameExpression(
-        ring_expressions.left_distribute('add', two, x_plus_three),
+        ring_expressions.left_distribute(
+            'add',
+            expressions.mul([two, x_plus_three]),
+            two,
+            x_plus_three
+        ),
         expressions.add([
             expressions.mul([two, x]),
-            expressions.constant(6),
+            expressions.mul([two, three]),
         ]),
         'RingExpressions',
         'left distribution should delegate through the additive group expression'
     );
     assertSameExpression(
-        ring_expressions.right_distribute('add', x_plus_three, two),
+        ring_expressions.right_distribute(
+            'add',
+            expressions.mul([x_plus_three, two]),
+            x_plus_three,
+            two
+        ),
         expressions.add([
-            expressions.mul([two, x]),
-            expressions.constant(6),
+            expressions.mul([x, two]),
+            expressions.mul([three, two]),
         ]),
         'RingExpressions',
         'right distribution should delegate through the additive group expression'
     );
     assert(
-        ring_expressions.left_distribute('mul', two, x_plus_three) == null,
+        ring_expressions.left_distribute('mul', expressions.mul([two, x_plus_three]), two, x_plus_three) == null,
         'RingExpressions: unsupported left distribution should return null'
     );
     assert(
-        ring_expressions.right_distribute('mul', x_plus_three, two) == null,
+        ring_expressions.right_distribute('mul', expressions.mul([x_plus_three, two]), x_plus_three, two) == null,
         'RingExpressions: unsupported right distribution should return null'
+    );
+
+    const product = expressions.mul([x, three]);
+    const square = expressions.pow(product, two);
+    assert(
+        ring_expressions.right_distribute('mul', square, product, two) == null,
+        'RingExpressions: power distribution should remain unsupported'
     );
 }
 
@@ -1573,11 +1591,15 @@ function distributivity() {
         if (!hasAdmissibleAssignment(where)) continue;
 
         const sum = expressions.add([b, c]);
+        if (
+            expressions.combine('mul', a, sum) != null ||
+            ring_expressions.combine('mul', a, sum) != null
+        ) continue;
         const left_expanded = expressions.add(
-            ring_expressions.left_distribute('add', a, sum).contents
+            ring_expressions.left_distribute('add', expressions.mul([a, sum]), a, sum).contents
         );
         const right_expanded = expressions.add(
-            ring_expressions.right_distribute('add', sum, a).contents
+            ring_expressions.right_distribute('add', expressions.mul([sum, a]), sum, a).contents
         );
         const context = `a = ${describeCase(a)}\nb = ${describeCase(b)}\nc = ${describeCase(c)}`;
 

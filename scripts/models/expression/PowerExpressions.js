@@ -32,7 +32,8 @@ const PowerExpressions = (expressions, powers) => {
 
     function right_distribute(parent, left, right) {
         if (parent.type !== 'pow') return null;
-        return expressions.add(left.contents.map(term => expressions.mul([term, right])));
+        if (left.type !== 'mul') return null;
+        return expressions.mul(left.contents.map(term => expressions.pow(term, right)));
     }
 
     return Object.freeze({
