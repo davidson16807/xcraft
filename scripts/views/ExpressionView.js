@@ -8,6 +8,7 @@ function ExpressionView(dependencies) {
     const grouplikes = dependencies.grouplikes;
     const ringlikes = dependencies.ringlikes;
     const render = dependencies.render;
+    const precedence_for_tag = dependencies.precedence_for_tag;
 
     const empty_paths = new Set();
 
@@ -19,7 +20,7 @@ function ExpressionView(dependencies) {
 
     function maybe_parenthesize(node, expression, parent_precedence, is_power_base) {
         const needs_parentheses =
-            grouplikes.precedence(expression) < parent_precedence ||
+            precedence_for_tag(expression.type) < parent_precedence ||
             (is_power_base && expression.type === 'pow');
 
         if (!needs_parentheses) return node;

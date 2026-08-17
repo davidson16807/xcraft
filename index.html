@@ -203,6 +203,14 @@
         grouplikes: grouplikes,
         expression_paths: expression_paths,
         ringlikes: ringlikes,
+        precedence_for_tag: tag => {
+            switch (tag) {
+                case 'add': return 1;
+                case 'mul': return 2;
+                case 'pow': return 3;
+                default: return 4;
+            }
+        }
     });
 
     const equation_view = EquationView({

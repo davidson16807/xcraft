@@ -141,15 +141,6 @@ const Grouplike = (grouplike_expressions_for_tag) => {
 
     const evaluate = (expression, variables) => evaluator(variables)(expression);
 
-    function precedence(expression) {
-        switch (expression.type) {
-            case 'add': return 1;
-            case 'mul': return 2;
-            case 'pow': return 3;
-            default: return 4;
-        }
-    }
-
     return Object.freeze({
         constant,
         variable,
@@ -164,6 +155,5 @@ const Grouplike = (grouplike_expressions_for_tag) => {
         collapse,
         simplify,
         evaluate,
-        precedence,
     });
 };

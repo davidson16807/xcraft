@@ -6,8 +6,7 @@ Every successful operation in this namespace is an equivalence-preserving
 rewrite under the nonzero-divisor assumptions supplied by the active level.
 Unsupported drags return the original equation reference.
 
-`Equations` introduces properties that require more knowledge 
-than what can be provided by structures like `Magma`.
+`Equations` synthesizes algebraic operations that can be derived from `Grouplike` and `Ringlike`.
 */
 function Equations(dependencies) {
     const grouplikes = dependencies.grouplikes;
