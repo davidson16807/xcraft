@@ -12,7 +12,7 @@ identity        Expression
 evaluator       (Expression->T) -> (Expression->T)
                 e.g. subevaluate => expression => expression.contents.reduce((accumulator, item) => accumulator + subevaluate(item, variables), 0)
 */
-const MonoidExpressions = (label, identity, is_commutative, is_associative, is_invertible, evaluator) => {
+const MagmaExpressions = (label, identity, is_commutative, is_associative, is_invertible, evaluator) => {
 
     function create(contents) {
         let formatted = [];

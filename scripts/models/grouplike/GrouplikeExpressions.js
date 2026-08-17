@@ -6,7 +6,7 @@
 Constructors return deeply immutable values.  Transformations never modify
 an input expression; they return either the original reference or a new tree.
 */
-const MonoidlikeExpressions = (grouplike_expressions_for_tag) => {
+const GrouplikeExpressions = (grouplike_expressions_for_tag) => {
 
     const constant = value => new Expression('constant', Number(value));
     const variable = name => new Expression('variable', String(name));

@@ -8,9 +8,8 @@ const root = path.resolve(__dirname, '..');
 [
     'scripts/models/expression/Expression.js',
     'scripts/models/expression/ExpressionShape.js',
-    'scripts/models/grouplike/MonoidExpressions.js',
-    'scripts/models/grouplike/PowerlikeExpressions.js',
-    'scripts/models/grouplike/MonoidlikeExpressions.js',
+    'scripts/models/grouplike/MagmaExpressions.js',
+    'scripts/models/grouplike/GrouplikeExpressions.js',
     'scripts/models/ringlike/Scale.js',
     'scripts/models/ringlike/Scales.js',
     'scripts/models/ringlike/ScaleExpressions.js',
@@ -38,8 +37,8 @@ const root = path.resolve(__dirname, '..');
 });
 
 const expression_shape = ExpressionShape();
-const expressions = MonoidlikeExpressions({
-    'add': MonoidExpressions(
+const expressions = GrouplikeExpressions({
+    'add': MagmaExpressions(
         'add',
         new Expression('constant', 0),
         true,
@@ -49,7 +48,7 @@ const expressions = MonoidlikeExpressions({
             0
         )
     ),
-    'mul': MonoidExpressions(
+    'mul': MagmaExpressions(
         'mul',
         new Expression('constant', 1),
         true,
