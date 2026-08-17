@@ -13,7 +13,7 @@ const Expressions = (structures) => {
 
     const add = structures['add'].create;
     const mul = structures['mul'].create;
-    const pow = structures['pow'].create;
+    const pow = (base, exponent) => structures['pow'].create([base, exponent]);
 
     // provided only as a convenience
     const div = (numerator, denominator) => mul([numerator, pow(denominator, constant(-1))]);

@@ -964,9 +964,28 @@ function ringExpressionInterface() {
 
     const product = expressions.mul([x, three]);
     const square = expressions.pow(product, two);
-    assert(
-        ring_expressions.right_distribute('mul', square, product, two) == null,
-        'RingExpressions: power distribution should remain unsupported'
+    assertSameExpression(
+        ring_expressions.right_distribute('mul', square, product, two),
+        expressions.mul([
+            expressions.pow(x, two),
+            expressions.pow(three, two),
+        ]),
+        'RingExpressions',
+        'right distribution should distribute powers over multiplication'
+    );
+
+    assertMoveTransforms(
+        square,
+        'L/1',
+        'path:L/0',
+        expressions.mul([
+            expressions.pow(x, two),
+            expressions.pow(three, two),
+        ]),
+        'power distributivity',
+        '(3x)^2 = x^2 * 3^2',
+        variables => isDefined(x, variables),
+        manual_drag_options
     );
 }
 

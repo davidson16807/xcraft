@@ -2,9 +2,20 @@
 // HUMAN WRITTEN
 
 const PowerStructure = (label) => {
-    function create(base, exponent) {
-        const exponent_expression = exponent instanceof Expression? exponent : new Expression('constant', exponent);
-        return new Expression(label, Object.freeze([base, exponent_expression]));
+    function create(contents) {
+        if (contents.length === 1)
+            return contents[0];
+
+        if (contents.length !== 2)
+            return null; // or assert/throw, depending on existing convention
+
+        const [base, exponent] = contents;
+        return new Expression(label, Object.freeze([
+            base,
+            exponent instanceof Expression?
+                exponent :
+                new Expression('constant', exponent),
+        ]));
     }
 
     function evaluator(subevaluate) {
