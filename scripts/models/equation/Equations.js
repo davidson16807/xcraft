@@ -22,13 +22,25 @@ function Equations(dependencies) {
         const source_root = paths.resolve(equation, source_side);
         const parent_path = paths.parent(source_path);
         const is_alone = source_path === source_side;
-        if (is_alone && enabled.size !== 1) return null; // ambiguous? no-op
 
-        if (is_alone) return ringlikes.inverse([...enabled][0], source); 
+        if (is_alone) {
+            const inverses = [...enabled]
+                .map(operation => {
+                    const create = grouplikes[operation];
+                    if (create == null || create([]) == null) return null;
+                    return ringlikes.inverse(operation, source);
+                })
+                .filter(inverse => inverse != null);
+            return inverses.length === 1? inverses[0] : null;
+        }
 
         if (!enabled.has(source_root.type)) return null; // disabled? no-op
         if (parent_path !== source_side) return null; // not top-level? no-op
-        return ringlikes.inverse(source_root.type, source);
+        const inverse = ringlikes.inverse(source_root.type, source);
+        if (inverse == null) return null;
+        const cancelled = grouplikes.cancel(
+            source_root, Number(paths.segment(source_path)));
+        return cancelled === source_root? null : inverse;
     }
 
     function balance(equation, source_path, target_side, enabled) {
@@ -40,15 +52,23 @@ function Equations(dependencies) {
         const parent_path = paths.parent(source_path);
         const is_alone = source_path === source_side;
         if (!is_alone && parent_path !== source_side) return equation; // not top-level? no-op
-        if (is_alone && enabled.size !== 1) return equation; // ambiguous? no-op
-
-        const inverse = invert(equation, source_path, enabled);
-        if (inverse == null) return equation; // non-invertible operation? no-op
 
         const source_root = paths.resolve(equation, source_side);
         const target_root = paths.resolve(equation, target_side);
 
-        const operation = is_alone? [...enabled][0] : source_root.type;
+        let operation = source_root.type;
+        let inverse = invert(equation, source_path, enabled);
+        if (inverse == null) return equation; // non-invertible or ambiguous? no-op
+
+        if (is_alone) {
+            const operations = [...enabled].filter(operation => {
+                const create = grouplikes[operation];
+                return create != null && create([]) != null &&
+                    ringlikes.inverse(operation, source_root) != null;
+            });
+            if (operations.length !== 1) return equation;
+            operation = operations[0];
+        }
 
         // a + b = c  ->  a = c - b
         // ab = c  ->  b = c/a
@@ -56,6 +76,7 @@ function Equations(dependencies) {
         // uses the same inverse operation and reciprocal(b^-1) becomes b.
         const new_source = is_alone? grouplikes[operation]([]) :
             grouplikes.cancel(source_root, Number(paths.segment(source_path)));
+        if (new_source == null || (!is_alone && new_source === source_root)) return equation;
         const new_target = grouplikes.append(operation, target_root, inverse);
         let left, right;
         [left,right] = target_side==='L'? [new_target, new_source] : [new_source, new_target];

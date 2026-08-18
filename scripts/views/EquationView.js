@@ -43,15 +43,20 @@ function EquationView(dependencies) {
     }
 
     function operation_for_source(equation, source_path, drag_options) {
+        const source = paths.resolve(equation, source_path);
+        if (source == null) return null;
+
         const parent_path = paths.parent(source_path);
         if (parent_path != null) {
             const parent = paths.resolve(equation, parent_path);
-            if (parent != null && (parent.type === 'add' || parent.type === 'mul')) {
+            if (parent != null && ringlikes.inverse(parent.type, source) != null) {
                 return parent.type;
             }
         }
 
-        return drag_options.enabled.size === 1? [...enabled][0] : null;
+        const operations = [...drag_options.enabled]
+            .filter(operation => ringlikes.inverse(operation, source) != null);
+        return operations.length === 1? operations[0] : null;
     }
 
     function inverse_prefix(equation, source_path, inverse, drag_options) {

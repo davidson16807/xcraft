@@ -523,8 +523,8 @@ function forEachTriple(callback) {
 // -----------------------------------------------------------------------------
 // Enabled drag operations
 // Only enabled operations are draggable. A lone root is draggable only when
-// exactly one operation is enabled, which supplies its otherwise-ambiguous
-// additive or multiplicative meaning.
+// exactly one enabled operation admits a valid inverse/identity rewrite, which
+// supplies its otherwise-ambiguous additive or multiplicative meaning.
 // -----------------------------------------------------------------------------
 
 function enabledDragOperations() {
@@ -593,6 +593,16 @@ function enabledDragOperations() {
     );
 
     const zero_equation = new Equation(zero, rhs);
+    assertEquationMoveTransforms(
+        zero_equation,
+        'L',
+        'side:R',
+        new Equation(zero, grouplikes.add([rhs, zero])),
+        'enabled drag operations',
+        'only the additive interpretation of zero is valid even when add and mul are enabled',
+        () => true,
+        manual_drag_options
+    );
     assert(
         algebra.move(zero_equation, 'L', 'side:R', multiply_only_drag_options) === zero_equation,
         'enabled drag operations: zero must not be draggable multiplicatively'
