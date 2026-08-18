@@ -1592,6 +1592,40 @@ function divisionDefinition() {
 // -----------------------------------------------------------------------------
 
 function multiplicativeBalance() {
+    // A denominator represented as the base of a top-level reciprocal power is
+    // itself a multiplicative drag source.  The whole denominator, not merely
+    // its additive children, must therefore receive a drag handle.
+    const fourteen = grouplikes.constant(14);
+    const three = grouplikes.constant(3);
+    const reciprocal_fourteen = ringlikes.inverse('mul', fourteen);
+    const denominator = grouplikes.add([
+        grouplikes.mul([x, reciprocal_fourteen]),
+        grouplikes.mul([three, reciprocal_fourteen]),
+    ]);
+    const reciprocal_denominator = ringlikes.inverse('mul', denominator);
+    const five = grouplikes.constant(5);
+    const denominator_equation = new Equation(reciprocal_denominator, five);
+    const denominator_where = variables => isDefinedNonzero(denominator, variables);
+
+    assert(
+        algebra.draggable_paths(denominator_equation, manual_drag_options).includes('L/0'),
+        'multiplicative balance: a lone reciprocal denominator should be draggable as a whole'
+    );
+    assert(
+        algebra.moves_for_source(denominator_equation, 'L/0', manual_drag_options).includes('side:R'),
+        'multiplicative balance: a lone reciprocal denominator should balance across equality'
+    );
+    assertEquationMoveTransforms(
+        denominator_equation,
+        'L/0',
+        'side:R',
+        new Equation(one, grouplikes.mul([five, denominator])),
+        'multiplicative balance',
+        '1/(x/14 + 3/14) = 5 -> 1 = 5(x/14 + 3/14)',
+        denominator_where,
+        manual_drag_options
+    );
+
     const factor_cases = field_expression_cases.filter(a =>
         a.type !== 'mul' &&
         !(a.type === 'constant' && a.contents === 0)

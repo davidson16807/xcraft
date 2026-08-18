@@ -29,9 +29,24 @@ function Equations(dependencies) {
 
         if (is_alone) return enabled_inverses[0][1];
 
-        if (!enabled.has(source_root.type)) return null; // disabled? no-op
         if (parent_path !== source_side) return null; // not top-level? no-op
-        return ringlikes.inverse(source_root.type, source);
+
+        // Ordinary top-level child of an enabled ring operation.
+        if (enabled.has(source_root.type)) {
+            const inverse = ringlikes.inverse(source_root.type, source);
+            if (inverse != null) return inverse;
+        }
+
+        // An inverse wrapper can expose its operand as a top-level source even
+        // when the wrapper itself is represented by another grouplike.  For
+        // example, d^-1 displays d as a denominator; dragging d removes the
+        // multiplicative inverse and therefore applies d to the other side.
+        const enclosing_inverses = [...enabled]
+            .map(operation => [operation, ringlikes.inverse(operation, source_root)])
+            .filter(([operation, inverse]) =>
+                inverse === source && ringlikes.is_inverse(operation, source_root)
+            );
+        return enclosing_inverses.length === 1? enclosing_inverses[0][1] : null;
     }
 
     function balance(equation, source_path, target_side, enabled) {
@@ -43,24 +58,30 @@ function Equations(dependencies) {
         const parent_path = paths.parent(source_path);
         const is_alone = source_path === source_side;
         const source = paths.resolve(equation, source_path);
-        const enabled_operations = is_alone? [...enabled]
-            .filter(operation => ringlikes.inverse(operation, source) != null) : [];
+        const source_root = paths.resolve(equation, source_side);
+        const enabled_operations = [...enabled].filter(operation => {
+            if (is_alone) return ringlikes.inverse(operation, source) != null;
+            if (parent_path !== source_side) return false;
+            if (operation === source_root.type)
+                return ringlikes.inverse(operation, source) != null;
+            const inverse = ringlikes.inverse(operation, source_root);
+            return inverse === source && ringlikes.is_inverse(operation, source_root);
+        });
         if (!is_alone && parent_path !== source_side) return equation; // not top-level? no-op
-        if (is_alone && enabled_operations.length !== 1) return equation; // ambiguous? no-op
+        if (enabled_operations.length !== 1) return equation; // ambiguous? no-op
 
         const inverse = invert(equation, source_path, enabled);
         if (inverse == null) return equation; // non-invertible operation? no-op
 
-        const source_root = paths.resolve(equation, source_side);
         const target_root = paths.resolve(equation, target_side);
-
-        const operation = is_alone? enabled_operations[0] : source_root.type;
+        const operation = enabled_operations[0];
 
         // a + b = c  ->  a = c - b
         // ab = c  ->  b = c/a
         // a/b = c is represented as a*b^-1 = c, so dragging b^-1 across
         // uses the same inverse operation and reciprocal(b^-1) becomes b.
-        const new_source = is_alone? grouplikes[operation]([]) :
+        const new_source = is_alone || operation !== source_root.type?
+            grouplikes[operation]([]) :
             grouplikes.cancel(source_root, Number(paths.segment(source_path)));
         const new_target = grouplikes.append(operation, target_root, inverse);
         let left, right;
