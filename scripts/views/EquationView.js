@@ -46,12 +46,11 @@ function EquationView(dependencies) {
         const parent_path = paths.parent(source_path);
         if (parent_path != null) {
             const parent = paths.resolve(equation, parent_path);
-            if (parent != null && (parent.type === 'add' || parent.type === 'mul')) {
-                return parent.type;
-            }
+            if (parent != null && ringlikes.has_inverse(parent.type)) return parent.type;
         }
 
-        return drag_options.enabled.size === 1? [...enabled][0] : null;
+        const enabled = [...drag_options.enabled].filter(type => ringlikes.has_inverse(type));
+        return enabled.length === 1? enabled[0] : null;
     }
 
     function inverse_prefix(equation, source_path, inverse, drag_options) {

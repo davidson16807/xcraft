@@ -43,7 +43,7 @@ For example:
 - `is_inverse`
 - `absolute`
 
-The current additive and multiplicative implementations (`ScaleExpressions` and the unary portion of `PowerExpressions`) belong to this category.
+The current additive and multiplicative implementations (`ScaleExpressions` and unary `PowerExpressions`) belong to this category. `PowerExpressions` is intentionally unary-only: it exposes multiplicative `inverse` / `is_inverse` behavior and does not own binary power laws.
 
 ### Binary ring-like relationships
 
@@ -144,9 +144,9 @@ Primary use:
 
 Both adapters should promote ordinary expressions to exponent `1` when appropriate.
 
-## Planned binary `*Expressions` components
+## Binary `*Expressions` components
 
-Names intentionally follow relationship keys.
+Names intentionally follow relationship keys. Unary `PowerExpressions` remains separate. The first split introduces `MultiplyPowerExpressions` (`mulpow`) and `PowerMultiplyExpressions` (`powmul`); later components fill the remaining roadmap cells.
 
 ### `MultiplyPowerExpressions` — `mulpow`
 

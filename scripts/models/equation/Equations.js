@@ -22,9 +22,10 @@ function Equations(dependencies) {
         const source_root = paths.resolve(equation, source_side);
         const parent_path = paths.parent(source_path);
         const is_alone = source_path === source_side;
-        if (is_alone && enabled.size !== 1) return null; // ambiguous? no-op
+        const enabled_ringlikes = [...enabled].filter(type => ringlikes.has_inverse(type));
+        if (is_alone && enabled_ringlikes.length !== 1) return null; // ambiguous? no-op
 
-        if (is_alone) return ringlikes.inverse([...enabled][0], source); 
+        if (is_alone) return ringlikes.inverse(enabled_ringlikes[0], source); 
 
         if (!enabled.has(source_root.type)) return null; // disabled? no-op
         if (parent_path !== source_side) return null; // not top-level? no-op
@@ -39,8 +40,9 @@ function Equations(dependencies) {
 
         const parent_path = paths.parent(source_path);
         const is_alone = source_path === source_side;
+        const enabled_ringlikes = [...enabled].filter(type => ringlikes.has_inverse(type));
         if (!is_alone && parent_path !== source_side) return equation; // not top-level? no-op
-        if (is_alone && enabled.size !== 1) return equation; // ambiguous? no-op
+        if (is_alone && enabled_ringlikes.length !== 1) return equation; // ambiguous? no-op
 
         const inverse = invert(equation, source_path, enabled);
         if (inverse == null) return equation; // non-invertible operation? no-op
@@ -48,7 +50,7 @@ function Equations(dependencies) {
         const source_root = paths.resolve(equation, source_side);
         const target_root = paths.resolve(equation, target_side);
 
-        const operation = is_alone? [...enabled][0] : source_root.type;
+        const operation = is_alone? enabled_ringlikes[0] : source_root.type;
 
         // a + b = c  ->  a = c - b
         // ab = c  ->  b = c/a

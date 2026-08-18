@@ -16,6 +16,8 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/ringlike/Power.js',
     'scripts/models/ringlike/Powers.js',
     'scripts/models/ringlike/PowerExpressions.js',
+    'scripts/models/ringlike/MultiplyPowerExpressions.js',
+    'scripts/models/ringlike/PowerMultiplyExpressions.js',
     'scripts/models/ringlike/Ringlike.js',
     'scripts/models/equation/Equation.js',
     'scripts/models/equation/EquationShape.js',
@@ -78,10 +80,15 @@ const grouplikes = Grouplikes({
 const scales = Scales(grouplikes, expression_shape);
 const scale_expressions = ScaleExpressions(grouplikes, scales);
 const powers = Powers(grouplikes, expression_shape);
-const power_expressions = PowerExpressions(grouplikes, powers);
+const power_expressions = PowerExpressions(powers);
+const multiply_power_expressions = MultiplyPowerExpressions(powers);
+const power_multiply_expressions = PowerMultiplyExpressions(grouplikes);
 const ringlikes = Ringlike({
     add: scale_expressions,
     mul: power_expressions,
+}, {
+    mulpow: multiply_power_expressions,
+    powmul: power_multiply_expressions,
 });
 const equation_shape = EquationShape(expression_shape);
 const paths = ExpressionPaths(grouplikes);
@@ -839,8 +846,8 @@ function fractionPreservation() {
         'combine should collapse 6/3 to 2'
     );
     assert(
-        power_expressions.combine(six, third) == null,
-        'fraction preservation: PowerExpressions.combine should remain limited to power laws'
+        multiply_power_expressions.combine(six, third) == null,
+        'fraction preservation: MultiplyPowerExpressions.combine should remain limited to power laws'
     );
 
     const thirds = grouplikes.add([
@@ -872,6 +879,34 @@ function fractionPreservation() {
 // -----------------------------------------------------------------------------
 
 function ringExpressionInterface() {
+    assert(
+        power_expressions.combine == null &&
+        power_expressions.left_distribute == null &&
+        power_expressions.right_distribute == null,
+        'PowerExpressions should expose unary multiplicative-group behavior only'
+    );
+
+    const square_x = grouplikes.pow(x, grouplikes.constant(2));
+    assertSameExpression(
+        multiply_power_expressions.combine(x, square_x),
+        grouplikes.pow(x, grouplikes.constant(3)),
+        'MultiplyPowerExpressions',
+        'mulpow should promote x to x^1 and combine equal bases'
+    );
+
+    assert(
+        ringlikes.has_inverse('add'),
+        'Ringlike: add should expose unary inversion'
+    );
+    assert(
+        ringlikes.has_inverse('mul'),
+        'Ringlike: mul should expose unary inversion'
+    );
+    assert(
+        !ringlikes.has_inverse('pow'),
+        'Ringlike: pow should not expose unary inversion'
+    );
+
     const negative_x = ringlikes.inverse('add', x);
     assert(
         ringlikes.is_inverse('add', negative_x),
@@ -1415,7 +1450,7 @@ function multiplicativeInverse() {
         // currently recognizes them as a combinable pair.  For example x*x^-1
         // is supported, while (x^2)*(x^2)^-1 would require power-of-a-power
         // normalization that the game does not yet implement.
-        const combined = power_expressions.combine(a, reciprocal_a);
+        const combined = multiply_power_expressions.combine(a, reciprocal_a);
         if (
             combined != null &&
             orderedExpressionKey(combined) === orderedExpressionKey(one) &&
