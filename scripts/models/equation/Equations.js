@@ -5,7 +5,7 @@ Every successful operation in this namespace is an equivalence-preserving
 rewrite under the nonzero-divisor assumptions supplied by the active level.
 Unsupported drags return the original equation reference.
 
-`Equations` synthesizes algebraic operations that can be derived from `Grouplike` and `Ringlike`.
+`Equations` synthesizes algebraic operations that can be derived from `Grouplikes` and `Ringlike`.
 */
 function Equations(dependencies) {
     const grouplikes = dependencies.grouplikes;

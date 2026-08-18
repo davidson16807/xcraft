@@ -8,8 +8,8 @@ const root = path.resolve(__dirname, '..');
 [
     'scripts/models/expression/Expression.js',
     'scripts/models/expression/ExpressionShape.js',
-    'scripts/models/grouplike/Magma.js',
     'scripts/models/grouplike/Grouplike.js',
+    'scripts/models/grouplike/Grouplikes.js',
     'scripts/models/ringlike/Scale.js',
     'scripts/models/ringlike/Scales.js',
     'scripts/models/ringlike/ScaleExpressions.js',
@@ -37,8 +37,8 @@ const root = path.resolve(__dirname, '..');
 });
 
 const expression_shape = ExpressionShape();
-const grouplikes = Grouplike({
-    'add': Magma(
+const grouplikes = Grouplikes({
+    'add': Grouplike(
         'add',
         new Expression('constant', 0),
         new Expression('constant', 0),
@@ -50,7 +50,7 @@ const grouplikes = Grouplike({
             0
         )
     ),
-    'mul': Magma(
+    'mul': Grouplike(
         'mul',
         new Expression('constant', 1),
         new Expression('constant', 1),
@@ -62,7 +62,7 @@ const grouplikes = Grouplike({
             1
         )
     ),
-    'pow': Magma(
+    'pow': Grouplike(
         'pow',
         undefined,
         new Expression('constant', 1),
@@ -1355,7 +1355,7 @@ function powerIdentity() {
             where
         );
 
-        // Either child may be the drag source; Magma.combine receives the
+        // Either child may be the drag source; Grouplike.combine receives the
         // operands in expression order, so the right identity remains right-sided.
         assertMoveTransforms(
             powered,
