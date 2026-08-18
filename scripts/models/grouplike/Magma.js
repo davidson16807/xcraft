@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 In math, a "magma" is any set to which a binary operation can be applied to always produce another member of the set

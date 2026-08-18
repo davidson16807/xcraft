@@ -15,7 +15,7 @@ const PowerExpressions = (grouplikes, powers) => {
 
     function is_inverse(expression) {
         const power = powers.from_expression(expression);
-        return power.power === -1;
+        return power.power < 0;
     }
 
     function combine(left, right) {
