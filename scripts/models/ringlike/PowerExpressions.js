@@ -32,8 +32,9 @@ const PowerExpressions = (grouplikes, powers) => {
         const exponent = right.contents[1];
         if (base.type !== 'add') return null;
 
-        const inverse_exponent = inverse(exponent);
-        if (inverse_exponent == null) return null;
+        const inverted_exponent = inverse(exponent);
+        if (inverted_exponent == null) return null;
+        const inverse_exponent = grouplikes.simplify(inverted_exponent);
         const factor = grouplikes.pow(left, inverse_exponent);
         return grouplikes.pow(
             grouplikes.add(base.contents.map(term => grouplikes.mul([factor, term]))),
@@ -53,8 +54,9 @@ const PowerExpressions = (grouplikes, powers) => {
         const exponent = left.contents[1];
         if (base.type !== 'add') return null;
 
-        const inverse_exponent = inverse(exponent);
-        if (inverse_exponent == null) return null;
+        const inverted_exponent = inverse(exponent);
+        if (inverted_exponent == null) return null;
+        const inverse_exponent = grouplikes.simplify(inverted_exponent);
         const factor = grouplikes.pow(right, inverse_exponent);
         return grouplikes.pow(
             grouplikes.add(base.contents.map(term => grouplikes.mul([term, factor]))),

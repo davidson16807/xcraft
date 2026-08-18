@@ -1063,6 +1063,44 @@ function ringExpressionInterface() {
         manual_drag_options
     );
 
+    // Inverting a literal negative exponent should be normalized before it is
+    // used as the exponent of the factor moved inside.  Otherwise -1 becomes
+    // the structurally equivalent but visually awkward (-1)^-1, which also
+    // prevents the view from recognizing the resulting factor as reciprocal.
+    const fourteen = grouplikes.constant(14);
+    const x_plus_three_reciprocal = grouplikes.pow(x_plus_three, -1);
+    const reciprocal_fourteen = grouplikes.pow(fourteen, -1);
+    const divided_sum = grouplikes.mul([fourteen, x_plus_three_reciprocal]);
+    const distributed_division = grouplikes.pow(
+        grouplikes.add([
+            grouplikes.mul([reciprocal_fourteen, x]),
+            grouplikes.mul([reciprocal_fourteen, three]),
+        ]),
+        -1
+    );
+
+    assertSameExpression(
+        ringlikes.left_distribute(
+            'pow',
+            divided_sum,
+            fourteen,
+            x_plus_three_reciprocal
+        ),
+        distributed_division,
+        'Ringlike',
+        'distribution into a reciprocal sum should normalize the inverse exponent'
+    );
+    assertMoveTransforms(
+        divided_sum,
+        'L/0',
+        'path:L/1',
+        distributed_division,
+        'power distributivity',
+        '14/(x+3) = 1/(x/14 + 3/14)',
+        variables => variables.x !== -3,
+        manual_drag_options
+    );
+
     const zero_powered_sum = grouplikes.pow(constant_sum, zero);
     assert(
         ringlikes.left_distribute(
