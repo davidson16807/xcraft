@@ -97,9 +97,11 @@ function Equations(dependencies) {
         const source_index = Number(paths.segment(source_path));
         const target_index = Number(paths.segment(target_path));
 
+        const left = source_index < target_index? source : target;
+        const right = source_index < target_index? target : source;
         const combined = (
-            grouplikes.combine(parent.type, source, target) ||
-            ringlikes.combine(parent.type, source, target)
+            grouplikes.combine(parent.type, left, right) ||
+            ringlikes.combine(parent.type, left, right)
         );
         if (combined == null) return equation;
 

@@ -41,6 +41,7 @@ const grouplikes = Grouplike({
     'add': Magma(
         'add',
         new Expression('constant', 0),
+        new Expression('constant', 0),
         true,
         true,
         true,
@@ -51,6 +52,7 @@ const grouplikes = Grouplike({
     ),
     'mul': Magma(
         'mul',
+        new Expression('constant', 1),
         new Expression('constant', 1),
         true,
         true,
@@ -63,6 +65,7 @@ const grouplikes = Grouplike({
     'pow': Magma(
         'pow',
         undefined,
+        new Expression('constant', 1),
         false,
         false,
         false,
@@ -1332,6 +1335,60 @@ function multiplicativeIdentity() {
 }
 
 // -----------------------------------------------------------------------------
+// Power right identity
+// a^1 = a, while 1^a is not an identity law.
+// -----------------------------------------------------------------------------
+
+function powerIdentity() {
+    for (const a of field_expression_cases) {
+        const where = variables => isDefined(a, variables);
+        if (!hasAdmissibleAssignment(where)) continue;
+
+        const powered = grouplikes.pow(a, one);
+        const context = `a = ${describeCase(a)}`;
+
+        assertExpressionsEquivalent(
+            powered,
+            a,
+            'power right identity',
+            context,
+            where
+        );
+
+        // Either child may be the drag source; Magma.combine receives the
+        // operands in expression order, so the right identity remains right-sided.
+        assertMoveTransforms(
+            powered,
+            'L/0',
+            'path:L/1',
+            a,
+            'power right identity',
+            `${context}\nbase is the dragged source`,
+            where,
+            manual_drag_options
+        );
+        assertMoveTransforms(
+            powered,
+            'L/1',
+            'path:L/0',
+            a,
+            'power right identity',
+            `${context}\nexponent is the dragged source`,
+            where,
+            manual_drag_options
+        );
+    }
+
+    const left_identity_candidate = grouplikes.pow(one, x);
+    const equation = new Equation(left_identity_candidate, grouplikes.constant(17));
+    assert(
+        !algebra.moves_for_source(equation, 'L/0', manual_drag_options).includes('path:L/1') &&
+        !algebra.moves_for_source(equation, 'L/1', manual_drag_options).includes('path:L/0'),
+        'power identity: 1 is not a left identity for exponentiation'
+    );
+}
+
+// -----------------------------------------------------------------------------
 // Multiplicative inverse
 // a * a^-1 = 1, for a != 0
 // -----------------------------------------------------------------------------
@@ -1693,6 +1750,7 @@ function distributivity() {
     multiplicativeCommutativity,
     multiplicativeAssociativity,
     multiplicativeIdentity,
+    powerIdentity,
     multiplicativeInverse,
     doubleReciprocal,
     inverseOfProduct,

@@ -7,12 +7,13 @@ so `Magma` can commute, append, combine, and cancel but not combine, or distribu
 since expressing those either requires other properties or knowledge of operations beyond a group.
 
 label           String
+left_identity   Expression?
+right_identity  Expression?
 is_commutative  Boolean
-identity        Expression
 evaluator       (Expression->T) -> (Expression->T)
                 e.g. subevaluate => expression => expression.contents.reduce((accumulator, item) => accumulator + subevaluate(item, variables), 0)
 */
-const Magma = (label, identity, is_commutative, is_associative, is_invertible, evaluator) => {
+const Magma = (label, left_identity, right_identity, is_commutative, is_associative, is_invertible, evaluator) => {
 
     function create(contents) {
         let formatted = [];
@@ -31,16 +32,26 @@ const Magma = (label, identity, is_commutative, is_associative, is_invertible, e
         // wrap in Expression if not done yet
         formatted = formatted.map(item => 
             item instanceof Expression? item : new Expression('constant', item));
-        if (formatted.length === 0 && identity != null) return identity;
+        if (formatted.length === 0) {
+            return left_identity != null && right_identity != null? left_identity : null;
+        }
         if (formatted.length === 1) return formatted[0];
         else return new Expression(label, Object.freeze(formatted));
     }
 
-    function is_identity(expression) {
+    function is_left_identity(expression) {
         return (
-            identity != null && 
-            expression.type === identity.type && 
-            expression.contents === identity.contents
+            left_identity != null &&
+            expression.type === left_identity.type &&
+            expression.contents === left_identity.contents
+        );
+    }
+
+    function is_right_identity(expression) {
+        return (
+            right_identity != null &&
+            expression.type === right_identity.type &&
+            expression.contents === right_identity.contents
         );
     }
 
@@ -51,8 +62,8 @@ const Magma = (label, identity, is_commutative, is_associative, is_invertible, e
     }
 
     function combine(left, right) {
-        if (is_identity(left)) return right;
-        if (is_identity(right)) return left;
+        if (is_left_identity(left)) return right;
+        if (is_right_identity(right)) return left;
         return null;
     }
 
@@ -78,7 +89,8 @@ const Magma = (label, identity, is_commutative, is_associative, is_invertible, e
         commute,
         cancel,
         evaluator,
-        is_identity,
+        is_left_identity,
+        is_right_identity,
     });
 
 }
