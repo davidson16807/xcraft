@@ -22,6 +22,8 @@
     <script src="./scripts/models/ringlike/Scale.js"></script>
     <script src="./scripts/models/ringlike/Scales.js"></script>
     <script src="./scripts/models/ringlike/ScaleExpressions.js"></script>
+    <script src="./scripts/models/ringlike/AddMultiplyExpressions.js"></script>
+    <script src="./scripts/models/ringlike/MultiplyAddExpressions.js"></script>
     <script src="./scripts/models/ringlike/Power.js"></script>
     <script src="./scripts/models/ringlike/Powers.js"></script>
     <script src="./scripts/models/ringlike/PowerExpressions.js"></script>
@@ -169,21 +171,34 @@
         ),
     });
     const scales = Scales(grouplikes, expression_shape);
-    const scale_expressions = ScaleExpressions(grouplikes, scales);
+    const scale_expressions = ScaleExpressions(scales);
+    const add_multiply_expressions = AddMultiplyExpressions(scales);
+    const multiply_add_expressions = MultiplyAddExpressions(grouplikes);
     const powers = Powers(grouplikes, expression_shape);
     const power_expressions = PowerExpressions(powers);
     const multiply_power_expressions = MultiplyPowerExpressions(powers);
     const power_multiply_expressions = PowerMultiplyExpressions(grouplikes);
+    const precedence_for_tag = tag => {
+        switch (tag) {
+            case 'add': return 1;
+            case 'mul': return 2;
+            case 'pow': return 3;
+            default: return 4;
+        }
+    };
     const ringlikes = Ringlike({
         unary: {
             add: scale_expressions,
             mul: power_expressions,
         },
-        binary: [
-            scale_expressions,
-            multiply_power_expressions,
-            power_multiply_expressions,
-        ],
+        binary: {
+            addmul: add_multiply_expressions,
+            muladd: multiply_add_expressions,
+            mulpow: multiply_power_expressions,
+            powmul: power_multiply_expressions,
+        },
+        demote: grouplikes.demote,
+        precedence_for_tag: precedence_for_tag,
     });
     const expression_paths = ExpressionPaths(grouplikes);
     const equation_drag_ops = EquationDragOperations({
@@ -214,14 +229,7 @@
         grouplikes: grouplikes,
         expression_paths: expression_paths,
         ringlikes: ringlikes,
-        precedence_for_tag: tag => {
-            switch (tag) {
-                case 'add': return 1;
-                case 'mul': return 2;
-                case 'pow': return 3;
-                default: return 4;
-            }
-        }
+        precedence_for_tag: precedence_for_tag
     });
 
     const equation_view = EquationView({

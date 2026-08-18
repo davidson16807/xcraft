@@ -2,8 +2,8 @@
 
 /*
 `Grouplike` describes one binary operation on Expressions together with the
-properties needed by `Grouplikes` to construct, append, combine, commute, and
-cancel expressions.  Laws involving relationships between multiple operations
+properties needed by `Grouplikes` to construct, append, combine, demote, commute,
+and cancel expressions.  Laws involving relationships between multiple operations
 belong to the ringlike layer instead.
 
 label           String
@@ -67,6 +67,14 @@ const Grouplike = (label, left_identity, right_identity, is_commutative, is_asso
         return null;
     }
 
+    function demote(expression) {
+        if (expression.type !== label) return expression;
+        const contents = expression.contents.slice();
+        while (contents.length > 1 && is_left_identity(contents[0])) contents.shift();
+        while (contents.length > 1 && is_right_identity(contents[contents.length - 1])) contents.pop();
+        return contents.length === expression.contents.length? expression : create(contents);
+    }
+
     function commute(expression, index1, index2) {
         if (!is_commutative) return expression;
         const contents = expression.contents.slice();
@@ -86,6 +94,7 @@ const Grouplike = (label, left_identity, right_identity, is_commutative, is_asso
         create,
         append,
         combine,
+        demote,
         commute,
         cancel,
         evaluator,

@@ -13,6 +13,8 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/ringlike/Scale.js',
     'scripts/models/ringlike/Scales.js',
     'scripts/models/ringlike/ScaleExpressions.js',
+    'scripts/models/ringlike/AddMultiplyExpressions.js',
+    'scripts/models/ringlike/MultiplyAddExpressions.js',
     'scripts/models/ringlike/Power.js',
     'scripts/models/ringlike/Powers.js',
     'scripts/models/ringlike/PowerExpressions.js',
@@ -78,21 +80,34 @@ const grouplikes = Grouplikes({
     ),
 });
 const scales = Scales(grouplikes, expression_shape);
-const scale_expressions = ScaleExpressions(grouplikes, scales);
+const scale_expressions = ScaleExpressions(scales);
+const add_multiply_expressions = AddMultiplyExpressions(scales);
+const multiply_add_expressions = MultiplyAddExpressions(grouplikes);
 const powers = Powers(grouplikes, expression_shape);
 const power_expressions = PowerExpressions(powers);
 const multiply_power_expressions = MultiplyPowerExpressions(powers);
 const power_multiply_expressions = PowerMultiplyExpressions(grouplikes);
+const precedence_for_tag = tag => {
+    switch (tag) {
+        case 'add': return 1;
+        case 'mul': return 2;
+        case 'pow': return 3;
+        default: return 4;
+    }
+};
 const ringlikes = Ringlike({
     unary: {
         add: scale_expressions,
         mul: power_expressions,
     },
-    binary: [
-        scale_expressions,
-        multiply_power_expressions,
-        power_multiply_expressions,
-    ],
+    binary: {
+        addmul: add_multiply_expressions,
+        muladd: multiply_add_expressions,
+        mulpow: multiply_power_expressions,
+        powmul: power_multiply_expressions,
+    },
+    demote: grouplikes.demote,
+    precedence_for_tag: precedence_for_tag,
 });
 const equation_shape = EquationShape(expression_shape);
 const paths = ExpressionPaths(grouplikes);
@@ -860,7 +875,7 @@ function fractionPreservation() {
         'combine should collapse 6/3 to 2'
     );
     assert(
-        multiply_power_expressions.combine(grouplikes.mul([six, third]), six, third) == null,
+        multiply_power_expressions.combine(six, third) == null,
         'fraction preservation: MultiplyPowerExpressions.combine should remain limited to power laws'
     );
 
@@ -1006,11 +1021,37 @@ function ringExpressionInterface() {
         'Ringlike: unsupported right distribution should return null'
     );
 
+    assertSameExpression(
+        grouplikes.demote(grouplikes.pow(x, one)),
+        x,
+        'demotion',
+        'power right identity should demote independently of simplification'
+    );
+    assertSameExpression(
+        grouplikes.demote(grouplikes.mul([one, x])),
+        x,
+        'demotion',
+        'multiplicative left identity should demote independently of simplification'
+    );
+    assertSameExpression(
+        grouplikes.demote(grouplikes.mul([x, one])),
+        x,
+        'demotion',
+        'multiplicative right identity should demote independently of simplification'
+    );
+    const unsimplified_exponent = grouplikes.add([one, two]);
+    const unsimplified_power = grouplikes.pow(x, unsimplified_exponent);
+    assertSameExpression(
+        grouplikes.demote(unsimplified_power),
+        unsimplified_power,
+        'demotion',
+        'demotion must not perform optional arithmetic simplification'
+    );
+
     const x_squared = grouplikes.pow(x, two);
     const x_cubed = grouplikes.pow(x, three);
     assertSameExpression(
         multiply_power_expressions.combine(
-            grouplikes.mul([x_squared, x_cubed]),
             x_squared,
             x_cubed
         ),
@@ -1021,6 +1062,22 @@ function ringExpressionInterface() {
     assert(
         ringlikes.combine(grouplikes.pow(x, two), x, two) == null,
         'Ringlike: binary power laws must not combine the base and exponent children of pow'
+    );
+    assertSameExpression(
+        ringlikes.combine(grouplikes.mul([x, x_squared]), x, x_squared),
+        grouplikes.pow(x, 3),
+        'Ringlike',
+        'an atomic factor should promote to the degenerate power x^1 for mulpow combination'
+    );
+    assertSameExpression(
+        ringlikes.combine(
+            grouplikes.mul([two, grouplikes.pow(two, three)]),
+            two,
+            grouplikes.pow(two, three)
+        ),
+        grouplikes.pow(two, 4),
+        'Ringlike',
+        'mulpow promotion should work for constant bases'
     );
 
     const product = grouplikes.mul([x, three]);
@@ -1033,6 +1090,16 @@ function ringExpressionInterface() {
         ]),
         'Ringlike',
         'right distribution should distribute powers over multiplication'
+    );
+    const powered_factor_product = grouplikes.mul([x_squared, x_plus_three]);
+    assertSameExpression(
+        ringlikes.left_distribute(powered_factor_product, x_squared, x_plus_three),
+        grouplikes.add([
+            grouplikes.mul([x_squared, x]),
+            grouplikes.mul([x_squared, three]),
+        ]),
+        'Ringlike',
+        'distribution should dispatch from the target structure even when the source has higher precedence'
     );
 
     assertMoveTransforms(
@@ -1458,7 +1525,7 @@ function multiplicativeInverse() {
         // currently recognizes them as a combinable pair.  For example x*x^-1
         // is supported, while (x^2)*(x^2)^-1 would require power-of-a-power
         // normalization that the game does not yet implement.
-        const combined = multiply_power_expressions.combine(product, a, reciprocal_a);
+        const combined = multiply_power_expressions.combine(a, reciprocal_a);
         if (
             combined != null &&
             orderedExpressionKey(combined) === orderedExpressionKey(one) &&

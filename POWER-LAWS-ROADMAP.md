@@ -62,6 +62,17 @@ Relationship keys are conceptual ordered pairs such as:
 
 These keys describe algebraic relationships, not necessarily the literal AST type of every participating child. Lower-ranked expressions may be promoted to degenerate higher-ranked forms by adapters such as `Powers` and `Exponents`.
 
+
+## Promotion and demotion
+
+Promotion is virtual where possible. Adapters interpret lower structures as degenerate higher structures without first rewriting the AST; for example `Powers.from_expression(x)` interprets `x` as `x^1`.
+
+Every ring-like binary result is passed through `demote()` before being committed. Demotion is mandatory structural canonicalization and is **not** auto-simplification. It removes only degenerate structure introduced by identities, such as `1*x -> x`, `x*1 -> x`, and `x^1 -> x`. It does not evaluate arithmetic such as `1+2 -> 3`, fold symbolic expressions, or recursively simplify unrelated pre-existing subtrees.
+
+The intended flow is:
+
+`Expression -> virtual promotion -> relationship operation -> demote -> optional auto-simplify`
+
 ## Fundamental exponentiation laws
 
 Treat the following as the primitive cross-operation laws, subject to level/domain assumptions.
@@ -277,9 +288,15 @@ Indexed conceptually by an ordered relationship key:
 - `powpow`
 - later the analogous additive/multiplicative relationship keys as the scale side is split
 
-These components own binary laws such as `combine`, `left_distribute`, and `right_distribute`. They should be tried polymorphically: an unsupported rule returns `null`; a unique valid result is accepted. Avoid registry metadata such as `tags` when applicability can be discovered by asking the implementations themselves.
+These components own binary laws such as `combine`, `left_distribute`, and `right_distribute`. `Ringlike` dispatches them by relationship key rather than trying every implementation.
 
-The exact registry representation can evolve as the binary components are implemented, but unary inverse behavior must remain separate from pair-key relationships.
+For **combination**, the key is `parent.type + child.type`, where `child` is the highest-precedence structural child among the operands according to the shared `precedence_for_tag`. Atomic expressions do not create relationship keys; they are interpreted as degenerate members of the selected higher structure by adapters such as `Scales` and `Powers`. If neither operand supplies a registered structural child during combination, `Ringlike` selects the highest-precedence registered child relationship for that parent and lets the adapter perform virtual promotion. Thus `x*x` can dispatch as `mulpow` and be interpreted as `x^1*x^1`.
+
+For **distribution**, the relationship child is the distribution target rather than the source. The prototype showed why this distinction is necessary: using the highest-precedence operand globally makes `x^2(a+b)` select `mulpow` and incorrectly hides ordinary `muladd` distributivity. Therefore left distribution looks up `parent.type + right.type`, and right distribution looks up `parent.type + left.type`. This keeps the expression being distributed across responsible for the relationship key while still leaving all contextual dispatch in `Ringlike`.
+
+Concrete relationship implementations should not guard against the parent operation being wrong; contextual dispatch is `Ringlike`'s responsibility. A relationship may still distinguish operand position when position is itself part of the law (notably `powmul`, where multiplication in the base and exponent have different meanings).
+
+Unary inverse behavior remains separate from pair-key relationships and is dispatched directly by operation type.
 
 ### Required split before exponent cancellation
 
@@ -346,5 +363,6 @@ unless a later interaction model explicitly lets the user choose among multiple 
 - Structure-specific rules stay in the corresponding structure/ring-like component.
 - Adapters (`Powers`, `Exponents`, etc.) perform promotion and keying.
 - Views handle notation only.
-- Auto-simplification is post-drag behavior and does not redefine the algebraic rewrite itself.
+- Demotion is mandatory post-ringlike structural canonicalization and remains separate from simplification.
+- Auto-simplification is optional post-drag evaluation and does not redefine the algebraic rewrite itself.
 - Undo/redo restore exact prior states; simplification happens only on new drags.

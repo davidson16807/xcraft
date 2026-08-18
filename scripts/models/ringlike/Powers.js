@@ -31,8 +31,7 @@ const Powers = (grouplikes, expression_shape) => {
 
     function to_expression(power) {
         if (power.power === 0) return grouplikes.constant(1);
-        if (power.power === 1) return power.base;
-        return grouplikes.pow(power.base, power.power);
+        return grouplikes.demote(grouplikes.pow(power.base, power.power));
     }
 
     function invert(power) {

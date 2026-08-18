@@ -34,11 +34,10 @@ const Scales = (grouplikes, expression_shape) => {
     function to_expression(scale) {
         if (scale.basis == null) return grouplikes.constant(scale.coefficient);
         if (scale.coefficient === 0) return grouplikes.constant(0);
-        if (scale.coefficient === 1) return scale.basis;
-        else return grouplikes.mul([
+        return grouplikes.demote(grouplikes.mul([
             grouplikes.constant(scale.coefficient),
             scale.basis
-        ]);
+        ]));
     }
 
     function invert(scale) {

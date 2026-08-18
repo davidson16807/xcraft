@@ -3,7 +3,8 @@
 
 /*
 `Expression` is the immutable model for algebraic grouplikes.
-Constructors return deeply immutable values.  Transformations never modify
+Constructors return deeply immutable values. `demote()` removes only structural
+boundary identities and is separate from optional arithmetic simplification.  Transformations never modify
 an input expression; they return either the original reference or a new tree.
 */
 const Grouplikes = (grouplike_expressions_for_tag) => {
@@ -128,6 +129,12 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         return structure.create(contents);
     }
 
+    function demote(expression) {
+        const structure = grouplike_expressions_for_tag[expression.type];
+        if (structure == null) return expression;
+        return structure.demote(expression);
+    }
+
     const evaluator = variables => expression => {
         const subevaluate = expression => evaluator(variables)(expression);
         const structure = grouplike_expressions_for_tag[expression.type];
@@ -153,6 +160,7 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         commute,
         cancel,
         collapse,
+        demote,
         simplify,
         evaluate,
     });
