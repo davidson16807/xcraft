@@ -16,7 +16,8 @@ const ScaleExpressions = (grouplikes, scales) => {
         return scales.from_expression(expression).coefficient < 0;
     }
 
-    function combine(left, right) {
+    function combine(parent, left, right) {
+        if (parent.type !== 'add') return null;
         const a = scales.from_expression(left);
         const b = scales.from_expression(right);
         const combined = scales.combine(a, b);

@@ -16,6 +16,8 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/ringlike/Power.js',
     'scripts/models/ringlike/Powers.js',
     'scripts/models/ringlike/PowerExpressions.js',
+    'scripts/models/ringlike/MultiplyPowerExpressions.js',
+    'scripts/models/ringlike/PowerMultiplyExpressions.js',
     'scripts/models/ringlike/Ringlike.js',
     'scripts/models/equation/Equation.js',
     'scripts/models/equation/EquationShape.js',
@@ -78,10 +80,19 @@ const grouplikes = Grouplikes({
 const scales = Scales(grouplikes, expression_shape);
 const scale_expressions = ScaleExpressions(grouplikes, scales);
 const powers = Powers(grouplikes, expression_shape);
-const power_expressions = PowerExpressions(grouplikes, powers);
+const power_expressions = PowerExpressions(powers);
+const multiply_power_expressions = MultiplyPowerExpressions(powers);
+const power_multiply_expressions = PowerMultiplyExpressions(grouplikes);
 const ringlikes = Ringlike({
-    add: scale_expressions,
-    mul: power_expressions,
+    unary: {
+        add: scale_expressions,
+        mul: power_expressions,
+    },
+    binary: [
+        scale_expressions,
+        multiply_power_expressions,
+        power_multiply_expressions,
+    ],
 });
 const equation_shape = EquationShape(expression_shape);
 const paths = ExpressionPaths(grouplikes);
@@ -849,8 +860,8 @@ function fractionPreservation() {
         'combine should collapse 6/3 to 2'
     );
     assert(
-        power_expressions.combine(six, third) == null,
-        'fraction preservation: PowerExpressions.combine should remain limited to power laws'
+        multiply_power_expressions.combine(grouplikes.mul([six, third]), six, third) == null,
+        'fraction preservation: MultiplyPowerExpressions.combine should remain limited to power laws'
     );
 
     const thirds = grouplikes.add([
@@ -950,12 +961,18 @@ function ringExpressionInterface() {
         'absolute should preserve an ordinary multiplicative expression'
     );
 
+    assert(
+        power_expressions.combine == null &&
+        power_expressions.left_distribute == null &&
+        power_expressions.right_distribute == null,
+        'Ringlike: unary PowerExpressions should not expose binary relationships'
+    );
+
     const two = grouplikes.constant(2);
     const three = grouplikes.constant(3);
     const x_plus_three = grouplikes.add([x, three]);
     assertSameExpression(
         ringlikes.left_distribute(
-            'add',
             grouplikes.mul([two, x_plus_three]),
             two,
             x_plus_three
@@ -969,7 +986,6 @@ function ringExpressionInterface() {
     );
     assertSameExpression(
         ringlikes.right_distribute(
-            'add',
             grouplikes.mul([x_plus_three, two]),
             x_plus_three,
             two
@@ -982,18 +998,35 @@ function ringExpressionInterface() {
         'right distribution should delegate through the additive group expression'
     );
     assert(
-        ringlikes.left_distribute('mul', grouplikes.mul([two, x_plus_three]), two, x_plus_three) == null,
+        ringlikes.left_distribute(grouplikes.add([two, x_plus_three]), two, x_plus_three) == null,
         'Ringlike: unsupported left distribution should return null'
     );
     assert(
-        ringlikes.right_distribute('mul', grouplikes.mul([x_plus_three, two]), x_plus_three, two) == null,
+        ringlikes.right_distribute(grouplikes.add([x_plus_three, two]), x_plus_three, two) == null,
         'Ringlike: unsupported right distribution should return null'
+    );
+
+    const x_squared = grouplikes.pow(x, two);
+    const x_cubed = grouplikes.pow(x, three);
+    assertSameExpression(
+        multiply_power_expressions.combine(
+            grouplikes.mul([x_squared, x_cubed]),
+            x_squared,
+            x_cubed
+        ),
+        grouplikes.pow(x, 5),
+        'MultiplyPowerExpressions',
+        'common-base multiplication should combine exponents'
+    );
+    assert(
+        ringlikes.combine(grouplikes.pow(x, two), x, two) == null,
+        'Ringlike: binary power laws must not combine the base and exponent children of pow'
     );
 
     const product = grouplikes.mul([x, three]);
     const square = grouplikes.pow(product, two);
     assertSameExpression(
-        ringlikes.right_distribute('mul', square, product, two),
+        ringlikes.right_distribute(square, product, two),
         grouplikes.mul([
             grouplikes.pow(x, two),
             grouplikes.pow(three, two),
@@ -1052,7 +1085,7 @@ function additiveCommutativity() {
             a.type !== 'add' &&
             b.type !== 'add' &&
             grouplikes.combine('add', a, b) == null &&
-            ringlikes.combine('add', a, b) == null
+            ringlikes.combine(grouplikes.add([a, b]), a, b) == null
         ) {
             assertMoveTransforms(
                 left,
@@ -1231,7 +1264,7 @@ function multiplicativeCommutativity() {
             a.type !== 'mul' &&
             b.type !== 'mul' &&
             grouplikes.combine('mul', a, b) == null &&
-            ringlikes.combine('mul', a, b) == null &&
+            ringlikes.combine(grouplikes.mul([a, b]), a, b) == null &&
             a.type !== 'add' &&
             b.type !== 'add'
         ) {
@@ -1421,11 +1454,11 @@ function multiplicativeInverse() {
         );
 
         // Test cancellation through the public move API when a and a^-1 are
-        // represented as two direct sibling factors *and* PowerExpressions
+        // represented as two direct sibling factors *and* MultiplyPowerExpressions
         // currently recognizes them as a combinable pair.  For example x*x^-1
         // is supported, while (x^2)*(x^2)^-1 would require power-of-a-power
         // normalization that the game does not yet implement.
-        const combined = power_expressions.combine(a, reciprocal_a);
+        const combined = multiply_power_expressions.combine(product, a, reciprocal_a);
         if (
             combined != null &&
             orderedExpressionKey(combined) === orderedExpressionKey(one) &&
@@ -1694,13 +1727,13 @@ function distributivity() {
         const sum = grouplikes.add([b, c]);
         if (
             grouplikes.combine('mul', a, sum) != null ||
-            ringlikes.combine('mul', a, sum) != null
+            ringlikes.combine(grouplikes.mul([a, sum]), a, sum) != null
         ) continue;
         const left_expanded = grouplikes.add(
-            ringlikes.left_distribute('add', grouplikes.mul([a, sum]), a, sum).contents
+            ringlikes.left_distribute(grouplikes.mul([a, sum]), a, sum).contents
         );
         const right_expanded = grouplikes.add(
-            ringlikes.right_distribute('add', grouplikes.mul([sum, a]), sum, a).contents
+            ringlikes.right_distribute(grouplikes.mul([sum, a]), sum, a).contents
         );
         const context = `a = ${describeCase(a)}\nb = ${describeCase(b)}\nc = ${describeCase(c)}`;
 
