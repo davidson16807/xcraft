@@ -1586,6 +1586,64 @@ function divisionDefinition() {
 }
 
 // -----------------------------------------------------------------------------
+// Virtual inverse operands
+// A visible denominator D inside D^-1 behaves as the multiplicative operand
+// represented by the reciprocal: dragging D across removes D^-1 and appends D
+// to the other side.
+// -----------------------------------------------------------------------------
+
+function virtualInverseOperands() {
+    const fourteen = grouplikes.constant(14);
+    const three = grouplikes.constant(3);
+    const denominator = grouplikes.add([
+        grouplikes.mul([x, grouplikes.pow(fourteen, -1)]),
+        grouplikes.mul([three, grouplikes.pow(fourteen, -1)]),
+    ]);
+    const reciprocal = ringlikes.inverse('mul', denominator);
+    const rhs = grouplikes.constant(2);
+    const where = variables => {
+        const value = valueOf(denominator, variables);
+        return Number.isFinite(value) && value !== 0;
+    };
+
+    const reciprocal_equation = new Equation(reciprocal, rhs);
+    assert(
+        algebra.draggable_paths(reciprocal_equation, manual_drag_options).includes('L/0'),
+        'virtual inverse operands: the whole denominator of 1/D should be draggable'
+    );
+    assertEquationMoveTransforms(
+        reciprocal_equation,
+        'L/0',
+        'side:R',
+        new Equation(one, grouplikes.mul([rhs, denominator])),
+        'virtual inverse operands',
+        '1/D = b -> 1 = bD',
+        where,
+        manual_drag_options
+    );
+    assert(
+        algebra.move(reciprocal_equation, 'L/0', 'side:R', add_only_drag_options) === reciprocal_equation,
+        'virtual inverse operands: denominator balance should be disabled when multiplication is disabled'
+    );
+
+    const numerator = grouplikes.constant(5);
+    const quotient_equation = new Equation(
+        grouplikes.mul([numerator, reciprocal]),
+        rhs
+    );
+    assertEquationMoveTransforms(
+        quotient_equation,
+        'L/1/0',
+        'side:R',
+        new Equation(numerator, grouplikes.mul([rhs, denominator])),
+        'virtual inverse operands',
+        'a/D = b -> a = bD',
+        where,
+        manual_drag_options
+    );
+}
+
+// -----------------------------------------------------------------------------
 // Multiplicative balance
 // ax = b  <->  x = b a^-1, for a != 0
 // x a^-1 = b  <->  x = ba, for a != 0
@@ -1808,6 +1866,7 @@ function distributivity() {
     inverseOfProduct,
     multiplicativeCancellation,
     divisionDefinition,
+    virtualInverseOperands,
     multiplicativeBalance,
     distributivity,
 ].forEach(test => test());

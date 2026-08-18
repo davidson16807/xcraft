@@ -43,15 +43,21 @@ function EquationView(dependencies) {
     }
 
     function operation_for_source(equation, source_path, drag_options) {
+        const source = paths.resolve(equation, source_path);
         const parent_path = paths.parent(source_path);
         if (parent_path != null) {
             const parent = paths.resolve(equation, parent_path);
+            const inverse_operations = [...drag_options.enabled]
+                .filter(operation =>
+                    ringlikes.is_inverse(operation, parent) &&
+                    ringlikes.absolute(operation, parent) === source
+                );
+            if (inverse_operations.length === 1) return inverse_operations[0];
             if (parent != null && (parent.type === 'add' || parent.type === 'mul')) {
                 return parent.type;
             }
         }
 
-        const source = paths.resolve(equation, source_path);
         const enabled = [...drag_options.enabled]
             .filter(operation => ringlikes.inverse(operation, source) != null);
         return enabled.length === 1? enabled[0] : null;

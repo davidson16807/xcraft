@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 function ExpressionView(dependencies) {
 
@@ -199,9 +198,20 @@ function ExpressionView(dependencies) {
                         path_attributes(path, draggable_paths, valid_targets, 'expression-fraction'),
                         [
                             html.span({ class:'fraction-numerator' }, [math('1')]),
-                            html.span({ class:'fraction-denominator' }, [
-                                draw(base, paths.base(path), draggable_paths, valid_targets, 0)
-                            ]),
+                            html.span(
+                                path_attributes(
+                                    paths.base(path),
+                                    draggable_paths,
+                                    valid_targets,
+                                    'fraction-denominator'
+                                ),
+                                [draw_contents(
+                                    base,
+                                    paths.base(path),
+                                    draggable_paths,
+                                    valid_targets
+                                )]
+                            ),
                         ]
                     );
                 } else {

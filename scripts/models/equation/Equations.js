@@ -21,6 +21,8 @@ function Equations(dependencies) {
 
         const source_root = paths.resolve(equation, source_side);
         const parent_path = paths.parent(source_path);
+        const parent = parent_path == null? null : paths.resolve(equation, parent_path);
+        const grandparent_path = parent_path == null? null : paths.parent(parent_path);
         const is_alone = source_path === source_side;
         const enabled_inverses = is_alone? [...enabled]
             .map(operation => [operation, ringlikes.inverse(operation, source)])
@@ -28,6 +30,23 @@ function Equations(dependencies) {
         if (is_alone && enabled_inverses.length !== 1) return null; // ambiguous? no-op
 
         if (is_alone) return enabled_inverses[0][1];
+
+        const virtual_inverses = parent == null? [] : [...enabled]
+            .filter(operation =>
+                ringlikes.is_inverse(operation, parent) &&
+                ringlikes.absolute(operation, parent) === source &&
+                (
+                    parent_path === source_side ||
+                    (
+                        grandparent_path === source_side &&
+                        source_root.type === operation
+                    )
+                )
+            )
+            .map(operation => [operation, ringlikes.inverse(operation, parent)])
+            .filter(([, inverse]) => inverse != null);
+        if (virtual_inverses.length === 1) return virtual_inverses[0][1];
+        if (virtual_inverses.length > 1) return null; // ambiguous? no-op
 
         if (!enabled.has(source_root.type)) return null; // disabled? no-op
         if (parent_path !== source_side) return null; // not top-level? no-op
@@ -41,27 +60,52 @@ function Equations(dependencies) {
         if (source_side === target_side) return equation; // same on both sides? no-op
 
         const parent_path = paths.parent(source_path);
+        const parent = parent_path == null? null : paths.resolve(equation, parent_path);
+        const grandparent_path = parent_path == null? null : paths.parent(parent_path);
         const is_alone = source_path === source_side;
         const source = paths.resolve(equation, source_path);
+        const source_root = paths.resolve(equation, source_side);
         const enabled_operations = is_alone? [...enabled]
             .filter(operation => ringlikes.inverse(operation, source) != null) : [];
-        if (!is_alone && parent_path !== source_side) return equation; // not top-level? no-op
+        const virtual_operations = is_alone || parent == null? [] : [...enabled]
+            .filter(operation =>
+                ringlikes.is_inverse(operation, parent) &&
+                ringlikes.absolute(operation, parent) === source &&
+                (
+                    parent_path === source_side ||
+                    (
+                        grandparent_path === source_side &&
+                        source_root.type === operation
+                    )
+                )
+            );
+        if (
+            !is_alone &&
+            parent_path !== source_side &&
+            virtual_operations.length !== 1
+        ) return equation; // not top-level? no-op
         if (is_alone && enabled_operations.length !== 1) return equation; // ambiguous? no-op
+        if (virtual_operations.length > 1) return equation; // ambiguous? no-op
 
         const inverse = invert(equation, source_path, enabled);
         if (inverse == null) return equation; // non-invertible operation? no-op
 
-        const source_root = paths.resolve(equation, source_side);
         const target_root = paths.resolve(equation, target_side);
-
-        const operation = is_alone? enabled_operations[0] : source_root.type;
+        const operation = is_alone? enabled_operations[0] :
+            virtual_operations.length === 1? virtual_operations[0] : source_root.type;
 
         // a + b = c  ->  a = c - b
         // ab = c  ->  b = c/a
         // a/b = c is represented as a*b^-1 = c, so dragging b^-1 across
         // uses the same inverse operation and reciprocal(b^-1) becomes b.
-        const new_source = is_alone? grouplikes[operation]([]) :
-            grouplikes.cancel(source_root, Number(paths.segment(source_path)));
+        // The visible denominator b is the absolute value of the inverse factor
+        // b^-1, so dragging b removes that inverse factor and multiplies the
+        // other side by b.
+        const new_source = is_alone || parent_path === source_side && virtual_operations.length === 1?
+            grouplikes[operation]([]) :
+            virtual_operations.length === 1?
+                grouplikes.cancel(source_root, Number(paths.segment(parent_path))) :
+                grouplikes.cancel(source_root, Number(paths.segment(source_path)));
         const new_target = grouplikes.append(operation, target_root, inverse);
         let left, right;
         [left,right] = target_side==='L'? [new_target, new_source] : [new_source, new_target];
