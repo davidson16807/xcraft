@@ -28,6 +28,8 @@ For `add` and `mul`, both identities exist and are the same expression. For `pow
 
 A nullary `create([])` is meaningful only when the operation has both a left and right identity; if both exist they are necessarily equal.
 
+Cancellation should likewise be directional. In particular, exponentiation is right-cancellable: for fixed nonzero `b`, `(a^b)^(1/b) = a` under the active domain assumptions. Thus `pow` may cancel its right child while not generally cancelling its left child.
+
 ### `Grouplikes`
 
 Registry/dispatcher over `Grouplike` instances. It handles generic expression operations that require knowledge of only the parent operation.
@@ -44,6 +46,8 @@ For example:
 - `absolute`
 
 The current additive and multiplicative implementations (`ScaleExpressions` and the unary portion of `PowerExpressions`) belong to this category.
+
+**Do not register `pow` against the current mixed `PowerExpressions` implementation.** `PowerExpressions` currently also owns binary laws such as common-base combination and power distribution. If the same object were registered for `pow`, generic `combine()` dispatch on the children of a power could accidentally apply multiplicative power laws to `(base, exponent)`. Split unary and binary responsibilities first.
 
 ### Binary ring-like relationships
 
@@ -243,12 +247,59 @@ Do not implement this until needed by concrete levels/features.
 
 ## `Ringlike` direction
 
-`Ringlike` coordinates two different kinds of behavior:
+`Ringlike` coordinates two fundamentally different categories of behavior and should keep their dispatch separate.
 
-1. unary group behavior keyed by an operation (`add`, `mul`)
-2. binary operation relationships keyed by ordered relationship (`mulpow`, `powadd`, `powmul`, `powpow`)
+### Unary operation behavior
 
-The exact registry representation can evolve as the binary components are implemented. Avoid forcing unary inverse behavior into pair-key categories.
+Indexed by a single operation, eventually including:
+
+- `add` -> additive inverse implementation
+- `mul` -> reciprocal implementation
+- `pow` -> reciprocal-exponent implementation
+
+Common unary surface:
+
+- `inverse(expression)`
+- `is_inverse(expression)`
+- `absolute(expression)` (derivable as `is_inverse(expression) ? inverse(expression) : expression`)
+
+For multiplication and exponentiation, the same reciprocal-expression implementation may be reused: multiplication uses `b^-1` as the multiplicative inverse, while exponentiation uses `b^-1` as the inverse exponent for cancelling the right operand.
+
+Unary dispatch must not expose or depend on binary `combine()`/`distribute()` behavior.
+
+### Binary operation relationships
+
+Indexed conceptually by an ordered relationship key:
+
+- `mulpow`
+- `powadd`
+- `powmul`
+- `powpow`
+- later the analogous additive/multiplicative relationship keys as the scale side is split
+
+These components own binary laws such as `combine`, `left_distribute`, and `right_distribute`. They should be tried polymorphically: an unsupported rule returns `null`; a unique valid result is accepted. Avoid registry metadata such as `tags` when applicability can be discovered by asking the implementations themselves.
+
+The exact registry representation can evolve as the binary components are implemented, but unary inverse behavior must remain separate from pair-key relationships.
+
+### Required split before exponent cancellation
+
+Before mapping `pow` into unary inverse dispatch, split the current mixed `PowerExpressions` responsibilities:
+
+1. **Unary power inverse implementation**
+   - `inverse(expression)`
+   - `is_inverse(expression)`
+   - no `combine` or `distribute` methods
+
+2. **`MultiplyPowerExpressions` (`mulpow`)**
+   - existing common-base combination `a^b * a^c -> a^(b+c)`
+   - later common-exponent combination and exponent alignment
+
+3. **`PowerMultiplyExpressions` (`powmul`)**
+   - existing `(ab)^c -> a^c * b^c` distribution
+
+Then `pow` can safely reuse the unary reciprocal implementation without causing `Equations.combine()` or distribution dispatch to invoke unrelated multiplicative power laws on the base/exponent children of a `pow`.
+
+`ScaleExpressions` has the same unary/binary conflation (`inverse/is_inverse` plus scale combination/distribution). It should eventually receive an analogous split, but that need not block the power refactor unless the shared registry design requires symmetry immediately.
 
 ## Rewrite priority
 
@@ -270,22 +321,28 @@ unless a later interaction model explicitly lets the user choose among multiple 
 
 ## Implementation order
 
-1. Refactor `Grouplike` to support left and right identities.
-2. Add power right identity (`1`) and tests, with no `Ringlike` change.
-3. Preserve unary inverse/is-inverse behavior as its own category.
-4. Introduce `Exponent` and `Exponents`.
-5. Split current binary `PowerExpressions` responsibilities into relationship-key components.
-6. Implement `MultiplyPowerExpressions` with same-base priority, then same-exponent combination.
-7. Implement generalized exponent alignment `a^d * b^c -> (a^(d/c)b)^c`, including constant bases.
-8. Implement `PowerAddExpressions`.
-9. Implement/complete `PowerMultiplyExpressions`.
-10. Implement `PowerPowerExpressions`.
-11. Expand property tests around A–C in both directions and their derived inverse laws.
-12. Revisit assumptions only when a level requires runtime tracking beyond level specification.
+1. Refactor `Grouplike` to support left/right identities and directional cancellation.
+2. Add power right identity (`1`) and tests, with no ring-like special case.
+3. **Split unary and binary `PowerExpressions` responsibilities before registering `pow` for inverse dispatch.**
+   - extract unary reciprocal `inverse/is_inverse` behavior
+   - move common-base multiplication law to `MultiplyPowerExpressions`
+   - move `(ab)^c -> a^c b^c` to `PowerMultiplyExpressions`
+4. Register unary behavior by operation so `pow` can use reciprocal-exponent cancellation safely.
+5. Verify `a^b = c -> a = c^(1/b)` through generic right cancellation + unary inverse, subject to level assumptions.
+6. Introduce `Exponent` and `Exponents`.
+7. Extend `MultiplyPowerExpressions` with same-base priority, then same-exponent combination.
+8. Implement generalized exponent alignment `a^d * b^c -> (a^(d/c)b)^c`, including constant bases.
+9. Implement `PowerAddExpressions`.
+10. Complete `PowerMultiplyExpressions`, including any reverse Law C transform only when factorization is supplied by gesture/context.
+11. Implement `PowerPowerExpressions`.
+12. Consider the analogous unary/binary split for `ScaleExpressions` so the additive side follows the same architecture.
+13. Expand property tests around A–C in both directions and their derived inverse laws.
+14. Revisit assumptions only when a level requires runtime tracking beyond level specification.
 
 ## Architectural constraints
 
 - `Equations` must not special-case `add`, `mul`, or `pow` laws.
+- Unary inverse dispatch and binary relationship dispatch are separate concerns; do not register a mixed implementation in both roles.
 - Structure-specific rules stay in the corresponding structure/ring-like component.
 - Adapters (`Powers`, `Exponents`, etc.) perform promotion and keying.
 - Views handle notation only.
