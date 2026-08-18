@@ -12,11 +12,11 @@ The central rule is that `Equations` should remain a generic equation/tree rewri
 
 Immutable syntax tree only. It represents notation-independent algebraic structure.
 
-### `Magma`
+### `Grouplike`
 
 Describes the structural laws of one binary expression operation. It owns construction, append, commute, cancellation, identity combination, and evaluation behavior that can be determined from that operation alone.
 
-`Magma` should distinguish **left identity** and **right identity**:
+`Grouplike` should distinguish **left identity** and **right identity**:
 
 - left identity `e_L`: `e_L * a = a`
 - right identity `e_R`: `a * e_R = a`
@@ -28,9 +28,9 @@ For `add` and `mul`, both identities exist and are the same expression. For `pow
 
 A nullary `create([])` is meaningful only when the operation has both a left and right identity; if both exist they are necessarily equal.
 
-### `Grouplike`
+### `Grouplikes`
 
-Registry/dispatcher over `Magma` instances. It handles generic expression operations that require knowledge of only the parent operation.
+Registry/dispatcher over `Grouplike` instances. It handles generic expression operations that require knowledge of only the parent operation.
 
 ### Unary ring-like expression behavior
 
@@ -66,7 +66,7 @@ Treat the following as the primitive cross-operation laws, subject to level/doma
 
 `a^1 = a`
 
-`a^0 = 1` is an annihilator/zero-exponent law, not an identity law, and should not be conflated with `Magma` identity handling.
+`a^0 = 1` is an annihilator/zero-exponent law, not an identity law, and should not be conflated with `Grouplike` identity handling.
 
 ### Law A — exponent addition
 
@@ -270,7 +270,7 @@ unless a later interaction model explicitly lets the user choose among multiple 
 
 ## Implementation order
 
-1. Refactor `Magma` to support left and right identities.
+1. Refactor `Grouplike` to support left and right identities.
 2. Add power right identity (`1`) and tests, with no `Ringlike` change.
 3. Preserve unary inverse/is-inverse behavior as its own category.
 4. Introduce `Exponent` and `Exponents`.
