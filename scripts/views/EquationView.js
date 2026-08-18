@@ -51,7 +51,10 @@ function EquationView(dependencies) {
             }
         }
 
-        return drag_options.enabled.size === 1? [...enabled][0] : null;
+        const source = paths.resolve(equation, source_path);
+        const enabled = [...drag_options.enabled]
+            .filter(operation => ringlikes.inverse(operation, source) != null);
+        return enabled.length === 1? enabled[0] : null;
     }
 
     function inverse_prefix(equation, source_path, inverse, drag_options) {

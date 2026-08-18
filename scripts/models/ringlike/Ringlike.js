@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 Operates on grouplikes through the group associated with a ringlikes operation.
@@ -29,15 +28,23 @@ const Ringlike = ringlikes_expressions_for_tag => {
     }
 
     function left_distribute(type, parent, left, right) {
-        const group_expression_for_type = ringlikes_expressions_for_tag[type];
-        return group_expression_for_type == null? null :
-            group_expression_for_type.left_distribute(parent, left, right);
+        const preferred = ringlikes_expressions_for_tag[type];
+        if (preferred != null) return preferred.left_distribute(parent, left, right);
+        for (const ringlike of new Set(Object.values(ringlikes_expressions_for_tag))) {
+            const distributed = ringlike.left_distribute(parent, left, right);
+            if (distributed != null) return distributed;
+        }
+        return null;
     }
 
     function right_distribute(type, parent, left, right) {
-        const group_expression_for_type = ringlikes_expressions_for_tag[type];
-        return group_expression_for_type == null? null :
-            group_expression_for_type.right_distribute(parent, left, right);
+        const preferred = ringlikes_expressions_for_tag[type];
+        if (preferred != null) return preferred.right_distribute(parent, left, right);
+        for (const ringlike of new Set(Object.values(ringlikes_expressions_for_tag))) {
+            const distributed = ringlike.right_distribute(parent, left, right);
+            if (distributed != null) return distributed;
+        }
+        return null;
     }
 
     return Object.freeze({

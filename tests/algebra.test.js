@@ -1002,6 +1002,77 @@ function ringExpressionInterface() {
         variables => isDefined(x, variables),
         manual_drag_options
     );
+
+
+    // A factor outside an arbitrary power of a sum can be moved inside by
+    // raising that factor to the reciprocal of the outer exponent:
+    // b(a+c)^x = (b^(1/x)a + b^(1/x)c)^x.
+    const four = grouplikes.constant(4);
+    const constant_sum = grouplikes.add([two, three]);
+    const powered_sum = grouplikes.pow(constant_sum, x);
+    const inverse_exponent = ringlikes.inverse('mul', x);
+    const inner_factor = grouplikes.pow(four, inverse_exponent);
+    const left_power_distribution = grouplikes.pow(
+        grouplikes.add([
+            grouplikes.mul([inner_factor, two]),
+            grouplikes.mul([inner_factor, three]),
+        ]),
+        x
+    );
+    const right_power_distribution = grouplikes.pow(
+        grouplikes.add([
+            grouplikes.mul([two, inner_factor]),
+            grouplikes.mul([three, inner_factor]),
+        ]),
+        x
+    );
+
+    const left_power_product = grouplikes.mul([four, powered_sum]);
+    assertSameExpression(
+        ringlikes.left_distribute('pow', left_power_product, four, powered_sum),
+        left_power_distribution,
+        'Ringlike',
+        'left distribution should move a factor inside an arbitrary power of a sum'
+    );
+    assertMoveTransforms(
+        left_power_product,
+        'L/0',
+        'path:L/1',
+        left_power_distribution,
+        'power distributivity',
+        '4(2+3)^x = (4^(1/x)2 + 4^(1/x)3)^x',
+        variables => variables.x !== 0,
+        manual_drag_options
+    );
+
+    const right_power_product = grouplikes.mul([powered_sum, four]);
+    assertSameExpression(
+        ringlikes.right_distribute('pow', right_power_product, powered_sum, four),
+        right_power_distribution,
+        'Ringlike',
+        'right distribution should move a factor inside an arbitrary power of a sum'
+    );
+    assertMoveTransforms(
+        right_power_product,
+        'L/1',
+        'path:L/0',
+        right_power_distribution,
+        'power distributivity',
+        '(2+3)^x 4 = (2*4^(1/x) + 3*4^(1/x))^x',
+        variables => variables.x !== 0,
+        manual_drag_options
+    );
+
+    const zero_powered_sum = grouplikes.pow(constant_sum, zero);
+    assert(
+        ringlikes.left_distribute(
+            'pow',
+            grouplikes.mul([four, zero_powered_sum]),
+            four,
+            zero_powered_sum
+        ) == null,
+        'Ringlike: moving a factor inside a zero power should be unsupported'
+    );
 }
 
 // -----------------------------------------------------------------------------
@@ -1219,6 +1290,7 @@ function multiplicativeCommutativity() {
             b.type !== 'mul' &&
             grouplikes.combine('mul', a, b) == null &&
             ringlikes.combine('mul', a, b) == null &&
+            ringlikes.left_distribute(b.type, left, a, b) == null &&
             a.type !== 'add' &&
             b.type !== 'add'
         ) {

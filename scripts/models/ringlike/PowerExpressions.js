@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 Operates on grouplikes that can be expressed as powers.
@@ -27,13 +26,40 @@ const PowerExpressions = (grouplikes, powers) => {
     }
 
     function left_distribute(parent, left, right) {
-        return null;
+        if (parent.type !== 'mul') return null;
+        if (right.type !== 'pow') return null;
+        const base = right.contents[0];
+        const exponent = right.contents[1];
+        if (base.type !== 'add') return null;
+
+        const inverse_exponent = inverse(exponent);
+        if (inverse_exponent == null) return null;
+        const factor = grouplikes.pow(left, inverse_exponent);
+        return grouplikes.pow(
+            grouplikes.add(base.contents.map(term => grouplikes.mul([factor, term]))),
+            exponent
+        );
     }
 
     function right_distribute(parent, left, right) {
-        if (parent.type !== 'pow') return null;
-        if (left.type !== 'mul') return null;
-        return grouplikes.mul(left.contents.map(term => grouplikes.pow(term, right)));
+        if (parent.type === 'pow') {
+            if (left.type !== 'mul') return null;
+            return grouplikes.mul(left.contents.map(term => grouplikes.pow(term, right)));
+        }
+
+        if (parent.type !== 'mul') return null;
+        if (left.type !== 'pow') return null;
+        const base = left.contents[0];
+        const exponent = left.contents[1];
+        if (base.type !== 'add') return null;
+
+        const inverse_exponent = inverse(exponent);
+        if (inverse_exponent == null) return null;
+        const factor = grouplikes.pow(right, inverse_exponent);
+        return grouplikes.pow(
+            grouplikes.add(base.contents.map(term => grouplikes.mul([term, factor]))),
+            exponent
+        );
     }
 
     return Object.freeze({
