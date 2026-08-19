@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 `Grouplike` describes one binary operation on Expressions together with the
@@ -17,7 +16,6 @@ const Grouplike = (label, identity, properties, evaluator) => {
 
     const is_commutative = properties.is_commutative;
     const is_associative = properties.is_associative;
-    const is_invertible = properties.is_invertible;
     const is_left_cancellative = properties.is_left_cancellative;
     const is_right_cancellative = properties.is_right_cancellative;
 
@@ -39,18 +37,11 @@ const Grouplike = (label, identity, properties, evaluator) => {
         formatted = formatted.map(item => 
             item instanceof Expression? item : new Expression('constant', item));
         if (formatted.length === 0) {
-            return identity != null && identity != null? identity : null;
+            return identity != null && is_left_cancellative && is_right_cancellative?
+                identity : null;
         }
         if (formatted.length === 1) return formatted[0];
         else return new Expression(label, Object.freeze(formatted));
-    }
-
-    function _is_identity(expression) {
-        return (
-            identity != null &&
-            expression.type === identity.type &&
-            expression.contents === identity.contents
-        );
     }
 
     function _is_identity(expression) {
@@ -81,10 +72,20 @@ const Grouplike = (label, identity, properties, evaluator) => {
     }
 
     function cancel(expression, index) {
-        if (!is_invertible) return expression;
+        if (expression.type !== label) return expression;
+        if (index < 0 || index >= expression.contents.length) return expression;
+
+        const is_left = index === 0;
+        const is_right = index === expression.contents.length - 1;
+        const is_cancellable =
+            (is_left && is_left_cancellative) ||
+            (is_right && is_right_cancellative) ||
+            (is_commutative && (is_left_cancellative || is_right_cancellative));
+        if (!is_cancellable) return expression;
+
         const contents = expression.contents.slice();
         contents.splice(index, 1);
-        return expression.type !== label? expression : create(contents);
+        return create(contents);
     }
 
     return Object.freeze({

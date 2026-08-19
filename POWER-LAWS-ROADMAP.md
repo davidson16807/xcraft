@@ -47,7 +47,7 @@ For example:
 
 The current additive and multiplicative implementations (`ScaleExpressions` and the unary portion of `PowerExpressions`) belong to this category.
 
-**Do not register `pow` against the current mixed `PowerExpressions` implementation.** `PowerExpressions` currently also owns binary laws such as common-base combination and power distribution. If the same object were registered for `pow`, generic `combine()` dispatch on the children of a power could accidentally apply multiplicative power laws to `(base, exponent)`. Split unary and binary responsibilities first.
+This split is now implemented. `PowerExpressions` is unary-only, while binary laws live in relationship-specific components. `pow` may therefore safely reuse `PowerExpressions` for reciprocal-exponent inversion without exposing binary `combine()` or distribution behavior on `(base, exponent)` children.
 
 ### Binary ring-like relationships
 
@@ -123,8 +123,10 @@ This interpretation belongs in adapter/data structures, not in `Equations`.
 Represents a power keyed by its base:
 
 - base
-- exponent/power
+- exponent/power as an `Expression`
 - key derived from base
+
+Keeping the exponent as an `Expression` allows symbolic rules such as `x^a * x^b -> x^(a+b)`. Numeric sums are constructed structurally first and may then be reduced by auto-simplification.
 
 `Powers` maps `Expression <-> Power` and supports operations where a common base matters.
 
@@ -280,7 +282,7 @@ Indexed conceptually by an ordered relationship key:
 These components own binary laws such as `combine`, `left_distribute`, and `right_distribute`. They are registered by operation-pair key rather than searched polymorphically. `Ringlike` performs exactly one deterministic lookup:
 
 - unary behavior: `type`;
-- combination: `parent.type + child.type`, where `child` is the higher-precedence operand according to `precedence_for_tag`;
+- combination: `parent.type + child.type`, where `child` is the higher-precedence expression between the drag source and drop target according to `precedence_for_tag`;
 - left distribution: `parent.type + right.type`, because the left operand distributes across the right operand;
 - right distribution: `parent.type + left.type`, because the right operand distributes across the left operand.
 
@@ -288,9 +290,9 @@ Atomic expressions (`constant`, `variable`) have precedence rank `0` for relatio
 
 Avoid registry metadata such as `tags`; applicability is encoded directly by the operation-pair lookup. Unary inverse behavior remains separate from pair-key relationships.
 
-### Required split before exponent cancellation
+### Unary/binary split
 
-Before mapping `pow` into unary inverse dispatch, split the current mixed `PowerExpressions` responsibilities:
+The split required before exponent cancellation is now implemented:
 
 1. **Unary power inverse implementation**
    - `inverse(expression)`
@@ -298,13 +300,14 @@ Before mapping `pow` into unary inverse dispatch, split the current mixed `Power
    - no `combine` or `distribute` methods
 
 2. **`MultiplyPowerExpressions` (`mulpow`)**
-   - existing common-base combination `a^b * a^c -> a^(b+c)`
-   - later common-exponent combination and exponent alignment
+   - common-base combination `a^b * a^c -> a^(b+c)`
+   - common-exponent combination `a^c * b^c -> (ab)^c`
+   - exponent alignment `a^d * b^c -> (a^(d/c)b)^c`
 
 3. **`PowerMultiplyExpressions` (`powmul`)**
    - existing `(ab)^c -> a^c * b^c` distribution
 
-Then `pow` can safely reuse the unary reciprocal implementation without causing `Equations.combine()` or distribution dispatch to invoke unrelated multiplicative power laws on the base/exponent children of a `pow`.
+`pow` now safely reuses the unary reciprocal implementation without causing `Equations.combine()` or distribution dispatch to invoke unrelated multiplicative power laws on the base/exponent children of a `pow`.
 
 `ScaleExpressions` has the same unary/binary conflation (`inverse/is_inverse` plus scale combination/distribution). It should eventually receive an analogous split, but that need not block the power refactor unless the shared registry design requires symmetry immediately.
 
@@ -328,17 +331,17 @@ unless a later interaction model explicitly lets the user choose among multiple 
 
 ## Implementation order
 
-1. Refactor `Grouplike` to support left/right identities and directional cancellation.
-2. Add power right identity (`1`) and tests, with no ring-like special case.
-3. **Split unary and binary `PowerExpressions` responsibilities before registering `pow` for inverse dispatch.**
-   - extract unary reciprocal `inverse/is_inverse` behavior
-   - move common-base multiplication law to `MultiplyPowerExpressions`
-   - move `(ab)^c -> a^c b^c` to `PowerMultiplyExpressions`
-4. Register unary behavior by operation so `pow` can use reciprocal-exponent cancellation safely.
-5. Verify `a^b = c -> a = c^(1/b)` through generic right cancellation + unary inverse, subject to level assumptions.
-6. Introduce `Exponent` and `Exponents`.
-7. Extend `MultiplyPowerExpressions` with same-base priority, then same-exponent combination.
-8. Implement generalized exponent alignment `a^d * b^c -> (a^(d/c)b)^c`, including constant bases.
+1. **Implemented:** refactor `Grouplike` to support one-sided identity behavior and directional cancellation.
+2. **Implemented:** add power right identity (`1`) and tests, with no ring-like special case.
+3. **Implemented:** split unary and binary `PowerExpressions` responsibilities.
+   - unary reciprocal `inverse/is_inverse` remains in `PowerExpressions`
+   - common-base multiplication lives in `MultiplyPowerExpressions`
+   - `(ab)^c -> a^c b^c` lives in `PowerMultiplyExpressions`
+4. **Implemented:** register unary behavior by operation so `pow` can use reciprocal-exponent cancellation safely.
+5. **Implemented:** verify `a^b = c -> a = c^(1/b)` through generic right cancellation + unary inverse, subject to level assumptions.
+6. **Implemented:** introduce `Exponent` and `Exponents`.
+7. **Implemented:** extend `MultiplyPowerExpressions` with same-base priority and same-exponent combination.
+8. **Implemented:** generalized exponent alignment `a^d * b^c -> (a^(d/c)b)^c`, including constant bases. The drop target supplies the exponent being aligned to.
 9. Implement `PowerAddExpressions`.
 10. Complete `PowerMultiplyExpressions`, including any reverse Law C transform only when factorization is supplied by gesture/context.
 11. Implement `PowerPowerExpressions`.
@@ -354,9 +357,12 @@ The application intentionally includes level fixtures ahead of implementation so
 Currently solve-tested power levels demonstrate:
 
 - right identity: `a^1 -> a`
-- same-base multiplication: `a^b * a^c -> a^(b+c)` for the currently supported numeric exponents
+- right exponent cancellation: `a^b = c -> a = c^(1/b)`
+- same-base multiplication: `a^b * a^c -> a^(b+c)`, including symbolic exponents
 - power of a product: `(ab)^c -> a^c * b^c`
 - the derived like-base quotient form represented structurally as `a^b * a^-c -> a^(b-c)`
+- same-exponent combination: `a^c * b^c -> (ab)^c`
+- exponent alignment: `a^d * b^c -> (a^(d/c)b)^c`
 
 The power fixtures are ordered pedagogically rather than by implementation status. `Undo an exponent` appears before `Same base` because it introduces directional power invertibility. The fixtures then exercise same-base combination, power of a product, quotient of powers, same-exponent combination, exponent alignment, and negative exponents before moving to the remaining binary power relationships.
 
@@ -364,6 +370,7 @@ The remaining roadmap mechanisms are exposed directly by levels:
 
 - `Split an exponent sum` requires distributing the base across an additive exponent (`powadd`).
 - `Power of a power`, `Root then power`, and `Power then root` require exponent combination through `PowerPowerExpressions` (`powpow`).
+- `Negative exponent` also requires the reverse/nesting side of `powpow`: `x^-b = (x^b)^-1` factors the exponent as `b*(-1)`; directional cancellation alone does not perform this rewrite.
 - `Factor an exponent` is the reverse `powpow` fixture and uses the general symbolic form `x^(ab) = c`.
 - `Zero exponent` is presented as `y^0 = x`, making `x` the quantity being solved while the irrelevant nonzero base remains unspecified.
 - A single `Rational exponent` fixture is retained; the previous two orientations were redundant with the nested-power/root fixtures.

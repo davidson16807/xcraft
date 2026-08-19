@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 `Expression` is the immutable model for algebraic grouplikes.
@@ -87,6 +86,11 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         return expression.with({ contents: Object.freeze(contents) });
     }
 
+    function create(type, contents) {
+        const structure = grouplike_expressions_for_tag[type];
+        return structure == null? null : structure.create(contents);
+    }
+
     function append(type, left, right) {
         const structure = grouplike_expressions_for_tag[type];
         if (structure == null) return left;
@@ -144,6 +148,7 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
     return Object.freeze({
         constant,
         variable,
+        create,
         add,
         mul,
         pow,

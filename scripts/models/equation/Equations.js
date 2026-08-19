@@ -26,8 +26,7 @@ function Equations(dependencies) {
         if (is_alone) {
             const inverses = [...enabled]
                 .map(operation => {
-                    const create = grouplikes[operation];
-                    if (create == null || create([]) == null) return null;
+                    if (grouplikes.create(operation, []) == null) return null;
                     return ringlikes.inverse(operation, source);
                 })
                 .filter(inverse => inverse != null);
@@ -62,8 +61,7 @@ function Equations(dependencies) {
 
         if (is_alone) {
             const operations = [...enabled].filter(operation => {
-                const create = grouplikes[operation];
-                return create != null && create([]) != null &&
+                return grouplikes.create(operation, []) != null &&
                     ringlikes.inverse(operation, source_root) != null;
             });
             if (operations.length !== 1) return equation;
@@ -74,7 +72,7 @@ function Equations(dependencies) {
         // ab = c  ->  b = c/a
         // a/b = c is represented as a*b^-1 = c, so dragging b^-1 across
         // uses the same inverse operation and reciprocal(b^-1) becomes b.
-        const new_source = is_alone? grouplikes[operation]([]) :
+        const new_source = is_alone? grouplikes.create(operation, []) :
             grouplikes.cancel(source_root, Number(paths.segment(source_path)));
         if (new_source == null || (!is_alone && new_source === source_root)) return equation;
         const new_target = grouplikes.append(operation, target_root, inverse);
@@ -122,7 +120,7 @@ function Equations(dependencies) {
         const right = source_index < target_index? target : source;
         const combined = (
             grouplikes.combine(parent.type, left, right) ||
-            ringlikes.combine(parent, left, right)
+            ringlikes.combine(parent, source, target)
         );
         if (combined == null) return equation;
 

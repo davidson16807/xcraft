@@ -1,9 +1,8 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 Coordinates unary ring-like behavior by operation and binary relationships by
-an operation-pair key. Combination keys use the highest-precedence child;
+an operation-pair key. Combination keys use the highest-precedence source/target expression;
 distribution keys use the child being distributed across.
 */
 const Ringlike = dependencies => {
@@ -31,11 +30,11 @@ const Ringlike = dependencies => {
         return binary_expressions_for_tag[parent.type + child.type];
     }
 
-    function combine(parent, left, right) {
-        const child = precedence_for_tag(left.type) >= precedence_for_tag(right.type)? left : right;
+    function combine(parent, source, target) {
+        const child = precedence_for_tag(source.type) >= precedence_for_tag(target.type)? source : target;
         const expressions = binary(parent, child);
         return expressions == null || expressions.combine == null? null :
-            expressions.combine(parent, left, right);
+            expressions.combine(parent, source, target);
     }
 
     function left_distribute(parent, left, right) {

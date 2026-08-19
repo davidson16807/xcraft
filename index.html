@@ -22,7 +22,9 @@
     <script src="./scripts/models/ringlike/Scales.js"></script>
     <script src="./scripts/models/ringlike/ScaleExpressions.js"></script>
     <script src="./scripts/models/ringlike/Power.js"></script>
+    <script src="./scripts/models/ringlike/Exponent.js"></script>
     <script src="./scripts/models/ringlike/Powers.js"></script>
+    <script src="./scripts/models/ringlike/Exponents.js"></script>
     <script src="./scripts/models/ringlike/PowerExpressions.js"></script>
     <script src="./scripts/models/ringlike/MultiplyPowerExpressions.js"></script>
     <script src="./scripts/models/ringlike/PowerMultiplyExpressions.js"></script>
@@ -164,7 +166,6 @@
             {
                 is_commutative: true, 
                 is_associative: true, 
-                is_invertible: true,
                 is_left_cancellative: true, 
                 is_right_cancellative: true,
             },
@@ -174,7 +175,6 @@
             {
                 is_commutative: true, 
                 is_associative: true, 
-                is_invertible: true,
                 is_left_cancellative: true, 
                 is_right_cancellative: true,
             },
@@ -190,13 +190,15 @@
     const scales = Scales(grouplikes, expression_shape);
     const scale_expressions = ScaleExpressions(grouplikes, scales);
     const powers = Powers(grouplikes, expression_shape);
+    const exponents = Exponents(grouplikes, expression_shape);
     const power_expressions = PowerExpressions(powers);
-    const multiply_power_expressions = MultiplyPowerExpressions(powers);
+    const multiply_power_expressions = MultiplyPowerExpressions(powers, exponents);
     const power_multiply_expressions = PowerMultiplyExpressions(grouplikes);
     const ringlikes = Ringlike({
         unary: {
             add: scale_expressions,
             mul: power_expressions,
+            pow: power_expressions,
         },
         binary: {
             addconstant: scale_expressions,
@@ -246,6 +248,7 @@
         render: katex.render,
         grouplikes: grouplikes,
         expression_paths: expression_paths,
+        grouplikes: grouplikes,
         ringlikes: ringlikes,
         precedence_for_tag: tag => {
             switch (tag) {
@@ -262,6 +265,7 @@
         render: katex.render,
         equation_drag_operations: equation_drag_ops,
         expression_paths: expression_paths,
+        grouplikes: grouplikes,
         ringlikes: ringlikes,
         expression_view: expression_view,
     });

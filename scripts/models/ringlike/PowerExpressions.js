@@ -15,7 +15,7 @@ const PowerExpressions = (powers) => {
 
     function is_inverse(expression) {
         const power = powers.from_expression(expression);
-        return power.power === -1;
+        return power.power.type === 'constant' && power.power.contents === -1;
     }
 
     return Object.freeze({

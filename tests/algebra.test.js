@@ -15,7 +15,9 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/ringlike/Scales.js',
     'scripts/models/ringlike/ScaleExpressions.js',
     'scripts/models/ringlike/Power.js',
+    'scripts/models/ringlike/Exponent.js',
     'scripts/models/ringlike/Powers.js',
+    'scripts/models/ringlike/Exponents.js',
     'scripts/models/ringlike/PowerExpressions.js',
     'scripts/models/ringlike/MultiplyPowerExpressions.js',
     'scripts/models/ringlike/PowerMultiplyExpressions.js',
@@ -45,7 +47,6 @@ const grouplikes = Grouplikes({
         {
             is_commutative: true,
             is_associative: true,
-            is_invertible: true,
             is_left_cancellative: true,
             is_right_cancellative: true,
         },
@@ -58,7 +59,6 @@ const grouplikes = Grouplikes({
         {
             is_commutative: true,
             is_associative: true,
-            is_invertible: true,
             is_left_cancellative: true,
             is_right_cancellative: true,
         },
@@ -80,8 +80,9 @@ const grouplikes = Grouplikes({
 const scales = Scales(grouplikes, expression_shape);
 const scale_expressions = ScaleExpressions(grouplikes, scales);
 const powers = Powers(grouplikes, expression_shape);
+const exponents = Exponents(grouplikes, expression_shape);
 const power_expressions = PowerExpressions(powers);
-const multiply_power_expressions = MultiplyPowerExpressions(powers);
+const multiply_power_expressions = MultiplyPowerExpressions(powers, exponents);
 const power_multiply_expressions = PowerMultiplyExpressions(grouplikes);
 const precedence_for_tag = tag => {
     switch (tag) {
@@ -95,6 +96,7 @@ const ringlikes = Ringlike({
     unary: {
         add: scale_expressions,
         mul: power_expressions,
+        pow: power_expressions,
     },
     binary: {
         addconstant: scale_expressions,
@@ -265,10 +267,31 @@ function solvePowerIdentity() {
     assertShape(q, level.goal, 'Power identity');
 }
 
+function solveUndoAnExponent() {
+    const level = levels.find(level => level.title === 'Undo an exponent');
+    let q = level.equation;
+    q = move(q, 'L/1', 'side:R', manual_drag_options);
+    assertShape(q, level.goal, 'Undo an exponent');
+}
+
+function solveSameExponent() {
+    const level = levels.find(level => level.title === 'Same exponent');
+    let q = level.equation;
+    q = move(q, 'L/0', 'path:L/1', manual_drag_options);
+    assertShape(q, level.goal, 'Same exponent');
+}
+
+function solveAlignExponent() {
+    const level = levels.find(level => level.title === 'Align exponent');
+    let q = level.equation;
+    q = move(q, 'L/0', 'path:L/1', manual_drag_options);
+    assertShape(q, level.goal, 'Align exponent');
+}
+
 function solveSameBase() {
     const level = levels.find(level => level.title === 'Same base');
     let q = level.equation;
-    q = move(q, 'L/0', 'path:L/1', manual_drag_options);
+    q = move(q, 'L/0', 'path:L/1', auto_simplify_drag_options);
     assertShape(q, level.goal, 'Same base');
 }
 
@@ -282,7 +305,7 @@ function solvePowerOfAProduct() {
 function solveQuotientOfPowers() {
     const level = levels.find(level => level.title === 'Quotient of powers');
     let q = level.equation;
-    q = move(q, 'L/0', 'path:L/1', manual_drag_options);
+    q = move(q, 'L/0', 'path:L/1', auto_simplify_drag_options);
     assertShape(q, level.goal, 'Quotient of powers');
 }
 
@@ -874,6 +897,19 @@ function automaticSimplification() {
 function fractionPreservation() {
     const two = grouplikes.constant(2);
     const three = grouplikes.constant(3);
+    const inverse_exponent = ringlikes.inverse('pow', three);
+    assertSameExpression(
+        inverse_exponent,
+        grouplikes.pow(three, grouplikes.constant(-1)),
+        'Ringlike',
+        'power right inverse should be represented by a reciprocal exponent'
+    );
+    assert(
+        ringlikes.is_inverse('pow', inverse_exponent),
+        'Ringlike: reciprocal exponent should be recognized as a power inverse'
+    );
+
+
     const six = grouplikes.constant(6);
     const third = ringlikes.inverse('mul', three);
     const one_third = grouplikes.mul([one, third]);
@@ -902,9 +938,18 @@ function fractionPreservation() {
         'fraction preservation',
         'combine should collapse 6/3 to 2'
     );
+    const aligned_fraction = multiply_power_expressions.combine(
+        grouplikes.mul([two, third]), two, third);
     assert(
-        multiply_power_expressions.combine(grouplikes.mul([six, third]), six, third) == null,
-        'fraction preservation: MultiplyPowerExpressions.combine should remain limited to power laws'
+        aligned_fraction != null && aligned_fraction.type !== 'constant',
+        'fraction preservation: power alignment should preserve a fractional result structurally'
+    );
+    assertExpressionsEquivalent(
+        aligned_fraction,
+        grouplikes.mul([two, third]),
+        'fraction preservation',
+        'power alignment should preserve the exact quotient represented by reciprocal structure',
+        () => true
     );
 
     const thirds = grouplikes.add([
@@ -978,7 +1023,6 @@ function ringExpressionInterface() {
         'multiplicative identity should be its own inverse'
     );
 
-
     assertSameExpression(
         ringlikes.absolute('add', negative_x),
         x,
@@ -1013,6 +1057,19 @@ function ringExpressionInterface() {
 
     const two = grouplikes.constant(2);
     const three = grouplikes.constant(3);
+    const inverse_exponent = ringlikes.inverse('pow', three);
+    assertSameExpression(
+        inverse_exponent,
+        grouplikes.pow(three, grouplikes.constant(-1)),
+        'Ringlike',
+        'power right inverse should be represented by a reciprocal exponent'
+    );
+    assert(
+        ringlikes.is_inverse('pow', inverse_exponent),
+        'Ringlike: reciprocal exponent should be recognized as a power inverse'
+    );
+
+
     const x_plus_three = grouplikes.add([x, three]);
     assertSameExpression(
         ringlikes.left_distribute(
@@ -1051,15 +1108,25 @@ function ringExpressionInterface() {
 
     const x_squared = grouplikes.pow(x, two);
     const x_cubed = grouplikes.pow(x, three);
+    assert(
+        grouplikes.cancel(x_cubed, 0) === x_cubed,
+        'Grouplike: the base of a power should not be cancellable'
+    );
+    assertSameExpression(
+        grouplikes.cancel(x_cubed, 1),
+        x,
+        'Grouplike',
+        'the right exponent of a power should be cancellable'
+    );
     assertSameExpression(
         ringlikes.combine(grouplikes.mul([x, x_squared]), x, x_squared),
-        grouplikes.pow(x, 3),
+        grouplikes.pow(x, grouplikes.add([one, two])),
         'Ringlike',
-        'combination should select mulpow from the higher-precedence power child'
+        'combination should select mulpow and preserve the exponent sum structurally'
     );
     assertSameExpression(
         ringlikes.combine(grouplikes.mul([x, x]), x, x),
-        grouplikes.pow(x, 2),
+        grouplikes.pow(x, grouplikes.add([one, one])),
         'Ringlike',
         'atomic factors should use the degenerate mulpower relationship'
     );
@@ -1084,10 +1151,58 @@ function ringExpressionInterface() {
             x_squared,
             x_cubed
         ),
-        grouplikes.pow(x, 5),
+        grouplikes.pow(x, grouplikes.add([two, three])),
         'MultiplyPowerExpressions',
-        'common-base multiplication should combine exponents'
+        'common-base multiplication should combine exponent Expressions'
     );
+    const exponent_a = grouplikes.variable('a');
+    const exponent_b = grouplikes.variable('b');
+    const x_to_a = grouplikes.pow(x, exponent_a);
+    const x_to_b = grouplikes.pow(x, exponent_b);
+    assertSameExpression(
+        multiply_power_expressions.combine(
+            grouplikes.mul([x_to_a, x_to_b]),
+            x_to_a,
+            x_to_b
+        ),
+        grouplikes.pow(x, grouplikes.add([exponent_a, exponent_b])),
+        'MultiplyPowerExpressions',
+        'common-base multiplication should support symbolic exponents'
+    );
+    const three_squared = grouplikes.pow(three, two);
+    assertSameExpression(
+        ringlikes.combine(
+            grouplikes.mul([x_squared, three_squared]),
+            x_squared,
+            three_squared
+        ),
+        grouplikes.pow(grouplikes.mul([x, three]), two),
+        'Ringlike',
+        'common-exponent powers should combine their bases'
+    );
+    assert(
+        ringlikes.combine(grouplikes.mul([x, y_expression]), x, y_expression) == null,
+        'Ringlike: degenerate exponent 1 should not advertise a no-op combination'
+    );
+
+    const two_cubed = grouplikes.pow(two, three);
+    assertSameExpression(
+        ringlikes.combine(
+            grouplikes.mul([two_cubed, three_squared]),
+            two_cubed,
+            three_squared
+        ),
+        grouplikes.pow(
+            grouplikes.mul([
+                grouplikes.pow(two, grouplikes.div(three, two)),
+                three,
+            ]),
+            two
+        ),
+        'Ringlike',
+        'exponent alignment should work when both bases are constants'
+    );
+
     assert(
         ringlikes.combine(grouplikes.pow(x, two), x, two) == null,
         'Ringlike: binary power laws must not combine the base and exponent children of pow'
@@ -1847,9 +1962,12 @@ function distributivity() {
     solveLevel9,
     solveLevel10,
     solvePowerIdentity,
+    solveUndoAnExponent,
     solveSameBase,
     solvePowerOfAProduct,
     solveQuotientOfPowers,
+    solveSameExponent,
+    solveAlignExponent,
 ].forEach(test => test());
 
 [
@@ -1878,7 +1996,7 @@ function distributivity() {
 ].forEach(test => test());
 
 console.log(
-    `ok - 14 level solutions; `+
+    `ok - 17 level solutions; `+
     `${stats.semantic_cases} property cases; `+
     `${stats.evaluations} evaluations; `+
     `${stats.domain_skips} domain exclusions; `+
