@@ -133,47 +133,58 @@ button {
     color: var(--ink);
 }
 
-.level-strip {
-    width: min(1120px, calc(100% - 32px));
-    margin: 2px auto 0;
+.level-navigation {
+    width: min(260px, 30vw);
+    max-height: 100vh;
     display: flex;
-    gap: 6px;
-    overflow-x: auto;
-    padding: 2px 0 10px;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--paper);
+    border-left: 1px solid var(--hairline);
 }
 
-.level-dot {
-    flex: 0 0 auto;
-    width: 30px;
-    height: 30px;
-    border-radius: 999px;
-    border: 1px solid var(--hairline);
-    background: transparent;
-    color: var(--quiet) ;
-    font-size: 0.78rem;
-    font-variant-numeric: tabular-nums;
+.level-menu {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 8px;
 }
 
-.level-dot:hover,
-.level-dot:focus-visible {
-    border-color: var(--ink);
-    color: var(--ink) ;
-}
-
-.level-dot.active {
-    border-color: var(--ink);
-    color: var(--ink) ;
-    box-shadow: inset 0 0 0 1px var(--ink);
-}
-
-.level-dot.complete::after {
-    content: "";
+.level-menu-item {
+    width: 100%;
     display: block;
-    width: 4px;
-    height: 4px;
-    margin: -3px auto 0;
-    border-radius: 50%;
-    background: var(--offink);
+    padding: 7px 10px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--quiet);
+    text-align: left;
+    line-height: 1.25;
+}
+
+.level-menu-item:hover,
+.level-menu-item:focus-visible {
+    background: var(--offpaper);
+    color: var(--ink);
+}
+
+.level-menu-item.active {
+    background: var(--offpaper);
+    color: var(--ink);
+    font-weight: 650;
+}
+
+.level-navigation-footer {
+    flex: 0 0 auto;
+    padding: 8px;
+    border-top: 1px solid var(--hairline);
+}
+
+.level-counter {
+    padding: 0 0 6px;
+    color: var(--quiet);
+    text-align: center;
+    font-variant-numeric: tabular-nums;
 }
 
 main {
@@ -416,6 +427,25 @@ main {
     color: inherit;
 }
 
+@media (max-width: 640px) and (orientation: portrait) {
+    .level-navigation {
+        width: auto;
+        border-left: 0;
+        background: transparent;
+        overflow: visible;
+    }
+
+    .level-menu,
+    .level-counter {
+        display: none;
+    }
+
+    .level-navigation-footer {
+        padding: 0;
+        border-top: 0;
+    }
+}
+
 @media (max-width: 640px) {
     .app-header,
     .toolbar,
@@ -423,8 +453,7 @@ main {
         width: min(100% - 20px, 1120px);
     }
 
-    main,
-    .level-strip {
+    main {
         width: min(100% - 20px, 1120px);
     }
 

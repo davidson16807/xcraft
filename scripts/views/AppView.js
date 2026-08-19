@@ -30,7 +30,7 @@ function AppView(dependencies, app_updater) {
         const add_indicator = dom_io.getElementById('drag-add-indicator');
         const multiply_indicator = dom_io.getElementById('drag-multiply-indicator');
         const auto_simplify_indicator = dom_io.getElementById('auto-simplify-indicator');
-        const level_strip = dom_io.getElementById('level-strip');
+        const level_menu = dom_io.getElementById('level-menu');
         const solved_mark = dom_io.getElementById('solved-mark');
 
         const level = app.levels[app.level_index];
@@ -57,14 +57,16 @@ function AppView(dependencies, app_updater) {
         auto_simplify_indicator.textContent = app.drag_options.auto_simplify? 'On' : 'Off';
         solved_mark.classList.toggle('visible', solved);
 
-        level_strip.replaceChildren(
-            ...app.levels.map((level, i) => 
-                html.button({ 
-                    'class': 'level-dot' + i === app.level_index? ' active':'', 
-                    'data-level-index':i, 
+        level_menu.replaceChildren(
+            ...app.levels.map((level, i) =>
+                html.button({
+                    'class': 'level-menu-item' + (i === app.level_index? ' active' : ''),
+                    'data-level-index': i,
+                    'aria-current': i === app.level_index? 'step' : 'false',
                     'aria-label': `Level ${i+1}: ${level.title}`
-                }, [], String(i+1))
-        ));
+                }, [], `${i+1}. ${level.title}`)
+            )
+        );
 
         equation_view.draw(
             app.equation,
@@ -87,7 +89,7 @@ function AppView(dependencies, app_updater) {
         const add_button = dom_io.getElementById('drag-add');
         const multiply_button = dom_io.getElementById('drag-multiply');
         const auto_simplify_button = dom_io.getElementById('auto-simplify');
-        const level_strip = dom_io.getElementById('level-strip');
+        const level_menu = dom_io.getElementById('level-menu');
 
         function dispatch(updated) {
             if (updated !== app) {
@@ -139,10 +141,10 @@ function AppView(dependencies, app_updater) {
         multiply_button.addEventListener('click', () => dispatch(app_updater.toggle_multiply(app), dom_io));
         auto_simplify_button.addEventListener('click', () => dispatch(app_updater.toggle_auto_simplify(app), dom_io));
 
-        level_strip.addEventListener('click', event => {
+        level_menu.addEventListener('click', event => {
             const button = event.target.closest('[data-level-index]');
             if (!button) return;
-            dispatch(app_updater.select_level(appNumber(button.getAttribute('data-level-index'))), dom_io);
+            dispatch(app_updater.select_level(app, Number(button.getAttribute('data-level-index'))), dom_io);
         });
 
         dom_io.addEventListener('keydown', event => {
