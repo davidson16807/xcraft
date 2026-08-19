@@ -83,16 +83,31 @@ const powers = Powers(grouplikes, expression_shape);
 const power_expressions = PowerExpressions(powers);
 const multiply_power_expressions = MultiplyPowerExpressions(powers);
 const power_multiply_expressions = PowerMultiplyExpressions(grouplikes);
+const precedence_for_tag = tag => {
+    switch (tag) {
+        case 'add': return 1;
+        case 'mul': return 2;
+        case 'pow': return 3;
+        default: return 0;
+    }
+};
 const ringlikes = Ringlike({
     unary: {
         add: scale_expressions,
         mul: power_expressions,
     },
-    binary: [
-        scale_expressions,
-        multiply_power_expressions,
-        power_multiply_expressions,
-    ],
+    binary: {
+        addconstant: scale_expressions,
+        addvariable: scale_expressions,
+        addmul: scale_expressions,
+        addpow: scale_expressions,
+        mulconstant: multiply_power_expressions,
+        mulvariable: multiply_power_expressions,
+        muladd: scale_expressions,
+        mulpow: multiply_power_expressions,
+        powmul: power_multiply_expressions,
+    },
+    precedence_for_tag: precedence_for_tag,
 });
 const equation_shape = EquationShape(expression_shape);
 const paths = ExpressionPaths(grouplikes);
@@ -1008,6 +1023,33 @@ function ringExpressionInterface() {
 
     const x_squared = grouplikes.pow(x, two);
     const x_cubed = grouplikes.pow(x, three);
+    assertSameExpression(
+        ringlikes.combine(grouplikes.mul([x, x_squared]), x, x_squared),
+        grouplikes.pow(x, 3),
+        'Ringlike',
+        'combination should select mulpow from the higher-precedence power child'
+    );
+    assertSameExpression(
+        ringlikes.combine(grouplikes.mul([x, x]), x, x),
+        grouplikes.pow(x, 2),
+        'Ringlike',
+        'atomic factors should use the degenerate mulpower relationship'
+    );
+    const y_expression = grouplikes.variable('y');
+    const y_squared = grouplikes.pow(y_expression, two);
+    assertSameExpression(
+        ringlikes.right_distribute(
+            grouplikes.mul([x_plus_three, y_squared]),
+            x_plus_three,
+            y_squared
+        ),
+        grouplikes.add([
+            grouplikes.mul([x, y_squared]),
+            grouplikes.mul([three, y_squared]),
+        ]),
+        'Ringlike',
+        'distribution should key from the expression being distributed across'
+    );
     assertSameExpression(
         multiply_power_expressions.combine(
             grouplikes.mul([x_squared, x_cubed]),

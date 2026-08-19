@@ -19,8 +19,9 @@ function ExpressionView(dependencies) {
     }
 
     function maybe_parenthesize(node, expression, parent_precedence, is_power_base) {
+        const precedence = precedence_for_tag(expression.type);
         const needs_parentheses =
-            precedence_for_tag(expression.type) < parent_precedence ||
+            (precedence !== 0 && precedence < parent_precedence) ||
             (is_power_base && expression.type === 'pow');
 
         if (!needs_parentheses) return node;

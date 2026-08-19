@@ -1,22 +1,15 @@
 'use strict';
-// HUMAN VETTED
 
 /*
-Coordinates unary ring-like behavior by operation and binary relationships
-polymorphically. Unsupported binary rules return null; a result is accepted
-only when exactly one registered relationship applies.
+Coordinates unary ring-like behavior by operation and binary relationships by
+an operation-pair key. Combination keys use the highest-precedence child;
+distribution keys use the child being distributed across.
 */
 const Ringlike = dependencies => {
     const unary_expressions_for_tag = dependencies.unary;
-    const binary_expressions = dependencies.binary;
+    const binary_expressions_for_tag = dependencies.binary;
+    const precedence_for_tag = dependencies.precedence_for_tag;
 
-    function combine(parent, left, right) {
-        const combined = binary_expressions
-            .map(expressions => expressions.combine == null? null :
-                expressions.combine(parent, left, right))
-            .filter(expression => expression != null);
-        return combined.length === 1? combined[0] : null;
-    }
 
     function inverse(type, expression) {
         const expressions = unary_expressions_for_tag[type];
@@ -32,20 +25,28 @@ const Ringlike = dependencies => {
         return is_inverse(type, expression)? inverse(type, expression) : expression;
     }
 
+
+    function binary(parent, child) {
+        return binary_expressions_for_tag[parent.type + child.type];
+    }
+
+    function combine(parent, left, right) {
+        const child = precedence_for_tag(left.type) >= precedence_for_tag(right.type)? left : right;
+        const expressions = binary(parent, child);
+        return expressions == null || expressions.combine == null? null :
+            expressions.combine(parent, left, right);
+    }
+
     function left_distribute(parent, left, right) {
-        const distributed = binary_expressions
-            .map(expressions => expressions.left_distribute == null? null :
-                expressions.left_distribute(parent, left, right))
-            .filter(expression => expression != null);
-        return distributed.length === 1? distributed[0] : null;
+        const expressions = binary(parent, right);
+        return expressions == null || expressions.left_distribute == null? null :
+            expressions.left_distribute(parent, left, right);
     }
 
     function right_distribute(parent, left, right) {
-        const distributed = binary_expressions
-            .map(expressions => expressions.right_distribute == null? null :
-                expressions.right_distribute(parent, left, right))
-            .filter(expression => expression != null);
-        return distributed.length === 1? distributed[0] : null;
+        const expressions = binary(parent, left);
+        return expressions == null || expressions.right_distribute == null? null :
+            expressions.right_distribute(parent, left, right);
     }
 
     return Object.freeze({

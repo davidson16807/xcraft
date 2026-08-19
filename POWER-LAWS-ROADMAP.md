@@ -277,9 +277,16 @@ Indexed conceptually by an ordered relationship key:
 - `powpow`
 - later the analogous additive/multiplicative relationship keys as the scale side is split
 
-These components own binary laws such as `combine`, `left_distribute`, and `right_distribute`. They should be tried polymorphically: an unsupported rule returns `null`; a unique valid result is accepted. Avoid registry metadata such as `tags` when applicability can be discovered by asking the implementations themselves.
+These components own binary laws such as `combine`, `left_distribute`, and `right_distribute`. They are registered by operation-pair key rather than searched polymorphically. `Ringlike` performs exactly one deterministic lookup:
 
-The exact registry representation can evolve as the binary components are implemented, but unary inverse behavior must remain separate from pair-key relationships.
+- unary behavior: `type`;
+- combination: `parent.type + child.type`, where `child` is the higher-precedence operand according to `precedence_for_tag`;
+- left distribution: `parent.type + right.type`, because the left operand distributes across the right operand;
+- right distribution: `parent.type + left.type`, because the right operand distributes across the left operand.
+
+Atomic expressions (`constant`, `variable`) have precedence rank `0` for relationship selection and are treated as degenerate/promotable forms by the registered relationship implementation. View parenthesization must therefore treat rank `0` as atomic rather than as a low-precedence operator.
+
+Avoid registry metadata such as `tags`; applicability is encoded directly by the operation-pair lookup. Unary inverse behavior remains separate from pair-key relationships.
 
 ### Required split before exponent cancellation
 

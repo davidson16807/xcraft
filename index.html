@@ -174,16 +174,31 @@
     const power_expressions = PowerExpressions(powers);
     const multiply_power_expressions = MultiplyPowerExpressions(powers);
     const power_multiply_expressions = PowerMultiplyExpressions(grouplikes);
+    const precedence_for_tag = tag => {
+        switch (tag) {
+            case 'add': return 1;
+            case 'mul': return 2;
+            case 'pow': return 3;
+            default: return 0;
+        }
+    };
     const ringlikes = Ringlike({
         unary: {
             add: scale_expressions,
             mul: power_expressions,
         },
-        binary: [
-            scale_expressions,
-            multiply_power_expressions,
-            power_multiply_expressions,
-        ],
+        binary: {
+            addconstant: scale_expressions,
+            addvariable: scale_expressions,
+            addmul: scale_expressions,
+            addpow: scale_expressions,
+            mulconstant: multiply_power_expressions,
+            mulvariable: multiply_power_expressions,
+            muladd: scale_expressions,
+            mulpow: multiply_power_expressions,
+            powmul: power_multiply_expressions,
+        },
+        precedence_for_tag: precedence_for_tag,
     });
     const expression_paths = ExpressionPaths(grouplikes);
     const equation_drag_ops = EquationDragOperations({
@@ -214,14 +229,7 @@
         grouplikes: grouplikes,
         expression_paths: expression_paths,
         ringlikes: ringlikes,
-        precedence_for_tag: tag => {
-            switch (tag) {
-                case 'add': return 1;
-                case 'mul': return 2;
-                case 'pow': return 3;
-                default: return 4;
-            }
-        }
+        precedence_for_tag: precedence_for_tag
     });
 
     const equation_view = EquationView({
