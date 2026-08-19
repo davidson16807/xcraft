@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 `Grouplike` describes one binary operation on Expressions together with the

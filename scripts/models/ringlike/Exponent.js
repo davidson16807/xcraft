@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 class Exponent {
     constructor(base, exponent, key) {

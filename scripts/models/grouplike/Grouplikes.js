@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 `Expression` is the immutable model for algebraic grouplikes.

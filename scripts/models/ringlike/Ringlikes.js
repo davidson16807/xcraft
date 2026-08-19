@@ -1,11 +1,12 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 Coordinates unary ring-like behavior by operation and binary relationships by
 an operation-pair key. Combination keys use the highest-precedence source/target expression;
 distribution keys use the child being distributed across.
 */
-const Ringlike = dependencies => {
+const Ringlikes = dependencies => {
     const unary_expressions_for_tag = dependencies.unary;
     const binary_expressions_for_tag = dependencies.binary;
     const precedence_for_tag = dependencies.precedence_for_tag;

@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 Unary inverse behavior for Expressions represented as powers.

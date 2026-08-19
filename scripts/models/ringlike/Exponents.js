@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 Decomposes Expressions into an algebraic base and exponent, keyed by exponent.

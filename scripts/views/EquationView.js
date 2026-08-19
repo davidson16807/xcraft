@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 function EquationView(dependencies) {
 

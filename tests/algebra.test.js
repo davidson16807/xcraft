@@ -23,7 +23,7 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/ringlike/PowerMultiplyExpressions.js',
     'scripts/models/ringlike/PowerAddExpressions.js',
     'scripts/models/ringlike/PowerPowerExpressions.js',
-    'scripts/models/ringlike/Ringlike.js',
+    'scripts/models/ringlike/Ringlikes.js',
     'scripts/models/equation/Equation.js',
     'scripts/models/equation/EquationShape.js',
     'scripts/models/expression/ExpressionPaths.js',
@@ -96,7 +96,7 @@ const precedence_for_tag = tag => {
         default: return 0;
     }
 };
-const ringlikes = Ringlike({
+const ringlikes = Ringlikes({
     unary: {
         add: scale_expressions,
         mul: power_expressions,
@@ -949,12 +949,12 @@ function fractionPreservation() {
     assertSameExpression(
         inverse_exponent,
         grouplikes.pow(three, grouplikes.constant(-1)),
-        'Ringlike',
+        'Ringlikes',
         'power right inverse should be represented by a reciprocal exponent'
     );
     assert(
         ringlikes.is_inverse('pow', inverse_exponent),
-        'Ringlike: reciprocal exponent should be recognized as a power inverse'
+        'Ringlikes: reciprocal exponent should be recognized as a power inverse'
     );
 
 
@@ -1032,67 +1032,67 @@ function ringExpressionInterface() {
     const negative_x = ringlikes.inverse('add', x);
     assert(
         ringlikes.is_inverse('add', negative_x),
-        'Ringlike: additive inverse should be recognized'
+        'Ringlikes: additive inverse should be recognized'
     );
     assert(
         !ringlikes.is_inverse('add', x),
-        'Ringlike: ordinary additive expression should not be inverse'
+        'Ringlikes: ordinary additive expression should not be inverse'
     );
     assertSameExpression(
         ringlikes.inverse('add', negative_x),
         x,
-        'Ringlike',
+        'Ringlikes',
         'additive inverse should be involutive'
     );
 
     const reciprocal_x = ringlikes.inverse('mul', x);
     assert(
         ringlikes.is_inverse('mul', reciprocal_x),
-        'Ringlike: multiplicative inverse should be recognized'
+        'Ringlikes: multiplicative inverse should be recognized'
     );
     assert(
         !ringlikes.is_inverse('mul', x),
-        'Ringlike: ordinary multiplicative expression should not be inverse'
+        'Ringlikes: ordinary multiplicative expression should not be inverse'
     );
     assertSameExpression(
         ringlikes.inverse('mul', reciprocal_x),
         x,
-        'Ringlike',
+        'Ringlikes',
         'multiplicative inverse should be involutive'
     );
     assert(
         ringlikes.inverse('mul', zero) == null,
-        'Ringlike: zero should not have a multiplicative inverse'
+        'Ringlikes: zero should not have a multiplicative inverse'
     );
     assertSameExpression(
         ringlikes.inverse('mul', one),
         one,
-        'Ringlike',
+        'Ringlikes',
         'multiplicative identity should be its own inverse'
     );
 
     assertSameExpression(
         ringlikes.absolute('add', negative_x),
         x,
-        'Ringlike',
+        'Ringlikes',
         'absolute should invert an additive inverse'
     );
     assertSameExpression(
         ringlikes.absolute('add', x),
         x,
-        'Ringlike',
+        'Ringlikes',
         'absolute should preserve a non-inverse expression'
     );
     assertSameExpression(
         ringlikes.absolute('mul', reciprocal_x),
         x,
-        'Ringlike',
+        'Ringlikes',
         'absolute should invert a multiplicative inverse'
     );
     assertSameExpression(
         ringlikes.absolute('mul', x),
         x,
-        'Ringlike',
+        'Ringlikes',
         'absolute should preserve an ordinary multiplicative expression'
     );
 
@@ -1100,7 +1100,7 @@ function ringExpressionInterface() {
         power_expressions.combine == null &&
         power_expressions.left_distribute == null &&
         power_expressions.right_distribute == null,
-        'Ringlike: unary PowerExpressions should not expose binary relationships'
+        'Ringlikes: unary PowerExpressions should not expose binary relationships'
     );
 
     const two = grouplikes.constant(2);
@@ -1109,12 +1109,12 @@ function ringExpressionInterface() {
     assertSameExpression(
         inverse_exponent,
         grouplikes.pow(three, grouplikes.constant(-1)),
-        'Ringlike',
+        'Ringlikes',
         'power right inverse should be represented by a reciprocal exponent'
     );
     assert(
         ringlikes.is_inverse('pow', inverse_exponent),
-        'Ringlike: reciprocal exponent should be recognized as a power inverse'
+        'Ringlikes: reciprocal exponent should be recognized as a power inverse'
     );
 
 
@@ -1129,7 +1129,7 @@ function ringExpressionInterface() {
             grouplikes.mul([two, x]),
             grouplikes.mul([two, three]),
         ]),
-        'Ringlike',
+        'Ringlikes',
         'left distribution should delegate through the additive group expression'
     );
     assertSameExpression(
@@ -1142,16 +1142,16 @@ function ringExpressionInterface() {
             grouplikes.mul([x, two]),
             grouplikes.mul([three, two]),
         ]),
-        'Ringlike',
+        'Ringlikes',
         'right distribution should delegate through the additive group expression'
     );
     assert(
         ringlikes.left_distribute(grouplikes.add([two, x_plus_three]), two, x_plus_three) == null,
-        'Ringlike: unsupported left distribution should return null'
+        'Ringlikes: unsupported left distribution should return null'
     );
     assert(
         ringlikes.right_distribute(grouplikes.add([x_plus_three, two]), x_plus_three, two) == null,
-        'Ringlike: unsupported right distribution should return null'
+        'Ringlikes: unsupported right distribution should return null'
     );
 
     const x_squared = grouplikes.pow(x, two);
@@ -1169,13 +1169,13 @@ function ringExpressionInterface() {
     assertSameExpression(
         ringlikes.combine(grouplikes.mul([x, x_squared]), x, x_squared),
         grouplikes.pow(x, grouplikes.add([one, two])),
-        'Ringlike',
+        'Ringlikes',
         'combination should select mulpow and preserve the exponent sum structurally'
     );
     assertSameExpression(
         ringlikes.combine(grouplikes.mul([x, x]), x, x),
         grouplikes.pow(x, grouplikes.add([one, one])),
-        'Ringlike',
+        'Ringlikes',
         'atomic factors should use the degenerate mulpower relationship'
     );
     const y_expression = grouplikes.variable('y');
@@ -1190,7 +1190,7 @@ function ringExpressionInterface() {
             grouplikes.mul([x, y_squared]),
             grouplikes.mul([three, y_squared]),
         ]),
-        'Ringlike',
+        'Ringlikes',
         'distribution should key from the expression being distributed across'
     );
     assertSameExpression(
@@ -1225,12 +1225,12 @@ function ringExpressionInterface() {
             three_squared
         ),
         grouplikes.pow(grouplikes.mul([x, three]), two),
-        'Ringlike',
+        'Ringlikes',
         'common-exponent powers should combine their bases'
     );
     assert(
         ringlikes.combine(grouplikes.mul([x, y_expression]), x, y_expression) == null,
-        'Ringlike: degenerate exponent 1 should not advertise a no-op combination'
+        'Ringlikes: degenerate exponent 1 should not advertise a no-op combination'
     );
 
     const two_cubed = grouplikes.pow(two, three);
@@ -1247,13 +1247,13 @@ function ringExpressionInterface() {
             ]),
             two
         ),
-        'Ringlike',
+        'Ringlikes',
         'exponent alignment should work when both bases are constants'
     );
 
     assert(
         ringlikes.combine(grouplikes.pow(x, two), x, two) == null,
-        'Ringlike: binary power laws must not combine the base and exponent children of pow'
+        'Ringlikes: binary power laws must not combine the base and exponent children of pow'
     );
 
     const exponent_sum = grouplikes.add([exponent_a, exponent_b]);
@@ -1267,7 +1267,7 @@ function ringExpressionInterface() {
             grouplikes.pow(x, exponent_a),
             grouplikes.pow(x, exponent_b),
         ]),
-        'Ringlike',
+        'Ringlikes',
         'powadd should distribute a base across an additive exponent'
     );
 
@@ -1276,7 +1276,7 @@ function ringExpressionInterface() {
     assertSameExpression(
         ringlikes.combine(x_to_a_then_root, reciprocal_a, x_to_a),
         x,
-        'Ringlike',
+        'Ringlikes',
         'powpow should combine symbolic reciprocal nested exponents to their base'
     );
 
@@ -1285,18 +1285,18 @@ function ringExpressionInterface() {
     assertSameExpression(
         ringlikes.combine(x_cubed_then_root, reciprocal_three, x_cubed),
         x,
-        'Ringlike',
+        'Ringlikes',
         'powpow should combine reciprocal nested exponents to their base'
     );
     assertSameExpression(
         ringlikes.combine(grouplikes.pow(x_squared, three), three, x_squared),
         grouplikes.pow(x, grouplikes.mul([two, three])),
-        'Ringlike',
+        'Ringlikes',
         'powpow should multiply nested exponents structurally'
     );
     assert(
         ringlikes.combine(grouplikes.pow(x_squared, three), x_squared, three) == null,
-        'Ringlike: powpow should require dragging the outer exponent onto the inner power'
+        'Ringlikes: powpow should require dragging the outer exponent onto the inner power'
     );
 
     const exponent_product = grouplikes.mul([exponent_a, exponent_b]);
@@ -1307,7 +1307,7 @@ function ringExpressionInterface() {
             exponent_product
         ),
         grouplikes.pow(grouplikes.pow(x, exponent_a), exponent_b),
-        'Ringlike',
+        'Ringlikes',
         'powmul should factor a multiplicative exponent into nested powers'
     );
 
@@ -1319,7 +1319,7 @@ function ringExpressionInterface() {
             grouplikes.pow(x, two),
             grouplikes.pow(three, two),
         ]),
-        'Ringlike',
+        'Ringlikes',
         'right distribution should distribute powers over multiplication'
     );
 

@@ -51,7 +51,7 @@ This split is now implemented. `PowerExpressions` is unary-only, while binary la
 
 ### Binary ring-like relationships
 
-Relationships between two operations should be represented by dedicated `*Expressions` components registered through `Ringlike`.
+Relationships between two operations should be represented by dedicated `*Expressions` components registered through `Ringlikes`.
 
 Relationship keys are conceptual ordered pairs such as:
 
@@ -181,7 +181,7 @@ Implemented for base-over-sum distribution:
 
 `a^(b+c) -> a^b * a^c`
 
-The user gesture is to drag the base onto the additive exponent. `Ringlike`
+The user gesture is to drag the base onto the additive exponent. `Ringlikes`
 therefore selects the `powadd` relationship through left distribution.
 
 ### `PowerMultiplyExpressions` — `powmul`
@@ -256,9 +256,9 @@ A future transformation result could conceptually carry:
 
 Do not implement this until needed by concrete levels/features.
 
-## `Ringlike` direction
+## `Ringlikes` direction
 
-`Ringlike` coordinates two fundamentally different categories of behavior and should keep their dispatch separate.
+`Ringlikes` coordinates two fundamentally different categories of behavior and should keep their dispatch separate.
 
 ### Unary operation behavior
 
@@ -288,7 +288,7 @@ Indexed conceptually by an ordered relationship key:
 - `powpow`
 - later the analogous additive/multiplicative relationship keys as the scale side is split
 
-These components own binary laws such as `combine`, `left_distribute`, and `right_distribute`. They are registered by operation-pair key rather than searched polymorphically. `Ringlike` performs exactly one deterministic lookup:
+These components own binary laws such as `combine`, `left_distribute`, and `right_distribute`. They are registered by operation-pair key rather than searched polymorphically. `Ringlikes` performs exactly one deterministic lookup:
 
 - unary behavior: `type`;
 - combination: `parent.type + child.type`, where `child` is the higher-precedence expression between the drag source and drop target according to `precedence_for_tag`;

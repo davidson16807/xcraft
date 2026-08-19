@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 Binary relationship between power and multiplication Expressions.

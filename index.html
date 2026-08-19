@@ -30,7 +30,7 @@
     <script src="./scripts/models/ringlike/PowerMultiplyExpressions.js"></script>
     <script src="./scripts/models/ringlike/PowerAddExpressions.js"></script>
     <script src="./scripts/models/ringlike/PowerPowerExpressions.js"></script>
-    <script src="./scripts/models/ringlike/Ringlike.js"></script>
+    <script src="./scripts/models/ringlike/Ringlikes.js"></script>
     <script src="./scripts/models/equation/Equation.js"></script>
     <script src="./scripts/models/equation/Equations.js"></script>
     <script src="./scripts/models/equation/EquationDragOperations.js"></script>
@@ -198,7 +198,7 @@
     const power_multiply_expressions = PowerMultiplyExpressions(grouplikes);
     const power_add_expressions = PowerAddExpressions(grouplikes);
     const power_power_expressions = PowerPowerExpressions(grouplikes, powers, expression_shape);
-    const ringlikes = Ringlike({
+    const ringlikes = Ringlikes({
         unary: {
             add: scale_expressions,
             mul: power_expressions,
