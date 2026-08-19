@@ -2,52 +2,42 @@
 // HUMAN VETTED
 
 /*
-Coordinates unary ring-like behavior by operation and binary relationships by
-an operation-pair key. Combination keys use the highest-precedence child;
-distribution keys use the child being distributed across.
+Operates on grouplikes through the group associated with a ringlikes operation.
 */
-const Ringlike = dependencies => {
-    const unary_expressions_for_tag = dependencies.unary;
-    const binary_expressions_for_tag = dependencies.binary;
-    const precedence_for_tag = dependencies.precedence_for_tag;
+const Ringlike = ringlikes_expressions_for_tag => {
 
+    function combine(type, left, right) {
+        const group_expression_for_type = ringlikes_expressions_for_tag[type];
+        return group_expression_for_type == null? null :
+            group_expression_for_type.combine(left, right);
+    }
 
     function inverse(type, expression) {
-        const expressions = unary_expressions_for_tag[type];
-        return expressions == null? null : expressions.inverse(expression);
+        const group_expression_for_type = ringlikes_expressions_for_tag[type];
+        return group_expression_for_type == null? null :
+            group_expression_for_type.inverse(expression);
     }
 
     function is_inverse(type, expression) {
-        const expressions = unary_expressions_for_tag[type];
-        return expressions != null && expressions.is_inverse(expression);
+        const group_expression_for_type = ringlikes_expressions_for_tag[type];
+        return group_expression_for_type != null &&
+            group_expression_for_type.is_inverse(expression);
     }
 
     function absolute(type, expression) {
         return is_inverse(type, expression)? inverse(type, expression) : expression;
     }
 
-
-    function binary(parent, child) {
-        return binary_expressions_for_tag[parent.type + child.type];
+    function left_distribute(type, parent, left, right) {
+        const group_expression_for_type = ringlikes_expressions_for_tag[type];
+        return group_expression_for_type == null? null :
+            group_expression_for_type.left_distribute(parent, left, right);
     }
 
-    function combine(parent, left, right) {
-        const child = precedence_for_tag(left.type) >= precedence_for_tag(right.type)? left : right;
-        const expressions = binary(parent, child);
-        return expressions == null || expressions.combine == null? null :
-            expressions.combine(parent, left, right);
-    }
-
-    function left_distribute(parent, left, right) {
-        const expressions = binary(parent, right);
-        return expressions == null || expressions.left_distribute == null? null :
-            expressions.left_distribute(parent, left, right);
-    }
-
-    function right_distribute(parent, left, right) {
-        const expressions = binary(parent, left);
-        return expressions == null || expressions.right_distribute == null? null :
-            expressions.right_distribute(parent, left, right);
+    function right_distribute(type, parent, left, right) {
+        const group_expression_for_type = ringlikes_expressions_for_tag[type];
+        return group_expression_for_type == null? null :
+            group_expression_for_type.right_distribute(parent, left, right);
     }
 
     return Object.freeze({

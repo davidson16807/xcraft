@@ -277,16 +277,9 @@ Indexed conceptually by an ordered relationship key:
 - `powpow`
 - later the analogous additive/multiplicative relationship keys as the scale side is split
 
-These components own binary laws such as `combine`, `left_distribute`, and `right_distribute`. They are registered by operation-pair key rather than searched polymorphically. `Ringlike` performs exactly one deterministic lookup:
+These components own binary laws such as `combine`, `left_distribute`, and `right_distribute`. They should be tried polymorphically: an unsupported rule returns `null`; a unique valid result is accepted. Avoid registry metadata such as `tags` when applicability can be discovered by asking the implementations themselves.
 
-- unary behavior: `type`;
-- combination: `parent.type + child.type`, where `child` is the higher-precedence operand according to `precedence_for_tag`;
-- left distribution: `parent.type + right.type`, because the left operand distributes across the right operand;
-- right distribution: `parent.type + left.type`, because the right operand distributes across the left operand.
-
-Atomic expressions (`constant`, `variable`) have precedence rank `0` for relationship selection and are treated as degenerate/promotable forms by the registered relationship implementation. View parenthesization must therefore treat rank `0` as atomic rather than as a low-precedence operator.
-
-Avoid registry metadata such as `tags`; applicability is encoded directly by the operation-pair lookup. Unary inverse behavior remains separate from pair-key relationships.
+The exact registry representation can evolve as the binary components are implemented, but unary inverse behavior must remain separate from pair-key relationships.
 
 ### Required split before exponent cancellation
 
@@ -345,31 +338,6 @@ unless a later interaction model explicitly lets the user choose among multiple 
 12. Consider the analogous unary/binary split for `ScaleExpressions` so the additive side follows the same architecture.
 13. Expand property tests around A–C in both directions and their derived inverse laws.
 14. Revisit assumptions only when a level requires runtime tracking beyond level specification.
-
-
-## Level fixtures
-
-The application intentionally includes level fixtures ahead of implementation so algebraic laws can be observed directly as each rewrite lands.
-
-Currently solve-tested power levels demonstrate:
-
-- right identity: `a^1 -> a`
-- same-base multiplication: `a^b * a^c -> a^(b+c)` for the currently supported numeric exponents
-- power of a product: `(ab)^c -> a^c * b^c`
-- the derived like-base quotient form represented structurally as `a^b * a^-c -> a^(b-c)`
-
-The power fixtures are ordered pedagogically rather than by implementation status. `Undo an exponent` appears before `Same base` because it introduces directional power invertibility. The fixtures then exercise same-base combination, power of a product, quotient of powers, same-exponent combination, exponent alignment, and negative exponents before moving to the remaining binary power relationships.
-
-The remaining roadmap mechanisms are exposed directly by levels:
-
-- `Split an exponent sum` requires distributing the base across an additive exponent (`powadd`).
-- `Power of a power`, `Root then power`, and `Power then root` require exponent combination through `PowerPowerExpressions` (`powpow`).
-- `Factor an exponent` is the reverse `powpow` fixture and uses the general symbolic form `x^(ab) = c`.
-- `Zero exponent` is presented as `y^0 = x`, making `x` the quantity being solved while the irrelevant nonzero base remains unspecified.
-- A single `Rational exponent` fixture is retained; the previous two orientations were redundant with the nested-power/root fixtures.
-- `Power of a quotient` remains as a derived distribution fixture.
-
-These levels need not be solvable before their corresponding relationship is implemented; their purpose is to provide stable interactive fixtures and targets.
 
 ## Architectural constraints
 
