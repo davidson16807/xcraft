@@ -41,37 +41,36 @@ const root = path.resolve(__dirname, '..');
 
 const expression_shape = ExpressionShape();
 const grouplikes = Grouplikes({
-    'add': Grouplike(
-        'add',
-        new Expression('constant', 0),
-        new Expression('constant', 0),
-        true,
-        true,
-        true,
+    'add': Grouplike('add', new Expression('constant', 0),
+        {
+            is_commutative: true,
+            is_associative: true,
+            is_invertible: true,
+            is_left_cancellative: true,
+            is_right_cancellative: true,
+        },
         evaluate => expression => expression.contents.reduce(
             (accumulator, item) => accumulator + evaluate(item),
             0
         )
     ),
-    'mul': Grouplike(
-        'mul',
-        new Expression('constant', 1),
-        new Expression('constant', 1),
-        true,
-        true,
-        true,
+    'mul': Grouplike('mul', new Expression('constant', 1),
+        {
+            is_commutative: true,
+            is_associative: true,
+            is_invertible: true,
+            is_left_cancellative: true,
+            is_right_cancellative: true,
+        },
         evaluate => expression => expression.contents.reduce(
             (accumulator, item) => accumulator * evaluate(item),
             1
         )
     ),
-    'pow': Grouplike(
-        'pow',
-        undefined,
-        new Expression('constant', 1),
-        false,
-        false,
-        false,
+    'pow': Grouplike('pow', new Expression('constant', 1),
+        {
+            is_right_cancellative: true,
+        },
         evaluate => expression => Math.pow(
             evaluate(expression.contents[0]),
             evaluate(expression.contents[1])
@@ -257,6 +256,30 @@ function solveLevel10() {
     q = move(q, 'L/0', 'side:R', manual_drag_options);
     q = move(q, 'R/1', 'path:R/0', manual_drag_options);
     assertShape(q, levels[9].goal, 'level 10');
+}
+
+function solveLevel11() {
+    let q = levels[10].equation;
+    q = move(q, 'L/1', 'path:L/0', manual_drag_options);
+    assertShape(q, levels[10].goal, 'level 11');
+}
+
+function solveLevel12() {
+    let q = levels[11].equation;
+    q = move(q, 'L/0', 'path:L/1', manual_drag_options);
+    assertShape(q, levels[11].goal, 'level 12');
+}
+
+function solveLevel13() {
+    let q = levels[12].equation;
+    q = move(q, 'L/1', 'path:L/0', manual_drag_options);
+    assertShape(q, levels[12].goal, 'level 13');
+}
+
+function solveLevel14() {
+    let q = levels[13].equation;
+    q = move(q, 'L/0', 'path:L/1', manual_drag_options);
+    assertShape(q, levels[13].goal, 'level 14');
 }
 
 // -----------------------------------------------------------------------------
@@ -1819,6 +1842,10 @@ function distributivity() {
     solveLevel8,
     solveLevel9,
     solveLevel10,
+    solveLevel11,
+    solveLevel12,
+    solveLevel13,
+    solveLevel14,
 ].forEach(test => test());
 
 [
@@ -1847,7 +1874,7 @@ function distributivity() {
 ].forEach(test => test());
 
 console.log(
-    `ok - 10 level solutions; `+
+    `ok - 14 level solutions; `+
     `${stats.semantic_cases} property cases; `+
     `${stats.evaluations} evaluations; `+
     `${stats.domain_skips} domain exclusions; `+

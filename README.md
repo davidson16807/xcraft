@@ -87,4 +87,4 @@ Run:
 node tests/algebra.test.js
 ```
 
-The test suite verifies a solution path for all ten levels. It also explores reachable states and, for every drag the algebra engine advertises, samples integer values of `x` before and after the rewrite to verify that the equation's solution set is unchanged over those samples.
+The test suite verifies solution paths for the currently implemented levels. Later roadmap levels are also present in the level carousel as executable algebra fixtures, so newly implemented power laws can be exercised directly as they land. The property suite also explores reachable states and, for every drag the algebra engine advertises, samples values before and after the rewrite to verify that the equation's solution set is unchanged over those samples.

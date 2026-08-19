@@ -346,6 +346,20 @@ unless a later interaction model explicitly lets the user choose among multiple 
 13. Expand property tests around A–C in both directions and their derived inverse laws.
 14. Revisit assumptions only when a level requires runtime tracking beyond level specification.
 
+
+## Level fixtures
+
+The application intentionally includes level fixtures ahead of implementation so algebraic laws can be observed directly as each rewrite lands.
+
+Currently solve-tested power levels demonstrate:
+
+- right identity: `a^1 -> a`
+- same-base multiplication: `a^b * a^c -> a^(b+c)` for the currently supported numeric exponents
+- power of a product: `(ab)^c -> a^c * b^c`
+- the derived like-base quotient form represented structurally as `a^b * a^-c -> a^(b-c)`
+
+Additional roadmap levels cover zero exponent, right exponent cancellation, same-exponent combination, generalized exponent alignment, `powadd`, `powpow`, reverse exponent factorization, negative exponents, powers of quotients, sequential reciprocal exponents, and the two rational-exponent decompositions. These levels need not be solvable before their corresponding relationship is implemented; their purpose is to provide stable interactive fixtures and targets.
+
 ## Architectural constraints
 
 - `Equations` must not special-case `add`, `mul`, or `pow` laws.
