@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 Coordinates unary ring-like behavior by operation and binary relationships by

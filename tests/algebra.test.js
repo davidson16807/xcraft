@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN DESIGNED
 
 const fs = require('fs');
 const vm = require('vm');

@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 `AppUpdater` is the update function in the Model-View-Updater architecture.
