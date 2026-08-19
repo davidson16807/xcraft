@@ -198,18 +198,17 @@ Position within the noncommutative `pow` structure matters: multiplication in th
 
 ### `PowerPowerExpressions` — `powpow`
 
-Partially implemented. Reciprocal nested exponents combine directly through
-power invertibility:
+Implemented for nested-power combination:
+
+`(a^b)^c -> a^(bc)`
+
+Reciprocal exponent pairs are recognized first so inverse cases reduce exactly:
 
 `(a^b)^(1/b) -> a`
 
 `(a^(1/b))^b -> a`
 
-General exponent composition remains to be implemented:
-
-`(a^b)^c -> a^(bc)`
-
-The arbitrary reverse should not be automatically advertised unless a factorization is supplied by the gesture/context.
+The reverse direction is supplied by `PowerMultiplyExpressions` when a multiplicative exponent provides an explicit factorization through the drag gesture: `a^(bc) -> (a^b)^c`.
 
 ## General exponent alignment
 
@@ -353,7 +352,7 @@ unless a later interaction model explicitly lets the user choose among multiple 
 7. **Implemented:** extend `MultiplyPowerExpressions` with same-base priority and same-exponent combination.
 8. **Implemented:** generalized exponent alignment `a^d * b^c -> (a^(d/c)b)^c`, including constant bases. The drop target supplies the exponent being aligned to.
 9. **Implemented:** `PowerAddExpressions` for `a^(b+c) -> a^b a^c` by dragging the base onto the additive exponent.
-10. Complete `PowerMultiplyExpressions`, including any reverse Law C transform only when factorization is supplied by gesture/context.
+10. **Implemented:** complete `PowerMultiplyExpressions` with the reverse Law C transform `a^(bc) -> (a^b)^c` when the multiplicative exponent supplies the factorization through the drag gesture.
 11. **Implemented:** `PowerPowerExpressions.combine()` now handles general nested exponent composition `(a^b)^c -> a^(bc)`, while recognizing reciprocal pairs first so `(a^b)^(1/b) -> a` and `(a^(1/b))^b -> a` reduce exactly.
 12. Consider the analogous unary/binary split for `ScaleExpressions` so the additive side follows the same architecture.
 13. Expand property tests around A–C in both directions and their derived inverse laws.
@@ -384,7 +383,8 @@ The remaining roadmap mechanisms are exposed directly by levels:
 - `Root then power` and `Power then root` are now implemented through reciprocal-exponent `PowerPowerExpressions.combine()`.
 - `Power of a power` is now implemented through general exponent multiplication in `PowerPowerExpressions.combine()` (`powpow`).
 - `Negative exponent` also requires the reverse/nesting side of `powpow`: `x^-b = (x^b)^-1` factors the exponent as `b*(-1)`; directional cancellation alone does not perform this rewrite.
-- `Factor an exponent` is the reverse `powpow` fixture and uses the general symbolic form `x^(ab) = c`.
+- `Factor an exponent` is now implemented through `PowerMultiplyExpressions.left_distribute()`: `x^(ab) -> (x^a)^b`.
+- `Rational exponent` is consequently playable as `x^(2/3) -> (x^2)^(1/3)` because division is represented structurally as multiplication by a reciprocal.
 - `Zero exponent` is presented as `y^0 = x`, making `x` the quantity being solved while the irrelevant nonzero base remains unspecified.
 - A single `Rational exponent` fixture is retained; the previous two orientations were redundant with the nested-power/root fixtures.
 - `Power of a quotient` remains as a derived distribution fixture.

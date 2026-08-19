@@ -329,6 +329,20 @@ function solvePowerOfAPower() {
     assertShape(q, level.goal, 'Power of a power');
 }
 
+function solveFactorAnExponent() {
+    const level = levels.find(level => level.title === 'Factor an exponent');
+    let q = level.equation;
+    q = move(q, 'L/0', 'path:L/1', manual_drag_options);
+    assertShape(q, level.goal, 'Factor an exponent');
+}
+
+function solveRationalExponent() {
+    const level = levels.find(level => level.title === 'Rational exponent');
+    let q = level.equation;
+    q = move(q, 'L/0', 'path:L/1', manual_drag_options);
+    assertShape(q, level.goal, 'Rational exponent');
+}
+
 function solveRootThenPower() {
     const level = levels.find(level => level.title === 'Root then power');
     let q = level.equation;
@@ -1285,6 +1299,18 @@ function ringExpressionInterface() {
         'Ringlike: powpow should require dragging the outer exponent onto the inner power'
     );
 
+    const exponent_product = grouplikes.mul([exponent_a, exponent_b]);
+    assertSameExpression(
+        ringlikes.left_distribute(
+            grouplikes.pow(x, exponent_product),
+            x,
+            exponent_product
+        ),
+        grouplikes.pow(grouplikes.pow(x, exponent_a), exponent_b),
+        'Ringlike',
+        'powmul should factor a multiplicative exponent into nested powers'
+    );
+
     const product = grouplikes.mul([x, three]);
     const square = grouplikes.pow(product, two);
     assertSameExpression(
@@ -2047,6 +2073,8 @@ function distributivity() {
     solveAlignExponent,
     solveSplitAnExponentSum,
     solvePowerOfAPower,
+    solveFactorAnExponent,
+    solveRationalExponent,
     solveRootThenPower,
     solvePowerThenRoot,
 ].forEach(test => test());
@@ -2077,7 +2105,7 @@ function distributivity() {
 ].forEach(test => test());
 
 console.log(
-    `ok - 21 level solutions; `+
+    `ok - 23 level solutions; `+
     `${stats.semantic_cases} property cases; `+
     `${stats.evaluations} evaluations; `+
     `${stats.domain_skips} domain exclusions; `+
