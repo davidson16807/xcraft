@@ -151,8 +151,8 @@ function Levels(grouplikes) {
         {
             title: 'Split an exponent sum',
             concept: 'Exponent addition distributes into multiplication: a^(b+c) = a^b a^c.',
-            equation: e(p(x(), a([c(2), c(3)])), av()),
-            goal: e(m([p(x(), c(2)), p(x(), c(3))]), av()),
+            equation: e(p(x(), a([av(), bv()])), v('c')),
+            goal: e(m([p(x(), av()), p(x(), bv())]), v('c')),
         },
         {
             title: 'Power of a power',

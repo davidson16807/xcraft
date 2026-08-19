@@ -28,6 +28,8 @@
     <script src="./scripts/models/ringlike/PowerExpressions.js"></script>
     <script src="./scripts/models/ringlike/MultiplyPowerExpressions.js"></script>
     <script src="./scripts/models/ringlike/PowerMultiplyExpressions.js"></script>
+    <script src="./scripts/models/ringlike/PowerAddExpressions.js"></script>
+    <script src="./scripts/models/ringlike/PowerPowerExpressions.js"></script>
     <script src="./scripts/models/ringlike/Ringlike.js"></script>
     <script src="./scripts/models/equation/Equation.js"></script>
     <script src="./scripts/models/equation/Equations.js"></script>
@@ -194,6 +196,8 @@
     const power_expressions = PowerExpressions(powers);
     const multiply_power_expressions = MultiplyPowerExpressions(powers, exponents);
     const power_multiply_expressions = PowerMultiplyExpressions(grouplikes);
+    const power_add_expressions = PowerAddExpressions(grouplikes);
+    const power_power_expressions = PowerPowerExpressions(powers, expression_shape);
     const ringlikes = Ringlike({
         unary: {
             add: scale_expressions,
@@ -209,7 +213,9 @@
             mulvariable: multiply_power_expressions,
             muladd: scale_expressions,
             mulpow: multiply_power_expressions,
+            powadd: power_add_expressions,
             powmul: power_multiply_expressions,
+            powpow: power_power_expressions,
         },
         precedence_for_tag: tag => {
             switch (tag) {

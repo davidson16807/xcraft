@@ -21,6 +21,8 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/ringlike/PowerExpressions.js',
     'scripts/models/ringlike/MultiplyPowerExpressions.js',
     'scripts/models/ringlike/PowerMultiplyExpressions.js',
+    'scripts/models/ringlike/PowerAddExpressions.js',
+    'scripts/models/ringlike/PowerPowerExpressions.js',
     'scripts/models/ringlike/Ringlike.js',
     'scripts/models/equation/Equation.js',
     'scripts/models/equation/EquationShape.js',
@@ -84,6 +86,8 @@ const exponents = Exponents(grouplikes, expression_shape);
 const power_expressions = PowerExpressions(powers);
 const multiply_power_expressions = MultiplyPowerExpressions(powers, exponents);
 const power_multiply_expressions = PowerMultiplyExpressions(grouplikes);
+const power_add_expressions = PowerAddExpressions(grouplikes);
+const power_power_expressions = PowerPowerExpressions(powers, expression_shape);
 const precedence_for_tag = tag => {
     switch (tag) {
         case 'add': return 1;
@@ -107,7 +111,9 @@ const ringlikes = Ringlike({
         mulvariable: multiply_power_expressions,
         muladd: scale_expressions,
         mulpow: multiply_power_expressions,
+        powadd: power_add_expressions,
         powmul: power_multiply_expressions,
+        powpow: power_power_expressions,
     },
     precedence_for_tag: precedence_for_tag,
 });
@@ -307,6 +313,27 @@ function solveQuotientOfPowers() {
     let q = level.equation;
     q = move(q, 'L/0', 'path:L/1', auto_simplify_drag_options);
     assertShape(q, level.goal, 'Quotient of powers');
+}
+
+function solveSplitAnExponentSum() {
+    const level = levels.find(level => level.title === 'Split an exponent sum');
+    let q = level.equation;
+    q = move(q, 'L/0', 'path:L/1', manual_drag_options);
+    assertShape(q, level.goal, 'Split an exponent sum');
+}
+
+function solveRootThenPower() {
+    const level = levels.find(level => level.title === 'Root then power');
+    let q = level.equation;
+    q = move(q, 'L/1', 'path:L/0', manual_drag_options);
+    assertShape(q, level.goal, 'Root then power');
+}
+
+function solvePowerThenRoot() {
+    const level = levels.find(level => level.title === 'Power then root');
+    let q = level.equation;
+    q = move(q, 'L/1', 'path:L/0', manual_drag_options);
+    assertShape(q, level.goal, 'Power then root');
 }
 
 // -----------------------------------------------------------------------------
@@ -1208,6 +1235,43 @@ function ringExpressionInterface() {
         'Ringlike: binary power laws must not combine the base and exponent children of pow'
     );
 
+    const exponent_sum = grouplikes.add([exponent_a, exponent_b]);
+    assertSameExpression(
+        ringlikes.left_distribute(
+            grouplikes.pow(x, exponent_sum),
+            x,
+            exponent_sum
+        ),
+        grouplikes.mul([
+            grouplikes.pow(x, exponent_a),
+            grouplikes.pow(x, exponent_b),
+        ]),
+        'Ringlike',
+        'powadd should distribute a base across an additive exponent'
+    );
+
+    const reciprocal_a = grouplikes.pow(exponent_a, grouplikes.constant(-1));
+    const x_to_a_then_root = grouplikes.pow(x_to_a, reciprocal_a);
+    assertSameExpression(
+        ringlikes.combine(x_to_a_then_root, reciprocal_a, x_to_a),
+        x,
+        'Ringlike',
+        'powpow should combine symbolic reciprocal nested exponents to their base'
+    );
+
+    const reciprocal_three = grouplikes.pow(three, grouplikes.constant(-1));
+    const x_cubed_then_root = grouplikes.pow(x_cubed, reciprocal_three);
+    assertSameExpression(
+        ringlikes.combine(x_cubed_then_root, reciprocal_three, x_cubed),
+        x,
+        'Ringlike',
+        'powpow should combine reciprocal nested exponents to their base'
+    );
+    assert(
+        ringlikes.combine(grouplikes.pow(x_squared, three), three, x_squared) == null,
+        'Ringlike: general power-of-a-power combination should remain unimplemented'
+    );
+
     const product = grouplikes.mul([x, three]);
     const square = grouplikes.pow(product, two);
     assertSameExpression(
@@ -1968,6 +2032,9 @@ function distributivity() {
     solveQuotientOfPowers,
     solveSameExponent,
     solveAlignExponent,
+    solveSplitAnExponentSum,
+    solveRootThenPower,
+    solvePowerThenRoot,
 ].forEach(test => test());
 
 [
@@ -1996,7 +2063,7 @@ function distributivity() {
 ].forEach(test => test());
 
 console.log(
-    `ok - 17 level solutions; `+
+    `ok - 20 level solutions; `+
     `${stats.semantic_cases} property cases; `+
     `${stats.evaluations} evaluations; `+
     `${stats.domain_skips} domain exclusions; `+
