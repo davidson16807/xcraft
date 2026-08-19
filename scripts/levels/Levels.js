@@ -84,12 +84,27 @@ function Levels(grouplikes) {
             goal: e(x(), c(4)),
         },
 
-        // Currently implemented power behavior.
+        // Power behavior and roadmap fixtures. These are intentionally present
+        // before every rewrite is implemented so each new law becomes directly
+        // observable as it lands.
         {
             title: 'Power identity',
             concept: 'An exponent of 1 leaves the base unchanged: a^1 = a.',
             equation: e(p(x(), c(1)), c(7)),
             goal: e(x(), c(7)),
+        },
+        {
+            title: 'Zero exponent',
+            concept: 'A nonzero base to the zero power is 1: y^0 = 1.',
+            context: 'Assume y is nonzero.',
+            equation: e(p(v('y'), c(0)), x()),
+            goal: e(c(1), x()),
+        },
+        {
+            title: 'Undo an exponent',
+            concept: 'Cancel a right exponent by applying its reciprocal: a^b = c -> a = c^(1/b).',
+            equation: e(p(x(), c(3)), c(8)),
+            goal: e(x(), p(c(8), reciprocal(c(3)))),
         },
         {
             title: 'Same base',
@@ -110,22 +125,6 @@ function Levels(grouplikes) {
             equation: e(m([p(x(), c(5)), p(x(), c(-2))]), c(8)),
             goal: e(p(x(), c(3)), c(8)),
         },
-
-        // Roadmap fixtures. These are intentionally present before every rewrite
-        // is implemented so each new law becomes directly observable as it lands.
-        {
-            title: 'Zero exponent',
-            concept: 'A nonzero base to the zero power is 1: a^0 = 1.',
-            context: nonzero_context,
-            equation: e(p(x(), c(0)), c(1)),
-            goal: e(c(1), c(1)),
-        },
-        {
-            title: 'Undo an exponent',
-            concept: 'Cancel a right exponent by applying its reciprocal: a^b = c -> a = c^(1/b).',
-            equation: e(p(x(), c(3)), c(8)),
-            goal: e(x(), p(c(8), reciprocal(c(3)))),
-        },
         {
             title: 'Same exponent',
             concept: 'Powers with the same exponent combine their bases: a^c b^c = (ab)^c.',
@@ -133,7 +132,7 @@ function Levels(grouplikes) {
             goal: e(p(m([x(), c(3)]), c(2)), c(36)),
         },
         {
-            title: 'Align exponents',
+            title: 'Align exponent',
             concept: 'Rewrite one factor to the target exponent: a^d b^c = (a^(d/c)b)^c.',
             context: positive_context,
             equation: e(m([p(x(), c(2)), p(av(), c(3))]), bv()),
@@ -141,6 +140,13 @@ function Levels(grouplikes) {
                 p(m([p(x(), d(c(2), c(3))), av()]), c(3)),
                 bv()
             ),
+        },
+        {
+            title: 'Negative exponent',
+            concept: 'A negative exponent is the reciprocal of the corresponding positive power.',
+            context: nonzero_context,
+            equation: e(p(x(), c(-2)), av()),
+            goal: e(p(p(x(), c(2)), c(-1)), av()),
         },
         {
             title: 'Split an exponent sum',
@@ -154,27 +160,6 @@ function Levels(grouplikes) {
             context: positive_context,
             equation: e(p(p(x(), c(2)), c(3)), c(64)),
             goal: e(p(x(), c(6)), c(64)),
-        },
-        {
-            title: 'Factor an exponent',
-            concept: 'With a chosen factorization, a^(bc) can become (a^b)^c.',
-            context: positive_context,
-            equation: e(p(x(), c(6)), c(64)),
-            goal: e(p(p(x(), c(2)), c(3)), c(64)),
-        },
-        {
-            title: 'Negative exponent',
-            concept: 'A negative exponent is the reciprocal of the corresponding positive power.',
-            context: nonzero_context,
-            equation: e(p(x(), c(-2)), av()),
-            goal: e(p(p(x(), c(2)), c(-1)), av()),
-        },
-        {
-            title: 'Power of a quotient',
-            concept: 'A power distributes through a quotient: (a/b)^c = a^c/b^c.',
-            context: positive_context,
-            equation: e(p(d(x(), c(2)), c(2)), c(9)),
-            goal: e(d(p(x(), c(2)), c(4)), c(9)),
         },
         {
             title: 'Root then power',
@@ -191,18 +176,25 @@ function Levels(grouplikes) {
             goal: e(x(), av()),
         },
         {
-            title: 'Rational exponent I',
+            title: 'Factor an exponent',
+            concept: 'Factor an exponent to form a nested power: x^(ab) = (x^a)^b.',
+            context: positive_context,
+            equation: e(p(x(), m([av(), bv()])), v('c')),
+            goal: e(p(p(x(), av()), bv()), v('c')),
+        },
+        {
+            title: 'Power of a quotient',
+            concept: 'A power distributes through a quotient: (a/b)^c = a^c/b^c.',
+            context: positive_context,
+            equation: e(p(d(x(), c(2)), c(2)), c(9)),
+            goal: e(d(p(x(), c(2)), c(4)), c(9)),
+        },
+        {
+            title: 'Rational exponent',
             concept: 'A rational exponent can be expressed as a power followed by a root.',
             context: positive_context,
             equation: e(p(x(), d(c(2), c(3))), av()),
             goal: e(p(p(x(), c(2)), reciprocal(c(3))), av()),
-        },
-        {
-            title: 'Rational exponent II',
-            concept: 'A rational exponent can also be expressed as a root followed by a power.',
-            context: positive_context,
-            equation: e(p(x(), d(c(2), c(3))), av()),
-            goal: e(p(p(x(), reciprocal(c(3))), c(2)), av()),
         },
     ];
 

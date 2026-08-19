@@ -358,7 +358,18 @@ Currently solve-tested power levels demonstrate:
 - power of a product: `(ab)^c -> a^c * b^c`
 - the derived like-base quotient form represented structurally as `a^b * a^-c -> a^(b-c)`
 
-Additional roadmap levels cover zero exponent, right exponent cancellation, same-exponent combination, generalized exponent alignment, `powadd`, `powpow`, reverse exponent factorization, negative exponents, powers of quotients, sequential reciprocal exponents, and the two rational-exponent decompositions. These levels need not be solvable before their corresponding relationship is implemented; their purpose is to provide stable interactive fixtures and targets.
+The power fixtures are ordered pedagogically rather than by implementation status. `Undo an exponent` appears before `Same base` because it introduces directional power invertibility. The fixtures then exercise same-base combination, power of a product, quotient of powers, same-exponent combination, exponent alignment, and negative exponents before moving to the remaining binary power relationships.
+
+The remaining roadmap mechanisms are exposed directly by levels:
+
+- `Split an exponent sum` requires distributing the base across an additive exponent (`powadd`).
+- `Power of a power`, `Root then power`, and `Power then root` require exponent combination through `PowerPowerExpressions` (`powpow`).
+- `Factor an exponent` is the reverse `powpow` fixture and uses the general symbolic form `x^(ab) = c`.
+- `Zero exponent` is presented as `y^0 = x`, making `x` the quantity being solved while the irrelevant nonzero base remains unspecified.
+- A single `Rational exponent` fixture is retained; the previous two orientations were redundant with the nested-power/root fixtures.
+- `Power of a quotient` remains as a derived distribution fixture.
+
+These levels need not be solvable before their corresponding relationship is implemented; their purpose is to provide stable interactive fixtures and targets.
 
 ## Architectural constraints
 

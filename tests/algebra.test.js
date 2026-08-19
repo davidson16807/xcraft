@@ -258,28 +258,32 @@ function solveLevel10() {
     assertShape(q, levels[9].goal, 'level 10');
 }
 
-function solveLevel11() {
-    let q = levels[10].equation;
+function solvePowerIdentity() {
+    const level = levels.find(level => level.title === 'Power identity');
+    let q = level.equation;
     q = move(q, 'L/1', 'path:L/0', manual_drag_options);
-    assertShape(q, levels[10].goal, 'level 11');
+    assertShape(q, level.goal, 'Power identity');
 }
 
-function solveLevel12() {
-    let q = levels[11].equation;
+function solveSameBase() {
+    const level = levels.find(level => level.title === 'Same base');
+    let q = level.equation;
     q = move(q, 'L/0', 'path:L/1', manual_drag_options);
-    assertShape(q, levels[11].goal, 'level 12');
+    assertShape(q, level.goal, 'Same base');
 }
 
-function solveLevel13() {
-    let q = levels[12].equation;
+function solvePowerOfAProduct() {
+    const level = levels.find(level => level.title === 'Power of a product');
+    let q = level.equation;
     q = move(q, 'L/1', 'path:L/0', auto_simplify_drag_options);
-    assertShape(q, levels[12].goal, 'level 13');
+    assertShape(q, level.goal, 'Power of a product');
 }
 
-function solveLevel14() {
-    let q = levels[13].equation;
+function solveQuotientOfPowers() {
+    const level = levels.find(level => level.title === 'Quotient of powers');
+    let q = level.equation;
     q = move(q, 'L/0', 'path:L/1', manual_drag_options);
-    assertShape(q, levels[13].goal, 'level 14');
+    assertShape(q, level.goal, 'Quotient of powers');
 }
 
 // -----------------------------------------------------------------------------
@@ -1842,10 +1846,10 @@ function distributivity() {
     solveLevel8,
     solveLevel9,
     solveLevel10,
-    solveLevel11,
-    solveLevel12,
-    solveLevel13,
-    solveLevel14,
+    solvePowerIdentity,
+    solveSameBase,
+    solvePowerOfAProduct,
+    solveQuotientOfPowers,
 ].forEach(test => test());
 
 [
