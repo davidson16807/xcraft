@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 `Grouplike` describes one binary operation on Expressions together with the
@@ -7,13 +8,18 @@ cancel expressions.  Laws involving relationships between multiple operations
 belong to the ringlike layer instead.
 
 label           String
-left_identity   Expression?
-right_identity  Expression?
+identity        Expression|undefined
 is_commutative  Boolean
 evaluator       (Expression->T) -> (Expression->T)
                 e.g. subevaluate => expression => expression.contents.reduce((accumulator, item) => accumulator + subevaluate(item, variables), 0)
 */
-const Grouplike = (label, left_identity, right_identity, is_commutative, is_associative, is_invertible, evaluator) => {
+const Grouplike = (label, identity, properties, evaluator) => {
+
+    const is_commutative = properties.is_commutative;
+    const is_associative = properties.is_associative;
+    const is_invertible = properties.is_invertible;
+    const is_left_cancellative = properties.is_left_cancellative;
+    const is_right_cancellative = properties.is_right_cancellative;
 
     function create(contents) {
         let formatted = [];
@@ -33,25 +39,25 @@ const Grouplike = (label, left_identity, right_identity, is_commutative, is_asso
         formatted = formatted.map(item => 
             item instanceof Expression? item : new Expression('constant', item));
         if (formatted.length === 0) {
-            return left_identity != null && right_identity != null? left_identity : null;
+            return identity != null && identity != null? identity : null;
         }
         if (formatted.length === 1) return formatted[0];
         else return new Expression(label, Object.freeze(formatted));
     }
 
-    function is_left_identity(expression) {
+    function _is_identity(expression) {
         return (
-            left_identity != null &&
-            expression.type === left_identity.type &&
-            expression.contents === left_identity.contents
+            identity != null &&
+            expression.type === identity.type &&
+            expression.contents === identity.contents
         );
     }
 
-    function is_right_identity(expression) {
+    function _is_identity(expression) {
         return (
-            right_identity != null &&
-            expression.type === right_identity.type &&
-            expression.contents === right_identity.contents
+            identity != null &&
+            expression.type === identity.type &&
+            expression.contents === identity.contents
         );
     }
 
@@ -62,8 +68,8 @@ const Grouplike = (label, left_identity, right_identity, is_commutative, is_asso
     }
 
     function combine(left, right) {
-        if (is_left_identity(left)) return right;
-        if (is_right_identity(right)) return left;
+        if (_is_identity(left) && is_left_cancellative) return right;
+        if (_is_identity(right) && is_right_cancellative) return left;
         return null;
     }
 
@@ -89,8 +95,6 @@ const Grouplike = (label, left_identity, right_identity, is_commutative, is_asso
         commute,
         cancel,
         evaluator,
-        is_left_identity,
-        is_right_identity,
     });
 
 }

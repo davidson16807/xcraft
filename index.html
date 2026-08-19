@@ -158,13 +158,30 @@
 
     const expression_shape = ExpressionShape();
     const grouplikes = Grouplikes({
-        'add': Grouplike('add', new Expression('constant', 0), new Expression('constant', 0), true, true, true, 
+        'add': Grouplike('add', new Expression('constant', 0), 
+            {
+                is_commutative: true, 
+                is_associative: true, 
+                is_invertible: true,
+                is_left_cancellative: true, 
+                is_right_cancellative: true,
+            },
             evaluate => expression => expression.contents.reduce((accumulator, item) => accumulator + evaluate(item), 0)
         ),
-        'mul': Grouplike('mul', new Expression('constant', 1), new Expression('constant', 1), true, true, true, 
+        'mul': Grouplike('mul', new Expression('constant', 1), 
+            {
+                is_commutative: true, 
+                is_associative: true, 
+                is_invertible: true,
+                is_left_cancellative: true, 
+                is_right_cancellative: true,
+            },
             evaluate => expression => expression.contents.reduce((accumulator, item) => accumulator * evaluate(item), 1)
         ),
-        'pow': Grouplike('pow', undefined, new Expression('constant', 1), false, false, false, 
+        'pow': Grouplike('pow', new Expression('constant', 1), 
+            {
+                is_right_cancellative: true,
+            },
             evaluate => expression => Math.pow(evaluate(expression.contents[0]), evaluate(expression.contents[1]))
         ),
     });
