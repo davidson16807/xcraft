@@ -158,8 +158,8 @@ function Levels(grouplikes) {
             title: 'Power of a power',
             concept: 'Nested powers multiply their exponents: (a^b)^c = a^(bc).',
             context: positive_context,
-            equation: e(p(p(x(), c(2)), c(3)), av()),
-            goal: e(p(x(), c(6)), av()),
+            equation: e(p(p(x(), av()), bv()), v('c')),
+            goal: e(p(x(), m([av(), bv()])), v('c')),
         },
         {
             title: 'Root then power',

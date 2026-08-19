@@ -87,7 +87,7 @@ const power_expressions = PowerExpressions(powers);
 const multiply_power_expressions = MultiplyPowerExpressions(powers, exponents);
 const power_multiply_expressions = PowerMultiplyExpressions(grouplikes);
 const power_add_expressions = PowerAddExpressions(grouplikes);
-const power_power_expressions = PowerPowerExpressions(powers, expression_shape);
+const power_power_expressions = PowerPowerExpressions(grouplikes, powers, expression_shape);
 const precedence_for_tag = tag => {
     switch (tag) {
         case 'add': return 1;
@@ -320,6 +320,13 @@ function solveSplitAnExponentSum() {
     let q = level.equation;
     q = move(q, 'L/0', 'path:L/1', manual_drag_options);
     assertShape(q, level.goal, 'Split an exponent sum');
+}
+
+function solvePowerOfAPower() {
+    const level = levels.find(level => level.title === 'Power of a power');
+    let q = level.equation;
+    q = move(q, 'L/1', 'path:L/0', manual_drag_options);
+    assertShape(q, level.goal, 'Power of a power');
 }
 
 function solveRootThenPower() {
@@ -1267,9 +1274,15 @@ function ringExpressionInterface() {
         'Ringlike',
         'powpow should combine reciprocal nested exponents to their base'
     );
+    assertSameExpression(
+        ringlikes.combine(grouplikes.pow(x_squared, three), three, x_squared),
+        grouplikes.pow(x, grouplikes.mul([two, three])),
+        'Ringlike',
+        'powpow should multiply nested exponents structurally'
+    );
     assert(
-        ringlikes.combine(grouplikes.pow(x_squared, three), three, x_squared) == null,
-        'Ringlike: general power-of-a-power combination should remain unimplemented'
+        ringlikes.combine(grouplikes.pow(x_squared, three), x_squared, three) == null,
+        'Ringlike: powpow should require dragging the outer exponent onto the inner power'
     );
 
     const product = grouplikes.mul([x, three]);
@@ -2033,6 +2046,7 @@ function distributivity() {
     solveSameExponent,
     solveAlignExponent,
     solveSplitAnExponentSum,
+    solvePowerOfAPower,
     solveRootThenPower,
     solvePowerThenRoot,
 ].forEach(test => test());
@@ -2063,7 +2077,7 @@ function distributivity() {
 ].forEach(test => test());
 
 console.log(
-    `ok - 20 level solutions; `+
+    `ok - 21 level solutions; `+
     `${stats.semantic_cases} property cases; `+
     `${stats.evaluations} evaluations; `+
     `${stats.domain_skips} domain exclusions; `+

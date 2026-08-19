@@ -354,7 +354,7 @@ unless a later interaction model explicitly lets the user choose among multiple 
 8. **Implemented:** generalized exponent alignment `a^d * b^c -> (a^(d/c)b)^c`, including constant bases. The drop target supplies the exponent being aligned to.
 9. **Implemented:** `PowerAddExpressions` for `a^(b+c) -> a^b a^c` by dragging the base onto the additive exponent.
 10. Complete `PowerMultiplyExpressions`, including any reverse Law C transform only when factorization is supplied by gesture/context.
-11. **Partially implemented:** `PowerPowerExpressions` now combines reciprocal nested exponents, so `(a^b)^(1/b) -> a` and `(a^(1/b))^b -> a`. General `(a^b)^c -> a^(bc)` remains unfinished.
+11. **Implemented:** `PowerPowerExpressions.combine()` now handles general nested exponent composition `(a^b)^c -> a^(bc)`, while recognizing reciprocal pairs first so `(a^b)^(1/b) -> a` and `(a^(1/b))^b -> a` reduce exactly.
 12. Consider the analogous unary/binary split for `ScaleExpressions` so the additive side follows the same architecture.
 13. Expand property tests around A–C in both directions and their derived inverse laws.
 14. Revisit assumptions only when a level requires runtime tracking beyond level specification.
@@ -382,7 +382,7 @@ The remaining roadmap mechanisms are exposed directly by levels:
 
 - `Split an exponent sum` is now implemented through `PowerAddExpressions` (`powadd`).
 - `Root then power` and `Power then root` are now implemented through reciprocal-exponent `PowerPowerExpressions.combine()`.
-- `Power of a power` still requires general exponent multiplication through `PowerPowerExpressions` (`powpow`).
+- `Power of a power` is now implemented through general exponent multiplication in `PowerPowerExpressions.combine()` (`powpow`).
 - `Negative exponent` also requires the reverse/nesting side of `powpow`: `x^-b = (x^b)^-1` factors the exponent as `b*(-1)`; directional cancellation alone does not perform this rewrite.
 - `Factor an exponent` is the reverse `powpow` fixture and uses the general symbolic form `x^(ab) = c`.
 - `Zero exponent` is presented as `y^0 = x`, making `x` the quantity being solved while the irrelevant nonzero base remains unspecified.

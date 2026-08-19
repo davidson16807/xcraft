@@ -197,7 +197,7 @@
     const multiply_power_expressions = MultiplyPowerExpressions(powers, exponents);
     const power_multiply_expressions = PowerMultiplyExpressions(grouplikes);
     const power_add_expressions = PowerAddExpressions(grouplikes);
-    const power_power_expressions = PowerPowerExpressions(powers, expression_shape);
+    const power_power_expressions = PowerPowerExpressions(grouplikes, powers, expression_shape);
     const ringlikes = Ringlike({
         unary: {
             add: scale_expressions,
