@@ -272,7 +272,7 @@ function solveLevel12() {
 
 function solveLevel13() {
     let q = levels[12].equation;
-    q = move(q, 'L/1', 'path:L/0', manual_drag_options);
+    q = move(q, 'L/1', 'path:L/0', auto_simplify_drag_options);
     assertShape(q, levels[12].goal, 'level 13');
 }
 
