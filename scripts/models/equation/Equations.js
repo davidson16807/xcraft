@@ -121,14 +121,39 @@ function Equations(dependencies) {
     }
 
     function combine(equation, source_path, target_path) {
-        const parent_path = paths.parent(source_path);
-        if (parent_path == null || parent_path !== paths.parent(target_path)) return equation;
-
-        const parent = paths.resolve(equation, parent_path);
-        if (parent == null) return equation;
+        const source_parent_path = paths.parent(source_path);
+        const target_parent_path = paths.parent(target_path);
+        if (source_parent_path == null || target_parent_path == null) return equation;
 
         const source = paths.resolve(equation, source_path);
         const target = paths.resolve(equation, target_path);
+
+        if (source_parent_path !== target_parent_path) {
+            let outer_path, inner_path, outer_fixed, inner_fixed;
+            if (paths.is_ancestor(source_parent_path, target_parent_path)) {
+                [outer_path, inner_path, outer_fixed, inner_fixed] =
+                    [source_parent_path, target_parent_path, source, target];
+            } else if (paths.is_ancestor(target_parent_path, source_parent_path)) {
+                [outer_path, inner_path, outer_fixed, inner_fixed] =
+                    [target_parent_path, source_parent_path, target, source];
+            } else {
+                return equation;
+            }
+
+            const outer = paths.resolve(equation, outer_path);
+            const inner = paths.resolve(equation, inner_path);
+            if (outer == null || inner == null) return equation;
+
+            const resolution = expression_operations.cancel(
+                outer, inner, outer_fixed, inner_fixed);
+            if (resolution.status === 'ambiguous') return null;
+            if (resolution.status !== 'resolved') return equation;
+            return paths.replace(equation, outer_path, resolution.expression);
+        }
+
+        const parent = paths.resolve(equation, source_parent_path);
+        if (parent == null) return equation;
+
         const source_index = Number(paths.segment(source_path));
         const target_index = Number(paths.segment(target_path));
 
@@ -138,7 +163,7 @@ function Equations(dependencies) {
         if (resolution.status === 'ambiguous') return null;
         if (resolution.status !== 'resolved') return equation;
 
-        return paths.replace(equation, parent_path, 
+        return paths.replace(equation, source_parent_path,
                 grouplikes.collapse(parent, source_index, target_index, resolution.expression));
 
     }

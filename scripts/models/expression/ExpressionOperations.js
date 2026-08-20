@@ -50,6 +50,13 @@ const ExpressionOperations = (dependencies) => {
     }
 
 
+    function cancel(outer, inner, outer_fixed, inner_fixed) {
+        return resolve(laws.map(law =>
+            law.cancel_pair == null? null :
+                law.cancel_pair(outer, inner, outer_fixed, inner_fixed)
+        ));
+    }
+
     function balance(parent, source, target) {
         const results = new Map();
         laws.forEach(law => {
@@ -70,6 +77,7 @@ const ExpressionOperations = (dependencies) => {
     return Object.freeze({
         combine,
         distribute,
+        cancel,
         balance,
     });
 };

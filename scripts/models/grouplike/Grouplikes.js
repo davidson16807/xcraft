@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 `Expression` is the immutable model for algebraic grouplikes.
@@ -14,6 +13,7 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
     const add = grouplike_expressions_for_tag['add'].create;
     const mul = grouplike_expressions_for_tag['mul'].create;
     const pow = (base, exponent) => grouplike_expressions_for_tag['pow'].create([base, exponent]);
+    const log = (base, result) => grouplike_expressions_for_tag['log'].create([base, result]);
 
     // provided only as a convenience
     const div = (numerator, denominator) => mul([numerator, pow(denominator, constant(-1))]);
@@ -147,6 +147,7 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         add,
         mul,
         pow,
+        log,
         div,
         append,
         combine,

@@ -880,13 +880,31 @@ Current status against the explicitly tracked missing cases:
 - `(a^b)^(1/b)`: composition is implemented and exposes the inverse exponent factors for a subsequent combination drag; the tested two-drag path completes.
 - solve `x^a = b`: implemented through `inverse:exponent:result`, currently rendering the root algebraically as `b^(1/a)`.
 
+Additional implementation completed:
+
+- `log(base, result)` is now a first-class Expression operation and evaluates as `ln(result)/ln(base)`.
+- `PowerTriangles` recognizes `log(base, result)` as the projection computing the exponent coordinate, with child vertices `[base, result]`.
+- `PowerTriangles.create(EXPONENT, ...)` constructs `log(base, result)`.
+- Fixed-base inverse laws are registered for both computed projections:
+  - `inverse:base:result` supports `a^b = c <-> b = log_a(c)`.
+  - `inverse:base:exponent` supports `log_a(c) = b <-> c = a^b`.
+- Nested inverse cancellation is part of the combine stage. Dragging the matching fixed-base expressions together rewrites the smallest enclosing projection pair:
+  - `a^log_a(b) -> b`
+  - `log_a(a^b) -> b`
+- Nested cancellation works regardless of which matching fixed-base occurrence is used as the drag source.
+- Structurally mismatched fixed bases do not cancel.
+- `log` rendering is supported in `ExpressionView` as `log_base(result)` and `ExpressionShape` treats log argument order as significant.
+- `log` is enabled alongside `pow` as a local structural operation; Add/Multiply toolbar toggles do not disable it.
+- The existing ScaleExpressions and PowerExpressions test suite remains green; nested inverse cancellation occupies a non-sibling drag geometry and did not collide with their sibling combine/distribute laws.
+
+Known UI limitation:
+
+- The traditional balance ghost can display a standalone additive or multiplicative inverse (`-a`, `1/a`). A fixed-base triangle inverse is instead a partial projection such as `log_a(□)`, whose completed Expression depends on the opposite equation side. Until partial/projection ghosts are modeled explicitly, these balance drags retain the ordinary source ghost even though the target and rewrite are correctly advertised.
+
 Next milestone:
 
-1. Add `log(base, result)` as the projection computing `exponent`.
-2. Extend `PowerTriangles` projection metadata and Expression evaluation/view support for `log`.
-3. Implement the fixed-base inverse pair:
-   - `a^log_a(b) -> b`
-   - `log_a(a^b) -> b`
-4. Generalize inverse cancellation so nested inverse projections can remove structure during local combine/cancel drags, not only during equation balancing.
-5. Add the mirrored sameness law `same:base:exponent` (`log_a(b) + log_a(c) <-> log_a(bc)`).
+1. Implement the mirrored sameness law `same:base:exponent`:
+   - `log_a(b) + log_a(c) <-> log_a(bc)`.
+2. Verify ambiguity resolution when this logarithmic sameness law overlaps ordinary additive/multiplicative ScaleExpressions behavior.
+3. Decide whether the next projection milestone should be an explicit `root` Expression or continued algebraic rendering as `result^(1/exponent)` before implementing `same:exponent:base` and the remaining inverse mirrors.
 

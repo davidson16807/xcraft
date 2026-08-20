@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 function ExpressionView(dependencies) {
 
@@ -189,6 +188,25 @@ function ExpressionView(dependencies) {
             case 'mul':
                 return draw_mul(expression, path, draggable_paths, valid_targets);
                 break;
+
+            case 'log': {
+                const base = expression.contents[0];
+                const result = expression.contents[1];
+                return html.span(
+                    path_attributes(path, draggable_paths, valid_targets, 'expression-log'),
+                    [
+                        html.span({ class:'log-operator' }, [
+                            math('\\log', 'math-operator'),
+                            html.node('sub', { class:'log-base' }, [
+                                draw(base, paths.base(path), draggable_paths, valid_targets, 0)
+                            ]),
+                        ]),
+                        math('(', 'math-paren'),
+                        draw(result, paths.nary(path, 1), draggable_paths, valid_targets, 0),
+                        math(')', 'math-paren'),
+                    ]
+                );
+            }
 
             case 'pow': {
                 const base = expression.contents[0];

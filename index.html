@@ -191,6 +191,10 @@
             },
             evaluate => expression => Math.pow(evaluate(expression.contents[0]), evaluate(expression.contents[1]))
         ),
+        'log': Grouplike('log', undefined,
+            {},
+            evaluate => expression => Math.log(evaluate(expression.contents[1])) / Math.log(evaluate(expression.contents[0]))
+        ),
     });
     const scales = Scales(grouplikes, expression_shape);
     const scale_expressions = ScaleExpressions(grouplikes, scales);
@@ -209,6 +213,10 @@
     const power_composition = PowerTriangleComposition(power_triangles, grouplikes);
     const inverse_exponent_result = PowerTriangleInverse(
         power_triangles, power_triangles.EXPONENT, power_triangles.RESULT);
+    const inverse_base_result = PowerTriangleInverse(
+        power_triangles, power_triangles.BASE, power_triangles.RESULT);
+    const inverse_base_exponent = PowerTriangleInverse(
+        power_triangles, power_triangles.BASE, power_triangles.EXPONENT);
     const power_expressions = PowerExpressions(
         grouplikes, powers, same_base_result, same_exponent_result, power_composition);
     const ringlikes = Ringlike({
@@ -220,7 +228,7 @@
         grouplikes: grouplikes,
         ringlikes: ringlikes,
         expression_shape: expression_shape,
-        laws: Object.freeze([inverse_exponent_result]),
+        laws: Object.freeze([inverse_exponent_result, inverse_base_result, inverse_base_exponent]),
     });
     const equation_drag_ops = EquationDragOperations({
         expression_paths: expression_paths,
@@ -256,6 +264,7 @@
                 case 'add': return 1;
                 case 'mul': return 2;
                 case 'pow': return 3;
+                case 'log': return 3;
                 default: return 4;
             }
         }
@@ -287,7 +296,7 @@
             [], [], // history
             window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches?
                 'night' : 'day',
-            { enabled: new Set(['add', 'mul', 'pow']), auto_simplify:true }
+            { enabled: new Set(['add', 'mul', 'pow', 'log']), auto_simplify:true }
         ), document
     );
 

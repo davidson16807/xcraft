@@ -85,6 +85,13 @@ const grouplikes = Grouplikes({
             evaluate(expression.contents[1])
         )
     ),
+    'log': Grouplike(
+        'log',
+        undefined,
+        {},
+        evaluate => expression => Math.log(evaluate(expression.contents[1])) /
+            Math.log(evaluate(expression.contents[0]))
+    ),
 });
 const scales = Scales(grouplikes, expression_shape);
 const scale_expressions = ScaleExpressions(grouplikes, scales);
@@ -103,6 +110,10 @@ const same_exponent_result = PowerTriangleSameness(
 const power_composition = PowerTriangleComposition(power_triangles, grouplikes);
 const inverse_exponent_result = PowerTriangleInverse(
     power_triangles, power_triangles.EXPONENT, power_triangles.RESULT);
+const inverse_base_result = PowerTriangleInverse(
+    power_triangles, power_triangles.BASE, power_triangles.RESULT);
+const inverse_base_exponent = PowerTriangleInverse(
+    power_triangles, power_triangles.BASE, power_triangles.EXPONENT);
 const power_expressions = PowerExpressions(
     grouplikes, powers, same_base_result, same_exponent_result, power_composition);
 const ringlikes = Ringlike({
@@ -115,7 +126,7 @@ const expression_operations = ExpressionOperations({
     grouplikes: grouplikes,
     ringlikes: ringlikes,
     expression_shape: expression_shape,
-    laws: Object.freeze([inverse_exponent_result]),
+    laws: Object.freeze([inverse_exponent_result, inverse_base_result, inverse_base_exponent]),
 });
 const equations = Equations({
     grouplikes: grouplikes,
@@ -138,19 +149,19 @@ const app_updater = AppUpdater({
 });
 
 const manual_drag_options = Object.freeze({
-    enabled: new Set(['add', 'mul', 'pow']),
+    enabled: new Set(['add', 'mul', 'pow', 'log']),
     auto_simplify: false,
 });
 const auto_simplify_drag_options = Object.freeze({
-    enabled: new Set(['add', 'mul', 'pow']),
+    enabled: new Set(['add', 'mul', 'pow', 'log']),
     auto_simplify: true,
 });
 const add_only_drag_options = Object.freeze({
-    enabled: new Set(['add', 'pow']),
+    enabled: new Set(['add', 'pow', 'log']),
     auto_simplify: false,
 });
 const multiply_only_drag_options = Object.freeze({
-    enabled: new Set(['mul', 'pow']),
+    enabled: new Set(['mul', 'pow', 'log']),
     auto_simplify: false,
 });
 
@@ -345,6 +356,7 @@ function orderedExpressionKey(expression) {
         case 'constant': return `C(${expression.contents})`;
         case 'variable': return `V(${expression.contents})`;
         case 'pow': return `P(${orderedExpressionKey(expression.contents[0])},${orderedExpressionKey(expression.contents[1])})`;
+        case 'log': return `L(${orderedExpressionKey(expression.contents[0])},${orderedExpressionKey(expression.contents[1])})`;
         case 'add': return `A(${expression.contents.map(orderedExpressionKey).join(',')})`;
         case 'mul': return `M(${expression.contents.map(orderedExpressionKey).join(',')})`;
         default: return `${expression.type}(?)`;
@@ -698,7 +710,7 @@ function operationToggleInvariant() {
         { enabled:enabled, auto_simplify:false }
     );
 
-    let app = make_app(new Set(['add', 'mul', 'pow']));
+    let app = make_app(new Set(['add', 'mul', 'pow', 'log']));
     app = app_updater.toggle_add(app);
     assert(!app.drag_options.enabled.has('add') && app.drag_options.enabled.has('mul'),
         'operation toggle invariant: disabling Add from both should leave Multiply enabled');
@@ -1694,6 +1706,118 @@ function powerTriangleRootBalance() {
     );
 }
 
+
+// -----------------------------------------------------------------------------
+// Power-triangle inverse: fixed base, result/exponent projections
+// a^log_a(b) = b and log_a(a^b) = b
+// -----------------------------------------------------------------------------
+
+function powerTriangleLogInverse() {
+    const two = grouplikes.constant(2);
+    const three = grouplikes.constant(3);
+    const eight = grouplikes.constant(8);
+
+    assert(
+        power_triangles.projection(grouplikes.log(two, x)).computed === power_triangles.EXPONENT,
+        'log should be the exponent projection of a power triangle'
+    );
+    assert(
+        inverse_base_result.key === 'base:result' &&
+        inverse_base_exponent.key === 'base:exponent',
+        'fixed-base inverse laws should be keyed by their computed projection'
+    );
+    assert(
+        approximatelyEqual(grouplikes.evaluate(grouplikes.log(two, eight), {}), 3),
+        'log_2(8) should evaluate to 3'
+    );
+
+    const exponential_equation = new Equation(grouplikes.pow(two, x), eight);
+    const logarithmic_solution = new Equation(x, grouplikes.log(two, eight));
+    assertEquationMoveTransforms(
+        exponential_equation,
+        'L/0',
+        'side:R',
+        logarithmic_solution,
+        'power triangle fixed-base inverse balance',
+        '2^x = 8 -> x = log_2(8)',
+        () => true,
+        manual_drag_options
+    );
+
+    const logarithmic_equation = new Equation(grouplikes.log(two, eight), x);
+    const exponential_solution = new Equation(eight, grouplikes.pow(two, x));
+    assertEquationMoveTransforms(
+        logarithmic_equation,
+        'L/0',
+        'side:R',
+        exponential_solution,
+        'power triangle mirrored fixed-base inverse balance',
+        'log_2(8) = x -> 8 = 2^x',
+        () => true,
+        manual_drag_options
+    );
+
+    const auto_solved = algebra.move(
+        exponential_equation,
+        'L/0',
+        'side:R',
+        auto_simplify_drag_options
+    );
+    assertSameExpression(
+        auto_solved.right,
+        three,
+        'power triangle log balance auto simplify',
+        '2^x = 8 -> x = 3'
+    );
+
+    const power_of_log = grouplikes.pow(two, grouplikes.log(two, x));
+    assertMoveTransforms(
+        power_of_log,
+        'L/0',
+        'path:L/1/0',
+        x,
+        'power triangle nested inverse cancellation',
+        '2^log_2(x) -> x',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+
+    assertMoveTransforms(
+        power_of_log,
+        'L/1/0',
+        'path:L/0',
+        x,
+        'power triangle nested inverse cancellation',
+        '2^log_2(x) -> x with the inner fixed base dragged outward',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+
+    const log_of_power = grouplikes.log(two, grouplikes.pow(two, x));
+    assertMoveTransforms(
+        log_of_power,
+        'L/0',
+        'path:L/1/0',
+        x,
+        'power triangle mirrored nested inverse cancellation',
+        'log_2(2^x) -> x',
+        () => true,
+        manual_drag_options
+    );
+
+    const mismatched = grouplikes.pow(two, grouplikes.log(three, x));
+    const mismatched_equation = new Equation(mismatched, grouplikes.constant(17));
+    assert(
+        algebra.move(
+            mismatched_equation,
+            'L/0',
+            'path:L/1/0',
+            manual_drag_options
+        ) === mismatched_equation,
+        'nested inverse cancellation should require the fixed bases to match'
+    );
+}
+
 // -----------------------------------------------------------------------------
 // Multiplicative inverse
 // a * a^-1 = 1, for a != 0
@@ -2060,6 +2184,7 @@ function distributivity() {
     powerTriangleSameness,
     powerTriangleComposition,
     powerTriangleRootBalance,
+    powerTriangleLogInverse,
     multiplicativeInverse,
     doubleReciprocal,
     inverseOfProduct,

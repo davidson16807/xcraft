@@ -34,6 +34,17 @@ const PowerTriangleInverse = (power_triangles, fixed, computed) => {
         });
     }
 
+    function cancel_pair(outer_expression, inner_expression, outer_fixed, inner_fixed) {
+        const outer = power_triangles.as(outer_expression, computed, false);
+        const inner = power_triangles.as(inner_expression, other, false);
+        if (outer == null || inner == null) return null;
+        if (!power_triangles.same(outer[fixed], inner[fixed])) return null;
+        if (outer[other] !== inner_expression) return null;
+        if (outer[fixed] !== outer_fixed || inner[fixed] !== inner_fixed) return null;
+
+        return inner[computed];
+    }
+
     return Object.freeze({
         family: 'inverse',
         fixed,
@@ -41,5 +52,6 @@ const PowerTriangleInverse = (power_triangles, fixed, computed) => {
         key,
         cancel,
         append,
+        cancel_pair,
     });
 };

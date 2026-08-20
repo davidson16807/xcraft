@@ -16,6 +16,10 @@ const PowerTriangles = (grouplikes, expression_shape) => {
             computed: RESULT,
             children: Object.freeze([BASE, EXPONENT]),
         }),
+        log: Object.freeze({
+            computed: EXPONENT,
+            children: Object.freeze([BASE, RESULT]),
+        }),
     });
 
     function projection(expression) {
@@ -23,8 +27,7 @@ const PowerTriangles = (grouplikes, expression_shape) => {
     }
 
     function as(expression, computed, promote) {
-        if (computed !== RESULT) return null;
-        if (expression.type === 'pow') {
+        if (computed === RESULT && expression.type === 'pow') {
             return new PowerTriangle(
                 expression.contents[0],
                 expression.contents[1],
@@ -32,7 +35,15 @@ const PowerTriangles = (grouplikes, expression_shape) => {
                 RESULT
             );
         }
-        if (!promote) return null;
+        if (computed === EXPONENT && expression.type === 'log') {
+            return new PowerTriangle(
+                expression.contents[0],
+                expression,
+                expression.contents[1],
+                EXPONENT
+            );
+        }
+        if (computed !== RESULT || !promote) return null;
         return new PowerTriangle(
             expression,
             grouplikes.constant(1),
@@ -45,6 +56,10 @@ const PowerTriangles = (grouplikes, expression_shape) => {
         if (computed === RESULT) {
             if (vertices.base == null || vertices.exponent == null) return null;
             return grouplikes.pow(vertices.base, vertices.exponent);
+        }
+        if (computed === EXPONENT) {
+            if (vertices.base == null || vertices.result == null) return null;
+            return grouplikes.log(vertices.base, vertices.result);
         }
         if (computed === BASE) {
             if (vertices.exponent == null || vertices.result == null) return null;
