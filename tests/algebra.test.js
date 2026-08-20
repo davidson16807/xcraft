@@ -19,6 +19,8 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/powertriangle/PowerTriangle.js',
     'scripts/models/powertriangle/PowerTriangles.js',
     'scripts/models/powertriangle/PowerTriangleSameness.js',
+    'scripts/models/powertriangle/PowerTriangleComposition.js',
+    'scripts/models/powertriangle/PowerTriangleInverse.js',
     'scripts/models/ringlike/Ringlike.js',
     'scripts/models/equation/Equation.js',
     'scripts/models/equation/EquationShape.js',
@@ -98,8 +100,11 @@ const same_exponent_result = PowerTriangleSameness(
     power_triangles.EXPONENT, power_triangles.RESULT,
     'mul', 'mul', false
 );
+const power_composition = PowerTriangleComposition(power_triangles, grouplikes);
+const inverse_exponent_result = PowerTriangleInverse(
+    power_triangles, power_triangles.EXPONENT, power_triangles.RESULT);
 const power_expressions = PowerExpressions(
-    grouplikes, powers, same_base_result, same_exponent_result);
+    grouplikes, powers, same_base_result, same_exponent_result, power_composition);
 const ringlikes = Ringlike({
     add: scale_expressions,
     mul: power_expressions,
@@ -110,6 +115,7 @@ const expression_operations = ExpressionOperations({
     grouplikes: grouplikes,
     ringlikes: ringlikes,
     expression_shape: expression_shape,
+    laws: Object.freeze([inverse_exponent_result]),
 });
 const equations = Equations({
     grouplikes: grouplikes,
@@ -1531,6 +1537,164 @@ function powerTriangleSameness() {
 }
 
 // -----------------------------------------------------------------------------
+// Power-triangle composition: fixed base, computed result
+// (a^b)^c = a^(bc)
+// -----------------------------------------------------------------------------
+
+function powerTriangleComposition() {
+    const two = grouplikes.constant(2);
+    const three = grouplikes.constant(3);
+    const reciprocal_x = ringlikes.inverse('mul', x);
+
+    assert(
+        power_composition.family === 'composition' &&
+        power_composition.key === 'base:result',
+        'power triangle composition should identify the fixed base/result projection'
+    );
+
+    const nested = grouplikes.pow(grouplikes.pow(x, two), three);
+    const combined = grouplikes.pow(x, grouplikes.mul([two, three]));
+
+    assertMoveTransforms(
+        nested,
+        'L/0',
+        'path:L/1',
+        combined,
+        'power triangle composition combination',
+        '(x^2)^3 -> x^(2*3)',
+        variables => isDefined(x, variables),
+        manual_drag_options
+    );
+
+    assertMoveTransforms(
+        combined,
+        'L/0',
+        'path:L/1',
+        nested,
+        'power triangle composition distribution',
+        'drag x across 2*3 -> (x^2)^3',
+        variables => isDefined(x, variables),
+        manual_drag_options
+    );
+
+    // The exponent product is structurally ordered. Distribution takes the
+    // first factor as the inner exponent; users can commute factors first when
+    // they want the alternate but equivalent nesting.
+    const three_factor_exponent = grouplikes.mul([two, three, x]);
+    const three_factor_power = grouplikes.pow(grouplikes.constant(5), three_factor_exponent);
+    const three_factor_nested = grouplikes.pow(
+        grouplikes.pow(grouplikes.constant(5), two),
+        grouplikes.mul([three, x])
+    );
+
+    assertMoveTransforms(
+        three_factor_power,
+        'L/0',
+        'path:L/1',
+        three_factor_nested,
+        'power triangle n-ary composition distribution',
+        '5^(2*3*x) -> (5^2)^(3*x)',
+        variables => isDefined(x, variables),
+        manual_drag_options
+    );
+
+    // This is the previously missing (a^b)^(1/b) path. Composition exposes
+    // the exponent product; a subsequent same-base combination of b and b^-1
+    // can then reduce the inverse pair.
+    const inverse_nested = grouplikes.pow(grouplikes.pow(two, x), reciprocal_x);
+    const inverse_composed = grouplikes.pow(two, grouplikes.mul([x, reciprocal_x]));
+    assertMoveTransforms(
+        inverse_nested,
+        'L/0',
+        'path:L/1',
+        inverse_composed,
+        'power triangle inverse-exponent composition',
+        '(2^x)^(1/x) -> 2^(x*(1/x))',
+        variables => isDefinedNonzero(x, variables),
+        manual_drag_options
+    );
+
+    const inverse_equation = new Equation(inverse_composed, grouplikes.constant(17));
+    const reduced = algebra.move(
+        inverse_equation,
+        'L/1/0',
+        'path:L/1/1',
+        Object.freeze({ enabled:manual_drag_options.enabled, auto_simplify:true })
+    );
+    assert(
+        reduced !== inverse_equation &&
+        orderedExpressionKey(reduced.left) === orderedExpressionKey(two),
+        '(2^x)^(1/x) should reduce to 2 after composition and inverse-factor combination'
+    );
+}
+
+// -----------------------------------------------------------------------------
+// Power-triangle inverse: fixed exponent, computed result
+// x^a = b  <->  x = b^(1/a)
+// -----------------------------------------------------------------------------
+
+function powerTriangleRootBalance() {
+    const two = grouplikes.constant(2);
+    const nine = grouplikes.constant(9);
+    const squared = grouplikes.pow(x, two);
+    const equation = new Equation(squared, nine);
+    const expected_root = grouplikes.pow(
+        nine,
+        grouplikes.pow(two, grouplikes.constant(-1))
+    );
+
+    assert(
+        inverse_exponent_result.family === 'inverse' &&
+        inverse_exponent_result.key === 'exponent:result',
+        'power triangle root inverse should use the exponent:result key'
+    );
+
+    const advertised = algebra.moves_for_source(equation, 'L/1', manual_drag_options);
+    assert(
+        advertised.includes('side:R'),
+        'x^2 = 9 should advertise dragging the exponent across the equality'
+    );
+
+    const solved = algebra.move(equation, 'L/1', 'side:R', manual_drag_options);
+    assert(
+        solved !== equation,
+        'x^2 = 9 should be changed by the root balance drag'
+    );
+    assertSameExpression(
+        solved.left,
+        x,
+        'power triangle root balance',
+        'cancel the fixed exponent from x^2'
+    );
+    assertSameExpression(
+        solved.right,
+        expected_root,
+        'power triangle root balance',
+        'append the inverse exponent to the result'
+    );
+    assertExpressionsEquivalent(
+        solved.right,
+        grouplikes.constant(3),
+        'power triangle root balance',
+        '9^(1/2) = 3'
+    );
+    stats.moves++;
+
+    const solved_auto = algebra.move(
+        equation,
+        'L/1',
+        'side:R',
+        Object.freeze({ enabled:manual_drag_options.enabled, auto_simplify:true })
+    );
+    assertSameExpression(
+        solved_auto.right,
+        grouplikes.constant(3),
+        'power triangle root balance auto simplify',
+        'x^2 = 9 -> x = 3'
+    );
+}
+
+// -----------------------------------------------------------------------------
 // Multiplicative inverse
 // a * a^-1 = 1, for a != 0
 // -----------------------------------------------------------------------------
@@ -1894,6 +2058,8 @@ function distributivity() {
     multiplicativeIdentity,
     powerIdentity,
     powerTriangleSameness,
+    powerTriangleComposition,
+    powerTriangleRootBalance,
     multiplicativeInverse,
     doubleReciprocal,
     inverseOfProduct,

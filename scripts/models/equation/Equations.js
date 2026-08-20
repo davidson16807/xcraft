@@ -57,6 +57,19 @@ function Equations(dependencies) {
         const source_root = paths.resolve(equation, source_side);
         const target_root = paths.resolve(equation, target_side);
 
+        if (!is_alone) {
+            const source = paths.resolve(equation, source_path);
+            const resolution = expression_operations.balance(source_root, source, target_root);
+            if (resolution.status === 'ambiguous') return equation;
+            if (resolution.status === 'resolved') {
+                let left, right;
+                [left,right] = target_side==='L'?
+                    [resolution.target, resolution.source] :
+                    [resolution.source, resolution.target];
+                return equation.with({ left:left, right:right });
+            }
+        }
+
         let operation = source_root.type;
         let inverse = invert(equation, source_path, enabled);
         if (inverse == null) return equation; // non-invertible or ambiguous? no-op

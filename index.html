@@ -29,6 +29,8 @@
     <script src="./scripts/models/powertriangle/PowerTriangle.js"></script>
     <script src="./scripts/models/powertriangle/PowerTriangles.js"></script>
     <script src="./scripts/models/powertriangle/PowerTriangleSameness.js"></script>
+    <script src="./scripts/models/powertriangle/PowerTriangleComposition.js"></script>
+    <script src="./scripts/models/powertriangle/PowerTriangleInverse.js"></script>
     <script src="./scripts/models/ringlike/Ringlike.js"></script>
     <script src="./scripts/models/equation/Equation.js"></script>
     <script src="./scripts/models/equation/Equations.js"></script>
@@ -204,8 +206,11 @@
         power_triangles.EXPONENT, power_triangles.RESULT,
         'mul', 'mul', false
     );
+    const power_composition = PowerTriangleComposition(power_triangles, grouplikes);
+    const inverse_exponent_result = PowerTriangleInverse(
+        power_triangles, power_triangles.EXPONENT, power_triangles.RESULT);
     const power_expressions = PowerExpressions(
-        grouplikes, powers, same_base_result, same_exponent_result);
+        grouplikes, powers, same_base_result, same_exponent_result, power_composition);
     const ringlikes = Ringlike({
         add: scale_expressions,
         mul: power_expressions,
@@ -215,6 +220,7 @@
         grouplikes: grouplikes,
         ringlikes: ringlikes,
         expression_shape: expression_shape,
+        laws: Object.freeze([inverse_exponent_result]),
     });
     const equation_drag_ops = EquationDragOperations({
         expression_paths: expression_paths,

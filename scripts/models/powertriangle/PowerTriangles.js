@@ -42,9 +42,18 @@ const PowerTriangles = (grouplikes, expression_shape) => {
     }
 
     function create(computed, vertices) {
-        if (computed !== RESULT) return null;
-        if (vertices.base == null || vertices.exponent == null) return null;
-        return grouplikes.pow(vertices.base, vertices.exponent);
+        if (computed === RESULT) {
+            if (vertices.base == null || vertices.exponent == null) return null;
+            return grouplikes.pow(vertices.base, vertices.exponent);
+        }
+        if (computed === BASE) {
+            if (vertices.exponent == null || vertices.result == null) return null;
+            return grouplikes.pow(
+                vertices.result,
+                grouplikes.pow(vertices.exponent, grouplikes.constant(-1))
+            );
+        }
+        return null;
     }
 
     function same(left, right) {

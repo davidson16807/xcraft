@@ -11,6 +11,10 @@ const ExpressionOperations = (dependencies) => {
     const grouplikes = dependencies.grouplikes;
     const ringlikes = dependencies.ringlikes;
     const shape = dependencies.expression_shape;
+    const laws = Object.freeze([
+        ...ringlikes.laws,
+        ...(dependencies.laws || []),
+    ]);
 
     function resolve(expressions) {
         const results = new Map();
@@ -28,8 +32,8 @@ const ExpressionOperations = (dependencies) => {
 
         return resolve([
             ringlikes.combine(parent.type, left, right),
-            ...ringlikes.laws.map(law =>
-                law.combine == null || law.computed_operation !== parent.type? null : law.combine(left, right)
+            ...laws.map(law =>
+                law.combine == null || law.expanded_operation !== parent.type? null : law.combine(left, right)
             ),
         ]);
     }
@@ -41,12 +45,31 @@ const ExpressionOperations = (dependencies) => {
 
         return resolve([
             legacy,
-            ...ringlikes.laws.map(law => law.distribute == null? null : law.distribute(parent, source, target)),
+            ...laws.map(law => law.distribute == null? null : law.distribute(parent, source, target)),
         ]);
+    }
+
+
+    function balance(parent, source, target) {
+        const results = new Map();
+        laws.forEach(law => {
+            if (law.cancel == null || law.append == null) return;
+            const new_source = law.cancel(parent, source);
+            if (new_source == null) return;
+            const new_target = law.append(source, target);
+            if (new_target == null) return;
+            const key = `${shape.encode(new_source)}=${shape.encode(new_target)}`;
+            results.set(key, Object.freeze({ source:new_source, target:new_target }));
+        });
+        if (results.size === 0) return Object.freeze({ status:'none', source:null, target:null });
+        if (results.size > 1) return Object.freeze({ status:'ambiguous', source:null, target:null });
+        const result = [...results.values()][0];
+        return Object.freeze({ status:'resolved', source:result.source, target:result.target });
     }
 
     return Object.freeze({
         combine,
         distribute,
+        balance,
     });
 };

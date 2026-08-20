@@ -56,6 +56,7 @@ const PowerTriangleSameness = (
         key,
         other_operation,
         computed_operation,
+        expanded_operation: computed_operation,
         promote,
         combine,
         distribute,

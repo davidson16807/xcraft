@@ -838,6 +838,7 @@ Implemented and passing the full algebra suite:
 
 - `PowerTriangle` with `base`, `exponent`, `result`, and `computed` coordinates.
 - `PowerTriangles` result projection for `pow(base, exponent)`.
+- `PowerTriangles.create(BASE, ...)` can solve the base coordinate as `result^(1/exponent)` without requiring a first-class `root` Expression yet.
 - Explicit, law-controlled promotion of ordinary Expressions to the degenerate result projection `x = x^1`.
 - `PowerTriangleSameness` as one reusable implementation parameterized by fixed/computed vertex and the operations on the two free coordinates.
 - `same:base:result`:
@@ -846,11 +847,20 @@ Implemented and passing the full algebra suite:
 - `same:exponent:result`:
   - `a^c * b^c -> (ab)^c`
   - `(ab)^c -> a^c * b^c`
+- `PowerTriangleComposition` for the fixed-base/result projection:
+  - `(a^b)^c -> a^(bc)`
+  - `a^(bc) -> (a^b)^c`
+  - n-ary multiplicative exponents distribute structurally as `a^(b*c*d) -> (a^b)^(c*d)`; commuting exponent factors first selects another equivalent nesting.
+- Composition makes the previous `(a^b)^(1/b)` gap traversable: first compose to `a^(b*(1/b))`, then use the existing same-base inverse-factor combination inside the exponent. With auto-simplification the tested two-drag path reduces completely.
+- `PowerTriangleInverse` for `inverse:exponent:result`:
+  - cancelling the fixed exponent from `x^a` leaves `x`;
+  - appending that exponent to a result `b` constructs `b^(1/a)`.
+- Equation balancing now asks registered inverse laws before falling back to the legacy ringlike inverse path. Thus `x^2 = 9` can become `x = 9^(1/2)` and auto-simplify to `x = 3` without defining `Ringlike.inverse('pow', ...)`.
 - Constant bases use the same implementation as symbolic bases.
 - Existing `PowerExpressions` same-base combination delegates to the triangle law.
 - Existing `PowerExpressions` power-of-product distribution delegates to the same-exponent triangle law.
 - Programmatic interpretation resolution deduplicates structurally identical results.
-- Resolution now distinguishes `none`, `resolved`, and `ambiguous`; an ambiguous combine/distribute blocks fallback to a lower-priority operation such as commute.
+- Resolution distinguishes `none`, `resolved`, and `ambiguous`; an ambiguous combine/distribute blocks fallback to a lower-priority operation such as commute.
 - Example genuine ambiguity: `a^c * a^c` has both same-base and same-exponent interpretations and therefore currently produces a no-op.
 - Primitive `Grouplike` combination still has first refusal, so promoted triangle interpretations do not override identities/cancellation.
 - Same-exponent combination does not promote arbitrary ordinary factors; this prevents `ab` from becoming the vacuous `(ab)^1`.
@@ -863,12 +873,20 @@ Current top-level gesture priority remains:
 
 Within combine or distribute, mathematical interpretations are resolved as a set rather than by implementation order.
 
+Current status against the explicitly tracked missing cases:
+
+- `(a^b)^c`: implemented by `PowerTriangleComposition.combine`.
+- `x^(ab)`: implemented by `PowerTriangleComposition.distribute`.
+- `(a^b)^(1/b)`: composition is implemented and exposes the inverse exponent factors for a subsequent combination drag; the tested two-drag path completes.
+- solve `x^a = b`: implemented through `inverse:exponent:result`, currently rendering the root algebraically as `b^(1/a)`.
+
 Next milestone:
 
 1. Add `log(base, result)` as the projection computing `exponent`.
-2. Extend `PowerTriangles` projection metadata and Expression shape/evaluation/view support for `log`.
+2. Extend `PowerTriangles` projection metadata and Expression evaluation/view support for `log`.
 3. Implement the fixed-base inverse pair:
    - `a^log_a(b) -> b`
    - `log_a(a^b) -> b`
-4. Connect that inverse structure to append/cancel across an equation, so dragging the base or exponent of `a^b = c` can produce logarithmic/root-equivalent equations without special cases in `Equations`.
+4. Generalize inverse cancellation so nested inverse projections can remove structure during local combine/cancel drags, not only during equation balancing.
+5. Add the mirrored sameness law `same:base:exponent` (`log_a(b) + log_a(c) <-> log_a(bc)`).
 
