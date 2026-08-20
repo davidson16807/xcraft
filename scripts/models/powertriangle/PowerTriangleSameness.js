@@ -1,10 +1,9 @@
 'use strict';
 
 /*
-One reversible sameness law for a fixed power-triangle vertex.
-
-The initial instance is fixed=base, computed=result:
-    a^b * a^c  <->  a^(b+c)
+One reversible sameness law for a fixed power-triangle vertex and computed
+projection. The operations on the remaining and computed vertices determine
+the two sides of the equality.
 */
 const PowerTriangleSameness = (
     power_triangles,

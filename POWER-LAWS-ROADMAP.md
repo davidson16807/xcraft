@@ -1,5 +1,8 @@
 # Xcraft Power-Law Architecture Roadmap
 
+> **Status:** Superseded by `POWER-TRIANGLE-DRAG-DESIGN.md`. This file is retained as historical design context; pair-key `mulpow`/`powmul` classes are no longer the active implementation roadmap.
+
+
 ## Purpose
 
 This document records the intended algebra architecture for exponentiation and the implementation roadmap so future changes preserve the same design direction.

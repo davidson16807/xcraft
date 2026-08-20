@@ -107,6 +107,11 @@ const same_exponent_result = PowerTriangleSameness(
     power_triangles.EXPONENT, power_triangles.RESULT,
     'mul', 'mul', false
 );
+const same_base_exponent = PowerTriangleSameness(
+    power_triangles, grouplikes,
+    power_triangles.BASE, power_triangles.EXPONENT,
+    'mul', 'add', false
+);
 const power_composition = PowerTriangleComposition(power_triangles, grouplikes);
 const inverse_exponent_result = PowerTriangleInverse(
     power_triangles, power_triangles.EXPONENT, power_triangles.RESULT);
@@ -114,8 +119,11 @@ const inverse_base_result = PowerTriangleInverse(
     power_triangles, power_triangles.BASE, power_triangles.RESULT);
 const inverse_base_exponent = PowerTriangleInverse(
     power_triangles, power_triangles.BASE, power_triangles.EXPONENT);
+const inverse_result_exponent = PowerTriangleInverse(
+    power_triangles, power_triangles.RESULT, power_triangles.EXPONENT);
 const power_expressions = PowerExpressions(
-    grouplikes, powers, same_base_result, same_exponent_result, power_composition);
+    grouplikes, powers, same_base_result, same_exponent_result,
+    same_base_exponent, power_composition);
 const ringlikes = Ringlike({
     add: scale_expressions,
     mul: power_expressions,
@@ -126,7 +134,12 @@ const expression_operations = ExpressionOperations({
     grouplikes: grouplikes,
     ringlikes: ringlikes,
     expression_shape: expression_shape,
-    laws: Object.freeze([inverse_exponent_result, inverse_base_result, inverse_base_exponent]),
+    laws: Object.freeze([
+        inverse_exponent_result,
+        inverse_base_result,
+        inverse_base_exponent,
+        inverse_result_exponent,
+    ]),
 });
 const equations = Equations({
     grouplikes: grouplikes,
@@ -285,6 +298,9 @@ function solvePowerTriangleLogLevels() {
         [29, 'L/0', 'path:L/1/0'],             // log_2(2^x) -> x
         [30, 'L/0', 'path:L/1'],               // sqrt(x)sqrt(y) -> sqrt(xy)
         [31, 'L/0', 'path:L/1'],               // a^(1/x)a^(1/y) -> a^(1/x+1/y)
+        [32, 'L/0', 'path:L/1'],               // log_2(x)+log_2(y) -> log_2(xy)
+        [33, 'L/0', 'path:L/1'],               // log_2(xy) -> log_2(x)+log_2(y)
+        [34, 'L/1', 'side:R'],                  // log_x(8)=3 -> x=8^(1/3)
     ];
 
     cases.forEach(([index, source, target]) => {
@@ -1554,6 +1570,49 @@ function powerTriangleSameness() {
         'same-exponent combination should not manufacture a power-of-one interpretation for ordinary factors'
     );
 
+    assert(
+        same_base_exponent.key === 'base:exponent',
+        'mirrored same-base logarithm law should use the base:exponent key'
+    );
+
+    const log_two_x = grouplikes.log(two, x);
+    const log_two_three = grouplikes.log(two, three);
+    const log_two_product = grouplikes.log(two, grouplikes.mul([x, three]));
+
+    assertMoveTransforms(
+        grouplikes.add([log_two_x, log_two_three]),
+        'L/0',
+        'path:L/1',
+        log_two_product,
+        'power triangle mirrored same-base combination',
+        'log_2(x) + log_2(3) -> log_2(3x)',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+
+    assertMoveTransforms(
+        log_two_product,
+        'L/0',
+        'path:L/1',
+        grouplikes.add([log_two_x, log_two_three]),
+        'power triangle mirrored same-base distribution',
+        'drag fixed base 2 across x*3',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+
+    const duplicate_log_sum = grouplikes.add([log_two_x, log_two_x]);
+    const duplicate_log_equation = new Equation(duplicate_log_sum, zero);
+    assert(
+        algebra.move(
+            duplicate_log_equation,
+            'L/0',
+            'path:L/1',
+            manual_drag_options
+        ) === duplicate_log_equation,
+        'log_a(x)+log_a(x) should be a no-op when ScaleExpressions and triangle sameness disagree'
+    );
+
     const squared = grouplikes.pow(x, grouplikes.constant(2));
     const ambiguous_product = grouplikes.mul([squared, squared]);
     const ambiguous_equation = new Equation(ambiguous_product, zero);
@@ -1820,6 +1879,36 @@ function powerTriangleLogInverse() {
         'log_2(2^x) -> x',
         () => true,
         manual_drag_options
+    );
+
+    assert(
+        inverse_result_exponent.key === 'result:exponent',
+        'fixed-result logarithm inverse should use the result:exponent key'
+    );
+
+    const variable_base_log = new Equation(grouplikes.log(x, eight), three);
+    const expected_base = grouplikes.pow(
+        eight,
+        grouplikes.pow(three, grouplikes.constant(-1))
+    );
+    const solved_base = algebra.move(
+        variable_base_log, 'L/1', 'side:R', manual_drag_options
+    );
+    assert(
+        solved_base !== variable_base_log,
+        'log_x(8) = 3 should solve for the base by dragging the fixed result'
+    );
+    assertSameExpression(
+        solved_base.left,
+        x,
+        'power triangle fixed-result inverse balance',
+        'cancel the fixed result from log_x(8)'
+    );
+    assertSameExpression(
+        solved_base.right,
+        expected_base,
+        'power triangle fixed-result inverse balance',
+        'append the base projection 8^(1/3)'
     );
 
     const mismatched = grouplikes.pow(two, grouplikes.log(three, x));
@@ -2213,7 +2302,7 @@ function distributivity() {
 ].forEach(test => test());
 
 console.log(
-    `ok - 16 level solutions; `+
+    `ok - 19 level solutions; `+
     `${stats.semantic_cases} property cases; `+
     `${stats.evaluations} evaluations; `+
     `${stats.domain_skips} domain exclusions; `+

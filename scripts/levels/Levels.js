@@ -247,26 +247,27 @@ function Levels(grouplikes) {
             goal: e(p(av(), a([reciprocal(x()), reciprocal(y())])), bv()),
         },
 
-        // The remaining entries are executable specifications for power-triangle
-        // relationships that are intentionally ahead of the implementation.
+        // Logarithmic power-triangle demonstrations and roadmap fixtures.
+        // Implemented entries use their mathematical domain context; future
+        // entries remain explicitly marked as roadmap levels.
         {
             title: 'Logarithm of a product',
             concept: 'Same-base logarithms combine additively: log_a(x) + log_a(y) = log_a(xy).',
-            context: roadmap_context,
+            context: positive_context,
             equation: e(a([l(c(2), x()), l(c(2), y())]), av()),
             goal: e(l(c(2), m([x(), y()])), av()),
         },
         {
             title: 'Split a logarithm',
             concept: 'The same-base logarithm law distributes in reverse: log_a(xy) = log_a(x) + log_a(y).',
-            context: roadmap_context,
+            context: positive_context,
             equation: e(l(c(2), m([x(), y()])), av()),
             goal: e(a([l(c(2), x()), l(c(2), y())]), av()),
         },
         {
             title: 'Solve a logarithm base',
             concept: 'Holding the result fixed solves the missing base: log_x(a) = b -> x = a^(1/b).',
-            context: roadmap_context,
+            context: positive_context,
             equation: e(l(x(), c(8)), c(3)),
             goal: e(x(), p(c(8), reciprocal(c(3)))),
         },

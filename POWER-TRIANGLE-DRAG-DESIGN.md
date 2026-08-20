@@ -896,6 +896,12 @@ Additional implementation completed:
 - `log` rendering is supported in `ExpressionView` as `log_base(result)` and `ExpressionShape` treats log argument order as significant.
 - `log` is enabled alongside `pow` as a local structural operation; Add/Multiply toolbar toggles do not disable it.
 - The existing ScaleExpressions and PowerExpressions test suite remains green; nested inverse cancellation occupies a non-sibling drag geometry and did not collide with their sibling combine/distribute laws.
+- `same:base:exponent` is implemented through the same generic `PowerTriangleSameness` object:
+  - `log_a(x) + log_a(y) -> log_a(xy)`
+  - `log_a(xy) -> log_a(x) + log_a(y)`
+- The mirrored same-base law is registered as a mathematical law exposed by `PowerExpressions`; no logarithm-specific combine/distribute matcher was added.
+- A genuine overlap is now tested explicitly: `log_a(x)+log_a(x)` has both a ScaleExpressions interpretation (`2 log_a(x)`) and a triangle interpretation (`log_a(x*x)`), so the drag is a no-op while both interpretations are enabled.
+- `inverse:result:exponent` is implemented: `log_x(a)=b -> x=a^(1/b)` by cancelling the fixed result and constructing the missing base projection.
 
 Known UI limitation:
 
@@ -903,10 +909,9 @@ Known UI limitation:
 
 Next milestone:
 
-1. Implement the mirrored sameness law `same:base:exponent`:
-   - `log_a(b) + log_a(c) <-> log_a(bc)`.
-2. Verify ambiguity resolution when this logarithmic sameness law overlaps ordinary additive/multiplicative ScaleExpressions behavior.
-3. Decide whether the next projection milestone should be an explicit `root` Expression or continued algebraic rendering as `result^(1/exponent)` before implementing `same:exponent:base` and the remaining inverse mirrors.
+1. Implement the mirrored composition/scaling law `log_a(x^c) <-> c log_a(x)` using power-triangle composition metadata rather than a logarithm-specific rewrite.
+2. Then address the remaining result-fixed logarithm sameness law, which requires harmonic addition: `log_x(a) || log_y(a) <-> log_(xy)(a)`.
+3. Decide at that point whether harmonic addition and/or `root` should become first-class Expression operations or remain structured projections over the existing `add`/`mul`/`pow` AST.
 
 
 ## Level coverage — 2026-08-20
@@ -923,12 +928,14 @@ New playable demonstrations added after logarithms became first-class:
 - root-form common-exponent combination: `x^(1/2)y^(1/2) -> (xy)^(1/2)`
 - same-result/root-form combination: `a^(1/x)a^(1/y) -> a^(1/x + 1/y)`
 
-The first six are exercised through the public drag API in `tests/algebra.test.js`.
-
-Roadmap fixtures now also record the unimplemented logarithmic mirrors:
+The first nine are exercised through the public drag API in `tests/algebra.test.js`; the three newly promoted demonstrations are:
 
 - `log_a(x) + log_a(y) <-> log_a(xy)`
+- the reverse split `log_a(xy) -> log_a(x) + log_a(y)`
 - solve the logarithm base: `log_x(a) = b -> x = a^(1/b)`
+
+Roadmap fixtures still record the unimplemented logarithmic mirrors:
+
 - same-result harmonic-log combination
 - `log_a(x^c) <-> c log_a(x)`
 - reciprocal scaling when the logarithm base is powered
