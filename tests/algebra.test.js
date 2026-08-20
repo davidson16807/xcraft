@@ -276,6 +276,23 @@ function solveLevel10() {
     assertShape(q, levels[9].goal, 'level 10');
 }
 
+
+function solvePowerTriangleLogLevels() {
+    const cases = [
+        [26, 'L/0', 'side:R'],                 // 2^x = 8 -> x = log_2(8)
+        [27, 'L/0', 'side:R'],                 // log_2(x) = 3 -> x = 2^3
+        [28, 'L/0', 'path:L/1/0'],             // 2^log_2(x) -> x
+        [29, 'L/0', 'path:L/1/0'],             // log_2(2^x) -> x
+        [30, 'L/0', 'path:L/1'],               // sqrt(x)sqrt(y) -> sqrt(xy)
+        [31, 'L/0', 'path:L/1'],               // a^(1/x)a^(1/y) -> a^(1/x+1/y)
+    ];
+
+    cases.forEach(([index, source, target]) => {
+        const q = move(levels[index].equation, source, target, manual_drag_options);
+        assertShape(q, levels[index].goal, `level ${index+1}: ${levels[index].title}`);
+    });
+}
+
 // -----------------------------------------------------------------------------
 // Property-test vocabulary and cases
 // -----------------------------------------------------------------------------
@@ -2163,6 +2180,7 @@ function distributivity() {
     solveLevel8,
     solveLevel9,
     solveLevel10,
+    solvePowerTriangleLogLevels,
 ].forEach(test => test());
 
 [
@@ -2195,7 +2213,7 @@ function distributivity() {
 ].forEach(test => test());
 
 console.log(
-    `ok - 10 level solutions; `+
+    `ok - 16 level solutions; `+
     `${stats.semantic_cases} property cases; `+
     `${stats.evaluations} evaluations; `+
     `${stats.domain_skips} domain exclusions; `+

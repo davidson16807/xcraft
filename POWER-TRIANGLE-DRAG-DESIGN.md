@@ -908,3 +908,31 @@ Next milestone:
 2. Verify ambiguity resolution when this logarithmic sameness law overlaps ordinary additive/multiplicative ScaleExpressions behavior.
 3. Decide whether the next projection milestone should be an explicit `root` Expression or continued algebraic rendering as `result^(1/exponent)` before implementing `same:exponent:base` and the remaining inverse mirrors.
 
+
+## Level coverage — 2026-08-20
+
+`Levels.js` now acts as both a playable demonstration suite and an executable
+roadmap for power-triangle behavior.
+
+New playable demonstrations added after logarithms became first-class:
+
+- solve an exponent: `2^x = 8 -> x = log_2(8)`
+- solve a logarithm: `log_2(x) = 3 -> x = 2^3`
+- power/log cancellation: `2^log_2(x) -> x`
+- log/power cancellation: `log_2(2^x) -> x`
+- root-form common-exponent combination: `x^(1/2)y^(1/2) -> (xy)^(1/2)`
+- same-result/root-form combination: `a^(1/x)a^(1/y) -> a^(1/x + 1/y)`
+
+The first six are exercised through the public drag API in `tests/algebra.test.js`.
+
+Roadmap fixtures now also record the unimplemented logarithmic mirrors:
+
+- `log_a(x) + log_a(y) <-> log_a(xy)`
+- solve the logarithm base: `log_x(a) = b -> x = a^(1/b)`
+- same-result harmonic-log combination
+- `log_a(x^c) <-> c log_a(x)`
+- reciprocal scaling when the logarithm base is powered
+
+These roadmap entries intentionally describe transformations ahead of their
+implementation so each future law has a concrete user-facing target. Their
+level context explicitly identifies them as roadmap functionality.

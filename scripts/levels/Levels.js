@@ -6,14 +6,18 @@ function Levels(grouplikes) {
     const a = grouplikes.add;
     const m = grouplikes.mul;
     const p = grouplikes.pow;
+    const l = grouplikes.log;
     const d = grouplikes.div;
     const nonzero_context = 'Assume x is nonzero whenever it appears as a divisor.';
     const positive_context = 'Assume variables are positive real numbers.';
     const e = (left, right) => new Equation(left, right);
     const x = () => v('x');
+    const y = () => v('y');
     const av = () => v('a');
     const bv = () => v('b');
     const reciprocal = expression => p(expression, c(-1));
+    const harmonic = (left, right) => reciprocal(a([reciprocal(left), reciprocal(right)]));
+    const roadmap_context = 'Roadmap level: this transformation is not implemented yet.';
 
     const levels = [
         {
@@ -195,6 +199,111 @@ function Levels(grouplikes) {
             context: positive_context,
             equation: e(p(x(), d(c(2), c(3))), av()),
             goal: e(p(p(x(), c(2)), reciprocal(c(3))), av()),
+        },
+
+        {
+            title: 'Solve an exponent',
+            concept: 'Holding the base fixed turns an exponential equation into a logarithm: a^x = b -> x = log_a(b).',
+            context: positive_context,
+            equation: e(p(c(2), x()), c(8)),
+            goal: e(x(), l(c(2), c(8))),
+        },
+        {
+            title: 'Solve a logarithm',
+            concept: 'The mirrored fixed-base inverse turns a logarithm back into a power: log_a(x) = b -> x = a^b.',
+            context: positive_context,
+            equation: e(l(c(2), x()), c(3)),
+            goal: e(x(), p(c(2), c(3))),
+        },
+        {
+            title: 'Power-log cancellation',
+            concept: 'Power and logarithm projections with the same base cancel: a^log_a(x) = x.',
+            context: positive_context,
+            equation: e(p(c(2), l(c(2), x())), av()),
+            goal: e(x(), av()),
+        },
+        {
+            title: 'Log-power cancellation',
+            concept: 'The mirrored inverse also cancels: log_a(a^x) = x.',
+            context: positive_context,
+            equation: e(l(c(2), p(c(2), x())), av()),
+            goal: e(x(), av()),
+        },
+        {
+            title: 'Root product',
+            concept: 'The common-exponent law also describes roots: x^(1/n)y^(1/n) = (xy)^(1/n).',
+            context: positive_context,
+            equation: e(m([p(x(), reciprocal(c(2))), p(y(), reciprocal(c(2)))]), av()),
+            goal: e(p(m([x(), y()]), reciprocal(c(2))), av()),
+        },
+        {
+            title: 'Same result roots',
+            concept: 'Roots with the same result use the common-base law: a^(1/x)a^(1/y) = a^(1/x + 1/y).',
+            context: positive_context,
+            equation: e(m([
+                p(av(), reciprocal(x())),
+                p(av(), reciprocal(y())),
+            ]), bv()),
+            goal: e(p(av(), a([reciprocal(x()), reciprocal(y())])), bv()),
+        },
+
+        // The remaining entries are executable specifications for power-triangle
+        // relationships that are intentionally ahead of the implementation.
+        {
+            title: 'Logarithm of a product',
+            concept: 'Same-base logarithms combine additively: log_a(x) + log_a(y) = log_a(xy).',
+            context: roadmap_context,
+            equation: e(a([l(c(2), x()), l(c(2), y())]), av()),
+            goal: e(l(c(2), m([x(), y()])), av()),
+        },
+        {
+            title: 'Split a logarithm',
+            concept: 'The same-base logarithm law distributes in reverse: log_a(xy) = log_a(x) + log_a(y).',
+            context: roadmap_context,
+            equation: e(l(c(2), m([x(), y()])), av()),
+            goal: e(a([l(c(2), x()), l(c(2), y())]), av()),
+        },
+        {
+            title: 'Solve a logarithm base',
+            concept: 'Holding the result fixed solves the missing base: log_x(a) = b -> x = a^(1/b).',
+            context: roadmap_context,
+            equation: e(l(x(), c(8)), c(3)),
+            goal: e(x(), p(c(8), reciprocal(c(3)))),
+        },
+        {
+            title: 'Same result logarithms',
+            concept: 'With result fixed, harmonic addition of logarithms corresponds to multiplication of their bases.',
+            context: roadmap_context,
+            equation: e(harmonic(l(x(), av()), l(y(), av())), bv()),
+            goal: e(l(m([x(), y()]), av()), bv()),
+        },
+        {
+            title: 'Split same result logarithms',
+            concept: 'The same-result logarithm law also distributes from a product base into harmonic addition.',
+            context: roadmap_context,
+            equation: e(l(m([x(), y()]), av()), bv()),
+            goal: e(harmonic(l(x(), av()), l(y(), av())), bv()),
+        },
+        {
+            title: 'Logarithm power rule',
+            concept: 'Power composition mirrored through logarithms gives log_a(x^c) = c log_a(x).',
+            context: roadmap_context,
+            equation: e(l(c(2), p(x(), c(3))), av()),
+            goal: e(m([c(3), l(c(2), x())]), av()),
+        },
+        {
+            title: 'Combine a logarithm coefficient',
+            concept: 'The logarithm power rule combines in reverse: c log_a(x) = log_a(x^c).',
+            context: roadmap_context,
+            equation: e(m([c(3), l(c(2), x())]), av()),
+            goal: e(l(c(2), p(x(), c(3))), av()),
+        },
+        {
+            title: 'Power in a logarithm base',
+            concept: 'Scaling the base exponent scales a logarithm reciprocally: log_(a^c)(x) = (1/c)log_a(x).',
+            context: roadmap_context,
+            equation: e(l(p(c(2), c(3)), x()), av()),
+            goal: e(m([reciprocal(c(3)), l(c(2), x())]), av()),
         },
     ];
 
