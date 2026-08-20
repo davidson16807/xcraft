@@ -913,12 +913,21 @@ Known UI limitation:
 
 - The traditional balance ghost can display a standalone additive or multiplicative inverse (`-a`, `1/a`). A fixed-base triangle inverse is instead a partial projection such as `log_a(□)`, whose completed Expression depends on the opposite equation side. Until partial/projection ghosts are modeled explicitly, these balance drags retain the ordinary source ghost even though the target and rewrite are correctly advertised.
 
+Step 7 implementation completed:
+
+- `harmonic` is now a first-class associative/commutative `Grouplike` operation with no finite identity. It evaluates as `1 / sum(1/x_i)` and renders as the corresponding reciprocal-of-reciprocals expression.
+- `same:result:exponent` is implemented by the existing generic `PowerTriangleSameness` with fixed vertex `result`, computed vertex `exponent`, base operation `mul`, and exponent operation `harmonic`.
+- The two user-facing directions are now playable:
+  - `log_x(a) || log_y(a) -> log_(xy)(a)`
+  - `log_(xy)(a) -> log_x(a) || log_y(a)`
+- The first-class harmonic representation is tested against the desugared `(1/u + 1/v)^-1` form and for associativity/commutativity.
+- Add/Multiply toolbar toggles preserve `harmonic`, as they already preserve unrelated `pow` and `log` operations.
+
 Next milestone:
 
-1. Address the remaining result-fixed logarithm sameness law, which requires harmonic addition: `log_x(a) || log_y(a) <-> log_(xy)(a)`.
-2. Decide whether harmonic addition should become a first-class Expression operation or remain a structured projection over the existing reciprocal/add AST.
-3. Then implement reciprocal scaling when the logarithm base is powered: `log_(a^c)(x) <-> (1/c)log_a(x)`.
-4. Revisit whether a first-class `root` Expression adds enough interaction value beyond the existing `result^(1/exponent)` base projection.
+1. Implement reciprocal scaling when the logarithm base is powered: `log_(a^c)(x) <-> (1/c)log_a(x)`.
+2. Determine whether that mirror belongs as another projection of `PowerTriangleComposition` or merits a more general scalar-action representation.
+3. Revisit whether a first-class `root` Expression adds enough interaction value beyond the existing `result^(1/exponent)` base projection.
 
 
 ## Level coverage — 2026-08-20
@@ -941,9 +950,10 @@ The first nine are exercised through the public drag API in `tests/algebra.test.
 - the reverse split `log_a(xy) -> log_a(x) + log_a(y)`
 - solve the logarithm base: `log_x(a) = b -> x = a^(1/b)`
 
-Roadmap fixtures still record the unimplemented logarithmic mirrors:
+The same-result harmonic-log levels are now playable through the first-class `harmonic` operation.
 
-- same-result harmonic-log combination
+The remaining roadmap fixture records:
+
 - reciprocal scaling when the logarithm base is powered
 
 The composition-mirror levels are now playable:

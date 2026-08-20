@@ -5,7 +5,7 @@ Operates on grouplikes that can be expressed as powers.
 */
 const PowerExpressions = (
     grouplikes, powers, same_base, same_exponent, same_base_exponent,
-    composition, log_composition
+    same_result_exponent, composition, log_composition
 ) => {
 
     function inverse(expression) {
@@ -39,6 +39,9 @@ const PowerExpressions = (
         combine,
         left_distribute,
         right_distribute,
-        laws: Object.freeze([same_base, same_exponent, same_base_exponent, composition, log_composition]),
+        laws: Object.freeze([
+            same_base, same_exponent, same_base_exponent, same_result_exponent,
+            composition, log_composition
+        ]),
     });
 };

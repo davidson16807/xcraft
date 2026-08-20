@@ -92,6 +92,18 @@ const grouplikes = Grouplikes({
         evaluate => expression => Math.log(evaluate(expression.contents[1])) /
             Math.log(evaluate(expression.contents[0]))
     ),
+    'harmonic': Grouplike(
+        'harmonic',
+        undefined,
+        {
+            is_commutative: true,
+            is_associative: true,
+        },
+        evaluate => expression => 1 / expression.contents.reduce(
+            (sum, item) => sum + 1 / evaluate(item),
+            0
+        )
+    ),
 });
 const scales = Scales(grouplikes, expression_shape);
 const scale_expressions = ScaleExpressions(grouplikes, scales);
@@ -112,6 +124,11 @@ const same_base_exponent = PowerTriangleSameness(
     power_triangles.BASE, power_triangles.EXPONENT,
     'mul', 'add', false
 );
+const same_result_exponent = PowerTriangleSameness(
+    power_triangles, grouplikes,
+    power_triangles.RESULT, power_triangles.EXPONENT,
+    'mul', 'harmonic', false
+);
 const power_composition = PowerTriangleComposition(
     power_triangles, grouplikes, power_triangles.RESULT);
 const log_composition = PowerTriangleComposition(
@@ -126,7 +143,7 @@ const inverse_result_exponent = PowerTriangleInverse(
     power_triangles, power_triangles.RESULT, power_triangles.EXPONENT);
 const power_expressions = PowerExpressions(
     grouplikes, powers, same_base_result, same_exponent_result,
-    same_base_exponent, power_composition, log_composition);
+    same_base_exponent, same_result_exponent, power_composition, log_composition);
 const ringlikes = Ringlike({
     add: scale_expressions,
     mul: power_expressions,
@@ -165,19 +182,19 @@ const app_updater = AppUpdater({
 });
 
 const manual_drag_options = Object.freeze({
-    enabled: new Set(['add', 'mul', 'pow', 'log']),
+    enabled: new Set(['add', 'mul', 'pow', 'log', 'harmonic']),
     auto_simplify: false,
 });
 const auto_simplify_drag_options = Object.freeze({
-    enabled: new Set(['add', 'mul', 'pow', 'log']),
+    enabled: new Set(['add', 'mul', 'pow', 'log', 'harmonic']),
     auto_simplify: true,
 });
 const add_only_drag_options = Object.freeze({
-    enabled: new Set(['add', 'pow', 'log']),
+    enabled: new Set(['add', 'pow', 'log', 'harmonic']),
     auto_simplify: false,
 });
 const multiply_only_drag_options = Object.freeze({
-    enabled: new Set(['mul', 'pow', 'log']),
+    enabled: new Set(['mul', 'pow', 'log', 'harmonic']),
     auto_simplify: false,
 });
 
@@ -304,6 +321,8 @@ function solvePowerTriangleLogLevels() {
         [32, 'L/0', 'path:L/1'],               // log_2(x)+log_2(y) -> log_2(xy)
         [33, 'L/0', 'path:L/1'],               // log_2(xy) -> log_2(x)+log_2(y)
         [34, 'L/1', 'side:R'],                  // log_x(8)=3 -> x=8^(1/3)
+        [35, 'L/0', 'path:L/1'],               // log_x(a)||log_y(a) -> log_(xy)(a)
+        [36, 'L/1', 'path:L/0'],               // log_(xy)(a) -> log_x(a)||log_y(a)
         [37, 'L/0', 'path:L/1'],               // log_2(x^3) -> 3 log_2(x)
         [38, 'L/0', 'path:L/1'],               // 3 log_2(x) -> log_2(x^3)
     ];
@@ -397,6 +416,7 @@ function orderedExpressionKey(expression) {
         case 'log': return `L(${orderedExpressionKey(expression.contents[0])},${orderedExpressionKey(expression.contents[1])})`;
         case 'add': return `A(${expression.contents.map(orderedExpressionKey).join(',')})`;
         case 'mul': return `M(${expression.contents.map(orderedExpressionKey).join(',')})`;
+        case 'harmonic': return `H(${expression.contents.map(orderedExpressionKey).join(',')})`;
         default: return `${expression.type}(?)`;
     }
 }
@@ -748,7 +768,7 @@ function operationToggleInvariant() {
         { enabled:enabled, auto_simplify:false }
     );
 
-    let app = make_app(new Set(['add', 'mul', 'pow', 'log']));
+    let app = make_app(new Set(['add', 'mul', 'pow', 'log', 'harmonic']));
     app = app_updater.toggle_add(app);
     assert(!app.drag_options.enabled.has('add') && app.drag_options.enabled.has('mul'),
         'operation toggle invariant: disabling Add from both should leave Multiply enabled');
@@ -770,8 +790,12 @@ function operationToggleInvariant() {
     app = app_updater.toggle_add(app);
     assert(!app.drag_options.enabled.has('add') && app.drag_options.enabled.has('mul'),
         'operation toggle invariant: disabling the last Add should switch to Multiply');
-    assert(app.drag_options.enabled.has('pow'),
-        'operation toggle invariant: toggling Add/Multiply should preserve unrelated enabled operations');
+    assert(
+        app.drag_options.enabled.has('pow') &&
+        app.drag_options.enabled.has('log') &&
+        app.drag_options.enabled.has('harmonic'),
+        'operation toggle invariant: toggling Add/Multiply should preserve unrelated enabled operations'
+    );
 }
 
 // -----------------------------------------------------------------------------
@@ -1606,6 +1630,65 @@ function powerTriangleSameness() {
         manual_drag_options
     );
 
+    assert(
+        same_result_exponent.key === 'result:exponent',
+        'mirrored same-result logarithm law should use the result:exponent key'
+    );
+
+    const log_three_x = grouplikes.log(three, x);
+    const harmonic_logs = grouplikes.harmonic([log_two_x, log_three_x]);
+    const log_six_x = grouplikes.log(grouplikes.mul([two, three]), x);
+
+    assertMoveTransforms(
+        harmonic_logs,
+        'L/0',
+        'path:L/1',
+        log_six_x,
+        'power triangle same-result logarithm combination',
+        'log_2(x) || log_3(x) -> log_6(x)',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+
+    assertMoveTransforms(
+        log_six_x,
+        'L/1',
+        'path:L/0',
+        harmonic_logs,
+        'power triangle same-result logarithm distribution',
+        'drag fixed result x across base 2*3',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+
+    const harmonic_desugared = ringlikes.inverse('mul', grouplikes.add([
+        ringlikes.inverse('mul', log_two_x),
+        ringlikes.inverse('mul', log_three_x),
+    ]));
+    assertExpressionsEquivalent(
+        harmonic_logs,
+        harmonic_desugared,
+        'harmonic addition representation',
+        'first-class harmonic addition must equal (1/u + 1/v)^-1',
+        variables => variables.x > 0
+    );
+
+    const h2 = grouplikes.constant(2);
+    const h3 = grouplikes.constant(3);
+    const h5 = grouplikes.constant(5);
+    assertExpressionsEquivalent(
+        grouplikes.harmonic([h2, grouplikes.harmonic([h3, h5])]),
+        grouplikes.harmonic([grouplikes.harmonic([h2, h3]), h5]),
+        'harmonic associativity',
+        'harmonic addition is associative'
+    );
+    assertExpressionsEquivalent(
+        grouplikes.harmonic([h2, h3]),
+        grouplikes.harmonic([h3, h2]),
+        'harmonic commutativity',
+        'harmonic addition is commutative'
+    );
+
     const duplicate_log_sum = grouplikes.add([log_two_x, log_two_x]);
     const duplicate_log_equation = new Equation(duplicate_log_sum, zero);
     assert(
@@ -2355,7 +2438,7 @@ function distributivity() {
 ].forEach(test => test());
 
 console.log(
-    `ok - 21 level solutions; `+
+    `ok - 23 level solutions; `+
     `${stats.semantic_cases} property cases; `+
     `${stats.evaluations} evaluations; `+
     `${stats.domain_skips} domain exclusions; `+

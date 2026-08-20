@@ -8,6 +8,7 @@ function Levels(grouplikes) {
     const p = grouplikes.pow;
     const l = grouplikes.log;
     const d = grouplikes.div;
+    const harmonic = grouplikes.harmonic;
     const nonzero_context = 'Assume x is nonzero whenever it appears as a divisor.';
     const positive_context = 'Assume variables are positive real numbers.';
     const e = (left, right) => new Equation(left, right);
@@ -16,7 +17,6 @@ function Levels(grouplikes) {
     const av = () => v('a');
     const bv = () => v('b');
     const reciprocal = expression => p(expression, c(-1));
-    const harmonic = (left, right) => reciprocal(a([reciprocal(left), reciprocal(right)]));
     const roadmap_context = 'Roadmap level: this transformation is not implemented yet.';
 
     const levels = [
@@ -274,16 +274,16 @@ function Levels(grouplikes) {
         {
             title: 'Same result logarithms',
             concept: 'With result fixed, harmonic addition of logarithms corresponds to multiplication of their bases.',
-            context: roadmap_context,
-            equation: e(harmonic(l(x(), av()), l(y(), av())), bv()),
+            context: positive_context,
+            equation: e(harmonic([l(x(), av()), l(y(), av())]), bv()),
             goal: e(l(m([x(), y()]), av()), bv()),
         },
         {
             title: 'Split same result logarithms',
             concept: 'The same-result logarithm law also distributes from a product base into harmonic addition.',
-            context: roadmap_context,
+            context: positive_context,
             equation: e(l(m([x(), y()]), av()), bv()),
-            goal: e(harmonic(l(x(), av()), l(y(), av())), bv()),
+            goal: e(harmonic([l(x(), av()), l(y(), av())]), bv()),
         },
         {
             title: 'Logarithm power rule',

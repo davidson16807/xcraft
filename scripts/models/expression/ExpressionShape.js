@@ -9,6 +9,7 @@ const ExpressionShape = () => {
             case 'log': return `L(${encode(expression.contents[0])},${encode(expression.contents[1])})`;
             case 'add': return `A(${expression.contents.map(encode).sort().join(',')})`;
             case 'mul': return `M(${expression.contents.map(encode).sort().join(',')})`;
+            case 'harmonic': return `H(${expression.contents.map(encode).sort().join(',')})`;
             default: return '...';
         }
     }

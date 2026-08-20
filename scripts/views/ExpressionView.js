@@ -131,6 +131,28 @@ function ExpressionView(dependencies) {
         );
     }
 
+    function draw_harmonic(expression, path, draggable_paths, valid_targets) {
+        const reciprocal_terms = expression.contents.map((term, i) =>
+            html.span({ class:'expression-fraction harmonic-term' }, [
+                html.span({ class:'fraction-numerator' }, [math('1')]),
+                html.span({ class:'fraction-denominator' }, [
+                    draw(term, paths.nary(path, i), draggable_paths, valid_targets, 0)
+                ]),
+            ])
+        );
+        const denominator = reciprocal_terms.flatMap((term, i) =>
+            i === 0? [term] : [math('+', 'math-operator'), term]
+        );
+
+        return html.span(
+            path_attributes(path, draggable_paths, valid_targets, 'expression-harmonic expression-fraction'),
+            [
+                html.span({ class:'fraction-numerator' }, [math('1')]),
+                html.span({ class:'fraction-denominator harmonic-denominator' }, denominator),
+            ]
+        );
+    }
+
     /*
     Draw the contents of a node without duplicating its outer path wrapper.
     This is used for signed addends so the visible sign and term behave as one
@@ -187,6 +209,10 @@ function ExpressionView(dependencies) {
 
             case 'mul':
                 return draw_mul(expression, path, draggable_paths, valid_targets);
+                break;
+
+            case 'harmonic':
+                return draw_harmonic(expression, path, draggable_paths, valid_targets);
                 break;
 
             case 'log': {
