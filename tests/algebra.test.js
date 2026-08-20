@@ -16,10 +16,14 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/ringlike/Power.js',
     'scripts/models/ringlike/Powers.js',
     'scripts/models/ringlike/PowerExpressions.js',
+    'scripts/models/powertriangle/PowerTriangle.js',
+    'scripts/models/powertriangle/PowerTriangles.js',
+    'scripts/models/powertriangle/PowerTriangleSameness.js',
     'scripts/models/ringlike/Ringlike.js',
     'scripts/models/equation/Equation.js',
     'scripts/models/equation/EquationShape.js',
     'scripts/models/expression/ExpressionPaths.js',
+    'scripts/models/expression/ExpressionOperations.js',
     'scripts/models/equation/Equations.js',
     'scripts/models/equation/EquationDragOperations.js',
     'scripts/models/app/AppState.js',
@@ -41,10 +45,13 @@ const grouplikes = Grouplikes({
     'add': Grouplike(
         'add',
         new Expression('constant', 0),
-        new Expression('constant', 0),
-        true,
-        true,
-        true,
+        {
+            is_commutative: true,
+            is_associative: true,
+            is_invertible: true,
+            is_left_cancellative: true,
+            is_right_cancellative: true,
+        },
         evaluate => expression => expression.contents.reduce(
             (accumulator, item) => accumulator + evaluate(item),
             0
@@ -53,10 +60,13 @@ const grouplikes = Grouplikes({
     'mul': Grouplike(
         'mul',
         new Expression('constant', 1),
-        new Expression('constant', 1),
-        true,
-        true,
-        true,
+        {
+            is_commutative: true,
+            is_associative: true,
+            is_invertible: true,
+            is_left_cancellative: true,
+            is_right_cancellative: true,
+        },
         evaluate => expression => expression.contents.reduce(
             (accumulator, item) => accumulator * evaluate(item),
             1
@@ -64,11 +74,10 @@ const grouplikes = Grouplikes({
     ),
     'pow': Grouplike(
         'pow',
-        undefined,
         new Expression('constant', 1),
-        false,
-        false,
-        false,
+        {
+            is_right_cancellative: true,
+        },
         evaluate => expression => Math.pow(
             evaluate(expression.contents[0]),
             evaluate(expression.contents[1])
@@ -78,17 +87,29 @@ const grouplikes = Grouplikes({
 const scales = Scales(grouplikes, expression_shape);
 const scale_expressions = ScaleExpressions(grouplikes, scales);
 const powers = Powers(grouplikes, expression_shape);
-const power_expressions = PowerExpressions(grouplikes, powers);
+const power_triangles = PowerTriangles(grouplikes, expression_shape);
+const same_base_result = PowerTriangleSameness(
+    power_triangles, grouplikes,
+    power_triangles.BASE, power_triangles.RESULT,
+    'add', 'mul'
+);
+const power_expressions = PowerExpressions(grouplikes, powers, same_base_result);
 const ringlikes = Ringlike({
     add: scale_expressions,
     mul: power_expressions,
 });
 const equation_shape = EquationShape(expression_shape);
 const paths = ExpressionPaths(grouplikes);
+const expression_operations = ExpressionOperations({
+    grouplikes: grouplikes,
+    ringlikes: ringlikes,
+    expression_shape: expression_shape,
+});
 const equations = Equations({
     grouplikes: grouplikes,
     ringlikes: ringlikes,
     expression_paths: paths,
+    expression_operations: expression_operations,
 });
 const algebra = EquationDragOperations({
     expression_paths: paths,
@@ -1399,6 +1420,66 @@ function powerIdentity() {
 }
 
 // -----------------------------------------------------------------------------
+// Power-triangle sameness: fixed base, computed result
+// a^b * a^c = a^(b+c)
+// -----------------------------------------------------------------------------
+
+function powerTriangleSameness() {
+    const two = grouplikes.constant(2);
+    const three = grouplikes.constant(3);
+    const two_to_x = grouplikes.pow(two, x);
+    const two_cubed = grouplikes.pow(two, three);
+    const combined = grouplikes.pow(two, grouplikes.add([x, three]));
+
+    assert(
+        same_base_result.key === 'base:result',
+        'power triangle sameness should be keyed by fixed and computed vertices'
+    );
+
+    assertMoveTransforms(
+        grouplikes.mul([two_to_x, two_cubed]),
+        'L/0',
+        'path:L/1',
+        combined,
+        'power triangle same-base combination',
+        '2^x * 2^3 -> 2^(x+3)',
+        variables => isDefined(x, variables),
+        manual_drag_options
+    );
+
+    assertMoveTransforms(
+        combined,
+        'L/0',
+        'path:L/1',
+        grouplikes.mul([two_to_x, two_cubed]),
+        'power triangle same-base distribution',
+        'drag the fixed base across x+3',
+        variables => isDefined(x, variables),
+        manual_drag_options
+    );
+
+    // Numeric exponents exercise the legacy PowerExpressions route and the
+    // registered triangle law simultaneously.  They must deduplicate to one
+    // interpretation rather than become ambiguous.
+    assertMoveTransforms(
+        grouplikes.mul([
+            grouplikes.pow(x, grouplikes.constant(2)),
+            grouplikes.pow(x, three),
+        ]),
+        'L/0',
+        'path:L/1',
+        grouplikes.pow(x, grouplikes.add([
+            grouplikes.constant(2),
+            three,
+        ])),
+        'power triangle duplicate interpretation',
+        'legacy ringlike and triangle law resolve to the same expression',
+        variables => isDefined(x, variables),
+        manual_drag_options
+    );
+}
+
+// -----------------------------------------------------------------------------
 // Multiplicative inverse
 // a * a^-1 = 1, for a != 0
 // -----------------------------------------------------------------------------
@@ -1761,6 +1842,7 @@ function distributivity() {
     multiplicativeAssociativity,
     multiplicativeIdentity,
     powerIdentity,
+    powerTriangleSameness,
     multiplicativeInverse,
     doubleReciprocal,
     inverseOfProduct,

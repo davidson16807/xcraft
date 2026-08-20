@@ -17,6 +17,7 @@
     <script src="./scripts/models/expression/Expression.js"></script>
     <script src="./scripts/models/expression/ExpressionShape.js"></script>
     <script src="./scripts/models/expression/ExpressionPaths.js"></script>
+    <script src="./scripts/models/expression/ExpressionOperations.js"></script>
     <script src="./scripts/models/grouplike/Grouplike.js"></script>
     <script src="./scripts/models/grouplike/Grouplikes.js"></script>
     <script src="./scripts/models/ringlike/Scale.js"></script>
@@ -25,6 +26,9 @@
     <script src="./scripts/models/ringlike/Power.js"></script>
     <script src="./scripts/models/ringlike/Powers.js"></script>
     <script src="./scripts/models/ringlike/PowerExpressions.js"></script>
+    <script src="./scripts/models/powertriangle/PowerTriangle.js"></script>
+    <script src="./scripts/models/powertriangle/PowerTriangles.js"></script>
+    <script src="./scripts/models/powertriangle/PowerTriangleSameness.js"></script>
     <script src="./scripts/models/ringlike/Ringlike.js"></script>
     <script src="./scripts/models/equation/Equation.js"></script>
     <script src="./scripts/models/equation/Equations.js"></script>
@@ -189,18 +193,30 @@
     const scales = Scales(grouplikes, expression_shape);
     const scale_expressions = ScaleExpressions(grouplikes, scales);
     const powers = Powers(grouplikes, expression_shape);
-    const power_expressions = PowerExpressions(grouplikes, powers);
+    const power_triangles = PowerTriangles(grouplikes, expression_shape);
+    const same_base_result = PowerTriangleSameness(
+        power_triangles, grouplikes,
+        power_triangles.BASE, power_triangles.RESULT,
+        'add', 'mul'
+    );
+    const power_expressions = PowerExpressions(grouplikes, powers, same_base_result);
     const ringlikes = Ringlike({
         add: scale_expressions,
         mul: power_expressions,
     });
     const expression_paths = ExpressionPaths(grouplikes);
+    const expression_operations = ExpressionOperations({
+        grouplikes: grouplikes,
+        ringlikes: ringlikes,
+        expression_shape: expression_shape,
+    });
     const equation_drag_ops = EquationDragOperations({
         expression_paths: expression_paths,
         equations: Equations({
             grouplikes: grouplikes,
             expression_paths: expression_paths,
             ringlikes: ringlikes,
+            expression_operations: expression_operations,
         })
     });
     const equation_shape = EquationShape(expression_shape);

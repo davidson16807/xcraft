@@ -1,10 +1,9 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 Operates on grouplikes that can be expressed as powers.
 */
-const PowerExpressions = (grouplikes, powers) => {
+const PowerExpressions = (grouplikes, powers, same_base) => {
 
     function inverse(expression) {
         if (expression.type === 'constant' && expression.contents === 0) return null;
@@ -20,10 +19,7 @@ const PowerExpressions = (grouplikes, powers) => {
     }
 
     function combine(left, right) {
-        const a = powers.from_expression(left);
-        const b = powers.from_expression(right);
-        const combined = powers.combine(a, b);
-        return combined == null? null : powers.to_expression(combined);
+        return same_base.combine(left, right);
     }
 
     function left_distribute(parent, left, right) {
@@ -42,5 +38,6 @@ const PowerExpressions = (grouplikes, powers) => {
         combine,
         left_distribute,
         right_distribute,
+        laws: Object.freeze([same_base]),
     });
 };

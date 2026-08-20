@@ -1,10 +1,14 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 Operates on grouplikes through the group associated with a ringlikes operation.
 */
 const Ringlike = ringlikes_expressions_for_tag => {
+
+    const laws = Object.freeze(
+        Object.values(ringlikes_expressions_for_tag)
+            .flatMap(expressions => expressions.laws || [])
+    );
 
     function combine(type, left, right) {
         const group_expression_for_type = ringlikes_expressions_for_tag[type];
@@ -47,5 +51,6 @@ const Ringlike = ringlikes_expressions_for_tag => {
         absolute,
         left_distribute,
         right_distribute,
+        laws,
     });
 };

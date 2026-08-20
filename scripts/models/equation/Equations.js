@@ -11,6 +11,7 @@ function Equations(dependencies) {
     const grouplikes = dependencies.grouplikes;
     const paths = dependencies.expression_paths;
     const ringlikes = dependencies.ringlikes;
+    const expression_operations = dependencies.expression_operations;
 
     function invert(equation, source_path, enabled) {
         if (source_path == null) return null; // no source? no-op
@@ -120,10 +121,7 @@ function Equations(dependencies) {
 
         const left = source_index < target_index? source : target;
         const right = source_index < target_index? target : source;
-        const combined = (
-            grouplikes.combine(parent.type, left, right) ||
-            ringlikes.combine(parent.type, left, right)
-        );
+        const combined = expression_operations.combine(parent, left, right);
         if (combined == null) return equation;
 
         return paths.replace(equation, parent_path, 
@@ -144,11 +142,8 @@ function Equations(dependencies) {
         const parent = paths.resolve(equation, parent_path);
         if (parent == null) return equation;
 
-        // The source always distributes across the target,
-        // so source and target position determines whether the distribution is left or right.
-        const distributed = source_index < target_index?
-            ringlikes.left_distribute(target.type, parent, source, target)
-          : ringlikes.right_distribute(target.type, parent, target, source);
+        const distributed = expression_operations.distribute(
+            parent, source, target, source_index, target_index);
         if (distributed == null) return equation;
 
         return paths.replace(equation, parent_path, 
