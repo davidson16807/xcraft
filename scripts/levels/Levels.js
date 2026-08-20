@@ -7,6 +7,7 @@ function Levels(grouplikes) {
     const m = grouplikes.mul;
     const p = grouplikes.pow;
     const l = grouplikes.log;
+    const r = grouplikes.root;
     const d = grouplikes.div;
     const harmonic = grouplikes.harmonic;
     const nonzero_context = 'Assume x is nonzero whenever it appears as a divisor.';
@@ -106,9 +107,9 @@ function Levels(grouplikes) {
         },
         {
             title: 'Undo an exponent',
-            concept: 'Cancel a right exponent by applying its reciprocal: a^b = c -> a = c^(1/b).',
+            concept: 'Holding the exponent fixed solves the missing base: a^b = c -> a = root_b(c).',
             equation: e(p(x(), c(3)), c(8)),
-            goal: e(x(), p(c(8), reciprocal(c(3)))),
+            goal: e(x(), r(c(3), c(8))),
         },
         {
             title: 'Same base',
@@ -167,16 +168,16 @@ function Levels(grouplikes) {
         },
         {
             title: 'Root then power',
-            concept: 'Sequential reciprocal exponents cancel: (a^(1/c))^c = a.',
+            concept: 'A root and matching power are inverse projections: (root_c(a))^c = a.',
             context: positive_context,
-            equation: e(p(p(x(), reciprocal(c(3))), c(3)), av()),
+            equation: e(p(r(c(3), x()), c(3)), av()),
             goal: e(x(), av()),
         },
         {
             title: 'Power then root',
-            concept: 'The opposite nesting also cancels under the active domain assumptions: (a^c)^(1/c) = a.',
+            concept: 'The mirrored inverse also cancels under the active domain assumptions: root_c(a^c) = a.',
             context: positive_context,
-            equation: e(p(p(x(), c(3)), reciprocal(c(3))), av()),
+            equation: e(r(c(3), p(x(), c(3))), av()),
             goal: e(x(), av()),
         },
         {
@@ -231,20 +232,17 @@ function Levels(grouplikes) {
         },
         {
             title: 'Root product',
-            concept: 'The common-exponent law also describes roots: x^(1/n)y^(1/n) = (xy)^(1/n).',
+            concept: 'Roots with the same exponent combine their results: root_n(x)root_n(y) = root_n(xy).',
             context: positive_context,
-            equation: e(m([p(x(), reciprocal(c(2))), p(y(), reciprocal(c(2)))]), av()),
-            goal: e(p(m([x(), y()]), reciprocal(c(2))), av()),
+            equation: e(m([r(c(2), x()), r(c(2), y())]), av()),
+            goal: e(r(c(2), m([x(), y()])), av()),
         },
         {
             title: 'Same result roots',
-            concept: 'Roots with the same result use the common-base law: a^(1/x)a^(1/y) = a^(1/x + 1/y).',
+            concept: 'Roots with the same result combine their exponents harmonically.',
             context: positive_context,
-            equation: e(m([
-                p(av(), reciprocal(x())),
-                p(av(), reciprocal(y())),
-            ]), bv()),
-            goal: e(p(av(), a([reciprocal(x()), reciprocal(y())])), bv()),
+            equation: e(m([r(x(), av()), r(y(), av())]), bv()),
+            goal: e(r(harmonic([x(), y()]), av()), bv()),
         },
 
         // Logarithmic power-triangle demonstrations and roadmap fixtures.
@@ -266,10 +264,10 @@ function Levels(grouplikes) {
         },
         {
             title: 'Solve a logarithm base',
-            concept: 'Holding the result fixed solves the missing base: log_x(a) = b -> x = a^(1/b).',
+            concept: 'Holding the result fixed solves the missing base: log_x(a) = b -> x = root_b(a).',
             context: positive_context,
             equation: e(l(x(), c(8)), c(3)),
-            goal: e(x(), p(c(8), reciprocal(c(3)))),
+            goal: e(x(), r(c(3), c(8))),
         },
         {
             title: 'Same result logarithms',

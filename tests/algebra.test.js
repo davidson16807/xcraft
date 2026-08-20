@@ -92,6 +92,15 @@ const grouplikes = Grouplikes({
         evaluate => expression => Math.log(evaluate(expression.contents[1])) /
             Math.log(evaluate(expression.contents[0]))
     ),
+    'root': Grouplike(
+        'root',
+        undefined,
+        {},
+        evaluate => expression => Math.pow(
+            evaluate(expression.contents[1]),
+            1 / evaluate(expression.contents[0])
+        )
+    ),
     'harmonic': Grouplike(
         'harmonic',
         undefined,
@@ -129,6 +138,16 @@ const same_result_exponent = PowerTriangleSameness(
     power_triangles.RESULT, power_triangles.EXPONENT,
     'mul', 'harmonic', false
 );
+const same_exponent_base = PowerTriangleSameness(
+    power_triangles, grouplikes,
+    power_triangles.EXPONENT, power_triangles.BASE,
+    'mul', 'mul', false
+);
+const same_result_base = PowerTriangleSameness(
+    power_triangles, grouplikes,
+    power_triangles.RESULT, power_triangles.BASE,
+    'harmonic', 'mul', false
+);
 const power_composition = PowerTriangleComposition(
     power_triangles, grouplikes, powers,
     power_triangles.BASE, power_triangles.RESULT);
@@ -146,10 +165,14 @@ const inverse_base_exponent = PowerTriangleInverse(
     power_triangles, power_triangles.BASE, power_triangles.EXPONENT);
 const inverse_result_exponent = PowerTriangleInverse(
     power_triangles, power_triangles.RESULT, power_triangles.EXPONENT);
+const inverse_exponent_base = PowerTriangleInverse(
+    power_triangles, power_triangles.EXPONENT, power_triangles.BASE);
+const inverse_result_base = PowerTriangleInverse(
+    power_triangles, power_triangles.RESULT, power_triangles.BASE);
 const power_expressions = PowerExpressions(
     grouplikes, powers, same_base_result, same_exponent_result,
-    same_base_exponent, same_result_exponent, power_composition, log_composition,
-    result_log_composition);
+    same_base_exponent, same_result_exponent, same_exponent_base, same_result_base,
+    power_composition, log_composition, result_log_composition);
 const ringlikes = Ringlike({
     add: scale_expressions,
     mul: power_expressions,
@@ -165,6 +188,8 @@ const expression_operations = ExpressionOperations({
         inverse_base_result,
         inverse_base_exponent,
         inverse_result_exponent,
+        inverse_exponent_base,
+        inverse_result_base,
     ]),
 });
 const equations = Equations({
@@ -188,19 +213,19 @@ const app_updater = AppUpdater({
 });
 
 const manual_drag_options = Object.freeze({
-    enabled: new Set(['add', 'mul', 'pow', 'log', 'harmonic']),
+    enabled: new Set(['add', 'mul', 'pow', 'log', 'root', 'harmonic']),
     auto_simplify: false,
 });
 const auto_simplify_drag_options = Object.freeze({
-    enabled: new Set(['add', 'mul', 'pow', 'log', 'harmonic']),
+    enabled: new Set(['add', 'mul', 'pow', 'log', 'root', 'harmonic']),
     auto_simplify: true,
 });
 const add_only_drag_options = Object.freeze({
-    enabled: new Set(['add', 'pow', 'log', 'harmonic']),
+    enabled: new Set(['add', 'pow', 'log', 'root', 'harmonic']),
     auto_simplify: false,
 });
 const multiply_only_drag_options = Object.freeze({
-    enabled: new Set(['mul', 'pow', 'log', 'harmonic']),
+    enabled: new Set(['mul', 'pow', 'log', 'root', 'harmonic']),
     auto_simplify: false,
 });
 
@@ -421,6 +446,7 @@ function orderedExpressionKey(expression) {
         case 'variable': return `V(${expression.contents})`;
         case 'pow': return `P(${orderedExpressionKey(expression.contents[0])},${orderedExpressionKey(expression.contents[1])})`;
         case 'log': return `L(${orderedExpressionKey(expression.contents[0])},${orderedExpressionKey(expression.contents[1])})`;
+        case 'root': return `R(${orderedExpressionKey(expression.contents[0])},${orderedExpressionKey(expression.contents[1])})`;
         case 'add': return `A(${expression.contents.map(orderedExpressionKey).join(',')})`;
         case 'mul': return `M(${expression.contents.map(orderedExpressionKey).join(',')})`;
         case 'harmonic': return `H(${expression.contents.map(orderedExpressionKey).join(',')})`;
@@ -775,7 +801,7 @@ function operationToggleInvariant() {
         { enabled:enabled, auto_simplify:false }
     );
 
-    let app = make_app(new Set(['add', 'mul', 'pow', 'log', 'harmonic']));
+    let app = make_app(new Set(['add', 'mul', 'pow', 'log', 'root', 'harmonic']));
     app = app_updater.toggle_add(app);
     assert(!app.drag_options.enabled.has('add') && app.drag_options.enabled.has('mul'),
         'operation toggle invariant: disabling Add from both should leave Multiply enabled');
@@ -800,6 +826,7 @@ function operationToggleInvariant() {
     assert(
         app.drag_options.enabled.has('pow') &&
         app.drag_options.enabled.has('log') &&
+        app.drag_options.enabled.has('root') &&
         app.drag_options.enabled.has('harmonic'),
         'operation toggle invariant: toggling Add/Multiply should preserve unrelated enabled operations'
     );
@@ -1928,10 +1955,7 @@ function powerTriangleRootBalance() {
     const nine = grouplikes.constant(9);
     const squared = grouplikes.pow(x, two);
     const equation = new Equation(squared, nine);
-    const expected_root = grouplikes.pow(
-        nine,
-        grouplikes.pow(two, grouplikes.constant(-1))
-    );
+    const expected_root = grouplikes.root(two, nine);
 
     assert(
         inverse_exponent_result.family === 'inverse' &&
@@ -1981,6 +2005,176 @@ function powerTriangleRootBalance() {
         grouplikes.constant(3),
         'power triangle root balance auto simplify',
         'x^2 = 9 -> x = 3'
+    );
+}
+
+
+// -----------------------------------------------------------------------------
+// First-class root projection completes the power triangle.
+// The existing sameness and inverse implementations should work unchanged for
+// computed=base once root(exponent, result) can be mapped to triangle vertices.
+// -----------------------------------------------------------------------------
+
+function powerTriangleRootProjection() {
+    const two = grouplikes.constant(2);
+    const three = grouplikes.constant(3);
+    const eight = grouplikes.constant(8);
+    const nine = grouplikes.constant(9);
+
+    const square_root_x = grouplikes.root(two, x);
+    const projection = power_triangles.projection(square_root_x);
+    assert(
+        projection != null &&
+        projection.computed === power_triangles.BASE &&
+        projection.children[0] === power_triangles.EXPONENT &&
+        projection.children[1] === power_triangles.RESULT,
+        'root should be the base projection with exponent/result children'
+    );
+    assertSameExpression(
+        power_triangles.create(power_triangles.BASE, {
+            exponent: two,
+            result: x,
+        }),
+        square_root_x,
+        'power triangle base projection creation',
+        'create(BASE, exponent/result) should construct a root expression'
+    );
+    assert(
+        approximatelyEqual(grouplikes.evaluate(grouplikes.root(two, nine), {}), 3),
+        'root_2(9) should evaluate to 3'
+    );
+
+    // Same exponent: root_n(x) root_n(y) <-> root_n(xy).
+    assert(
+        same_exponent_base.key === 'exponent:base',
+        'root same-exponent law should use the exponent:base key'
+    );
+    const square_root_nine = grouplikes.root(two, nine);
+    const root_product = grouplikes.root(two, grouplikes.mul([x, nine]));
+    assertMoveTransforms(
+        grouplikes.mul([square_root_x, square_root_nine]),
+        'L/0',
+        'path:L/1',
+        root_product,
+        'power triangle root same-exponent combination',
+        'root_2(x) root_2(9) -> root_2(9x)',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+    assertMoveTransforms(
+        root_product,
+        'L/0',
+        'path:L/1',
+        grouplikes.mul([square_root_x, square_root_nine]),
+        'power triangle root same-exponent distribution',
+        'drag fixed exponent 2 across 9x',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+
+    // Same result: root_x(a) root_y(a) <-> root_(x||y)(a).
+    assert(
+        same_result_base.key === 'result:base',
+        'root same-result law should use the result:base key'
+    );
+    const square_root_x_result = grouplikes.root(two, x);
+    const cube_root_x_result = grouplikes.root(three, x);
+    const harmonic_index = grouplikes.harmonic([two, three]);
+    const combined_same_result_root = grouplikes.root(harmonic_index, x);
+    assertMoveTransforms(
+        grouplikes.mul([square_root_x_result, cube_root_x_result]),
+        'L/0',
+        'path:L/1',
+        combined_same_result_root,
+        'power triangle root same-result combination',
+        'root_2(x) root_3(x) -> root_(2||3)(x)',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+    assertMoveTransforms(
+        combined_same_result_root,
+        'L/1',
+        'path:L/0',
+        grouplikes.mul([square_root_x_result, cube_root_x_result]),
+        'power triangle root same-result distribution',
+        'drag fixed result x across harmonic root index',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+
+    // The two root-side inverse laws also become ordinary registrations.
+    assert(
+        inverse_exponent_base.key === 'exponent:base' &&
+        inverse_result_base.key === 'result:base',
+        'root inverse laws should be keyed by their fixed/computed vertices'
+    );
+
+    const root_equation = new Equation(grouplikes.root(two, x), three);
+    assertEquationMoveTransforms(
+        root_equation,
+        'L/0',
+        'side:R',
+        new Equation(x, grouplikes.pow(three, two)),
+        'power triangle root fixed-exponent inverse balance',
+        'root_2(x) = 3 -> x = 3^2',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+
+    const variable_index_root = new Equation(grouplikes.root(x, eight), two);
+    assertEquationMoveTransforms(
+        variable_index_root,
+        'L/1',
+        'side:R',
+        new Equation(x, grouplikes.log(two, eight)),
+        'power triangle root fixed-result inverse balance',
+        'root_x(8) = 2 -> x = log_2(8)',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+
+    // Fixed exponent inverse/co-inverse.
+    assertMoveTransforms(
+        grouplikes.pow(grouplikes.root(two, x), two),
+        'L/1',
+        'path:L/0/0',
+        x,
+        'power triangle power-root cancellation',
+        '(root_2(x))^2 -> x',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+    assertMoveTransforms(
+        grouplikes.root(two, grouplikes.pow(x, two)),
+        'L/0',
+        'path:L/1/1',
+        x,
+        'power triangle root-power cancellation',
+        'root_2(x^2) -> x under positive-real assumptions',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+
+    // Fixed result inverse/co-inverse.
+    assertMoveTransforms(
+        grouplikes.log(grouplikes.root(x, eight), eight),
+        'L/1',
+        'path:L/0/1',
+        x,
+        'power triangle log-root cancellation',
+        'log_(root_x(8))(8) -> x',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+    assertMoveTransforms(
+        grouplikes.root(grouplikes.log(x, eight), eight),
+        'L/1',
+        'path:L/0/1',
+        x,
+        'power triangle root-log cancellation',
+        'root_(log_x(8))(8) -> x',
+        variables => variables.x > 0 && variables.x !== 1,
+        manual_drag_options
     );
 }
 
@@ -2089,10 +2283,7 @@ function powerTriangleLogInverse() {
     );
 
     const variable_base_log = new Equation(grouplikes.log(x, eight), three);
-    const expected_base = grouplikes.pow(
-        eight,
-        grouplikes.pow(three, grouplikes.constant(-1))
-    );
+    const expected_base = grouplikes.root(three, eight);
     const solved_base = algebra.move(
         variable_base_log, 'L/1', 'side:R', manual_drag_options
     );
@@ -2494,6 +2685,7 @@ function distributivity() {
     powerTriangleComposition,
     powerTriangleResultLogComposition,
     powerTriangleRootBalance,
+    powerTriangleRootProjection,
     powerTriangleLogInverse,
     multiplicativeInverse,
     doubleReciprocal,

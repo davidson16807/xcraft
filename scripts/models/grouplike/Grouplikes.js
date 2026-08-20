@@ -14,6 +14,7 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
     const mul = grouplike_expressions_for_tag['mul'].create;
     const pow = (base, exponent) => grouplike_expressions_for_tag['pow'].create([base, exponent]);
     const log = (base, result) => grouplike_expressions_for_tag['log'].create([base, result]);
+    const root = (exponent, result) => grouplike_expressions_for_tag['root'].create([exponent, result]);
     const harmonic = contents => grouplike_expressions_for_tag['harmonic'].create(contents);
 
     // provided only as a convenience
@@ -149,6 +150,7 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         mul,
         pow,
         log,
+        root,
         harmonic,
         div,
         append,

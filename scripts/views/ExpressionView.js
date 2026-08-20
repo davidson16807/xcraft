@@ -234,6 +234,24 @@ function ExpressionView(dependencies) {
                 );
             }
 
+
+            case 'root': {
+                const exponent = expression.contents[0];
+                const result = expression.contents[1];
+                return html.span(
+                    path_attributes(path, draggable_paths, valid_targets, 'expression-root'),
+                    [
+                        html.node('sup', { class:'root-index' }, [
+                            draw(exponent, paths.nary(path, 0), draggable_paths, valid_targets, 0)
+                        ]),
+                        math('\\sqrt{}', 'root-radical'),
+                        html.span({ class:'root-radicand' }, [
+                            draw(result, paths.nary(path, 1), draggable_paths, valid_targets, 0)
+                        ]),
+                    ]
+                );
+            }
+
             case 'pow': {
                 const base = expression.contents[0];
                 const exponent = expression.contents[1];

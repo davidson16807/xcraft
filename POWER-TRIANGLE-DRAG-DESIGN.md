@@ -837,8 +837,11 @@ The following constraints should guide future changes:
 Implemented and passing the full algebra suite:
 
 - `PowerTriangle` with `base`, `exponent`, `result`, and `computed` coordinates.
-- `PowerTriangles` result projection for `pow(base, exponent)`.
-- `PowerTriangles.create(BASE, ...)` can solve the base coordinate as `result^(1/exponent)` without requiring a first-class `root` Expression yet.
+- `PowerTriangles` recognizes all three first-class projections:
+  - `pow(base, exponent)` computes `result`;
+  - `log(base, result)` computes `exponent`;
+  - `root(exponent, result)` computes `base`.
+- `PowerTriangles.create(BASE, ...)` now constructs `root(exponent, result)` directly rather than encoding the base projection as `result^(1/exponent)`.
 - Explicit, law-controlled promotion of ordinary Expressions to the degenerate result projection `x = x^1`.
 - `PowerTriangleSameness` as one reusable implementation parameterized by fixed/computed vertex and the operations on the two free coordinates.
 - `same:base:result`:
@@ -878,7 +881,7 @@ Current status against the explicitly tracked missing cases:
 - `(a^b)^c`: implemented by `PowerTriangleComposition.combine`.
 - `x^(ab)`: implemented by `PowerTriangleComposition.distribute`.
 - `(a^b)^(1/b)`: composition is implemented and exposes the inverse exponent factors for a subsequent combination drag; the tested two-drag path completes.
-- solve `x^a = b`: implemented through `inverse:exponent:result`, currently rendering the root algebraically as `b^(1/a)`.
+- solve `x^a = b`: implemented through `inverse:exponent:result` and now constructs the explicit base projection `root(a, b)`.
 
 Additional implementation completed:
 
@@ -933,11 +936,27 @@ Step 8 implementation completed:
 - The reverse reciprocal-coefficient drag remains genuinely ambiguous through the full resolver because `(1/c)log_a(x)` also satisfies the base-fixed law `log_a(x^(1/c))`. It therefore returns a no-op until operation-family controls choose one interpretation.
 - The roadmap level `log_(2^3)(x) -> (1/3)log_2(x)` is now playable through the public drag API.
 
+Step 9 root projection completed:
+
+- `root(exponent, result)` is a first-class Expression/Grouplike operation and is the base projection of a `PowerTriangle`.
+- `PowerTriangles.as(expression, BASE)` and `PowerTriangles.create(BASE, ...)` are now symmetric with the existing result and exponent projections.
+- `same:exponent:base` works generically: `root_n(x) root_n(y) <-> root_n(xy)`.
+- `same:result:base` works generically: `root_x(a) root_y(a) <-> root_(x||y)(a)`.
+- `inverse:exponent:base` and `inverse:result:base` required registration only; `PowerTriangleInverse` itself was unchanged.
+- Together with the already implemented result/exponent projections, all six inverse/co-inverse nesting identities are now representable through the same cancellation machinery:
+  - `a^log_a(b) -> b`
+  - `log_a(a^b) -> b`
+  - `(root_n(b))^n -> b`
+  - `root_n(b^n) -> b` under the active domain assumptions
+  - `log_(root_n(a))(a) -> n`
+  - `root_(log_b(a))(a) -> b`
+- Existing root-oriented levels were migrated from reciprocal-power syntax to explicit root projections and continued to solve through the public drag API.
+
 Next milestone:
 
-1. Add a recognizable base/root projection so `PowerTriangles.as(expression, BASE)` can participate symmetrically with `pow` and `log`.
-2. Use that projection to implement the remaining base-computed sameness and inverse laws without matching ad-hoc reciprocal-power syntax.
-3. Then complete the remaining scalar/composition projections and revisit operation-family UI controls for the ambiguities that now have concrete examples.
+1. Audit the completed projection/law matrix for duplicated legacy behavior in `PowerExpressions` and for missing property-generated symmetry tests.
+2. Consider the two remaining root-side scalar/composition projections now that `computed=BASE` is first-class.
+3. Revisit operation-family UI controls for the concrete ambiguities accumulated during implementation.
 
 
 ## Level coverage — 2026-08-20
@@ -951,8 +970,8 @@ New playable demonstrations added after logarithms became first-class:
 - solve a logarithm: `log_2(x) = 3 -> x = 2^3`
 - power/log cancellation: `2^log_2(x) -> x`
 - log/power cancellation: `log_2(2^x) -> x`
-- root-form common-exponent combination: `x^(1/2)y^(1/2) -> (xy)^(1/2)`
-- same-result/root-form combination: `a^(1/x)a^(1/y) -> a^(1/x + 1/y)`
+- root common-exponent combination: `root_2(x) root_2(y) -> root_2(xy)`
+- same-result root combination: `root_x(a) root_y(a) -> root_(x||y)(a)`
 
 The first nine are exercised through the public drag API in `tests/algebra.test.js`; the three newly promoted demonstrations are:
 
@@ -966,7 +985,7 @@ The reciprocal-scaling logarithm-base level is now playable:
 
 - `log_(a^c)(x) -> (1/c)log_a(x)`
 
-No logarithmic roadmap fixture currently remains; the next coverage work depends on a recognizable base/root projection.
+No logarithmic roadmap fixture currently remains. The base/root projection is now first-class, so further coverage can target the remaining root-side composition projections and architectural audit rather than representation gaps.
 
 The composition-mirror levels are now playable:
 

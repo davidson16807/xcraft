@@ -1,9 +1,10 @@
 'use strict';
 
 /*
-Maps Expressions to and from power-triangle coordinates.  The initial
-implementation supports the result projection, base^exponent, including the
-degenerate promotion x=x^1 used by same-base combination.
+Maps Expressions to and from power-triangle coordinates. The three first-class
+projections are pow(base, exponent), log(base, result), and
+root(exponent, result). Result projection also supports the degenerate promotion
+x=x^1 used by same-base combination.
 */
 const PowerTriangles = (grouplikes, expression_shape) => {
     const BASE = 'base';
@@ -19,6 +20,10 @@ const PowerTriangles = (grouplikes, expression_shape) => {
         log: Object.freeze({
             computed: EXPONENT,
             children: Object.freeze([BASE, RESULT]),
+        }),
+        root: Object.freeze({
+            computed: BASE,
+            children: Object.freeze([EXPONENT, RESULT]),
         }),
     });
 
@@ -43,6 +48,14 @@ const PowerTriangles = (grouplikes, expression_shape) => {
                 EXPONENT
             );
         }
+        if (computed === BASE && expression.type === 'root') {
+            return new PowerTriangle(
+                expression,
+                expression.contents[0],
+                expression.contents[1],
+                BASE
+            );
+        }
         if (computed !== RESULT || !promote) return null;
         return new PowerTriangle(
             expression,
@@ -63,10 +76,7 @@ const PowerTriangles = (grouplikes, expression_shape) => {
         }
         if (computed === BASE) {
             if (vertices.exponent == null || vertices.result == null) return null;
-            return grouplikes.pow(
-                vertices.result,
-                grouplikes.pow(vertices.exponent, grouplikes.constant(-1))
-            );
+            return grouplikes.root(vertices.exponent, vertices.result);
         }
         return null;
     }

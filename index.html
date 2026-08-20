@@ -194,6 +194,13 @@
             {},
             evaluate => expression => Math.log(evaluate(expression.contents[1])) / Math.log(evaluate(expression.contents[0]))
         ),
+        'root': Grouplike('root', undefined,
+            {},
+            evaluate => expression => Math.pow(
+                evaluate(expression.contents[1]),
+                1 / evaluate(expression.contents[0])
+            )
+        ),
         'harmonic': Grouplike('harmonic', undefined,
             {
                 is_commutative: true,
@@ -229,6 +236,16 @@
         power_triangles.RESULT, power_triangles.EXPONENT,
         'mul', 'harmonic', false
     );
+    const same_exponent_base = PowerTriangleSameness(
+        power_triangles, grouplikes,
+        power_triangles.EXPONENT, power_triangles.BASE,
+        'mul', 'mul', false
+    );
+    const same_result_base = PowerTriangleSameness(
+        power_triangles, grouplikes,
+        power_triangles.RESULT, power_triangles.BASE,
+        'harmonic', 'mul', false
+    );
     const power_composition = PowerTriangleComposition(
         power_triangles, grouplikes, powers,
         power_triangles.BASE, power_triangles.RESULT);
@@ -246,10 +263,14 @@
         power_triangles, power_triangles.BASE, power_triangles.EXPONENT);
     const inverse_result_exponent = PowerTriangleInverse(
         power_triangles, power_triangles.RESULT, power_triangles.EXPONENT);
+    const inverse_exponent_base = PowerTriangleInverse(
+        power_triangles, power_triangles.EXPONENT, power_triangles.BASE);
+    const inverse_result_base = PowerTriangleInverse(
+        power_triangles, power_triangles.RESULT, power_triangles.BASE);
     const power_expressions = PowerExpressions(
         grouplikes, powers, same_base_result, same_exponent_result,
-        same_base_exponent, same_result_exponent, power_composition, log_composition,
-        result_log_composition);
+        same_base_exponent, same_result_exponent, same_exponent_base, same_result_base,
+        power_composition, log_composition, result_log_composition);
     const ringlikes = Ringlike({
         add: scale_expressions,
         mul: power_expressions,
@@ -264,6 +285,8 @@
             inverse_base_result,
             inverse_base_exponent,
             inverse_result_exponent,
+            inverse_exponent_base,
+            inverse_result_base,
         ]),
     });
     const equation_drag_ops = EquationDragOperations({
@@ -301,6 +324,7 @@
                 case 'mul': return 2;
                 case 'pow': return 3;
                 case 'log': return 3;
+                case 'root': return 3;
                 case 'harmonic': return 3;
                 default: return 4;
             }
@@ -333,7 +357,7 @@
             [], [], // history
             window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches?
                 'night' : 'day',
-            { enabled: new Set(['add', 'mul', 'pow', 'log', 'harmonic']), auto_simplify:true }
+            { enabled: new Set(['add', 'mul', 'pow', 'log', 'root', 'harmonic']), auto_simplify:true }
         ), document
     );
 
