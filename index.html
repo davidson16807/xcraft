@@ -197,9 +197,15 @@
     const same_base_result = PowerTriangleSameness(
         power_triangles, grouplikes,
         power_triangles.BASE, power_triangles.RESULT,
-        'add', 'mul'
+        'add', 'mul', true
     );
-    const power_expressions = PowerExpressions(grouplikes, powers, same_base_result);
+    const same_exponent_result = PowerTriangleSameness(
+        power_triangles, grouplikes,
+        power_triangles.EXPONENT, power_triangles.RESULT,
+        'mul', 'mul', false
+    );
+    const power_expressions = PowerExpressions(
+        grouplikes, powers, same_base_result, same_exponent_result);
     const ringlikes = Ringlike({
         add: scale_expressions,
         mul: power_expressions,

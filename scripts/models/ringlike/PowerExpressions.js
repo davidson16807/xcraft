@@ -3,7 +3,7 @@
 /*
 Operates on grouplikes that can be expressed as powers.
 */
-const PowerExpressions = (grouplikes, powers, same_base) => {
+const PowerExpressions = (grouplikes, powers, same_base, same_exponent) => {
 
     function inverse(expression) {
         if (expression.type === 'constant' && expression.contents === 0) return null;
@@ -27,9 +27,7 @@ const PowerExpressions = (grouplikes, powers, same_base) => {
     }
 
     function right_distribute(parent, left, right) {
-        if (parent.type !== 'pow') return null;
-        if (left.type !== 'mul') return null;
-        return grouplikes.mul(left.contents.map(term => grouplikes.pow(term, right)));
+        return same_exponent.distribute(parent, right, left);
     }
 
     return Object.freeze({
@@ -38,6 +36,6 @@ const PowerExpressions = (grouplikes, powers, same_base) => {
         combine,
         left_distribute,
         right_distribute,
-        laws: Object.freeze([same_base]),
+        laws: Object.freeze([same_base, same_exponent]),
     });
 };

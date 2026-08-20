@@ -121,11 +121,12 @@ function Equations(dependencies) {
 
         const left = source_index < target_index? source : target;
         const right = source_index < target_index? target : source;
-        const combined = expression_operations.combine(parent, left, right);
-        if (combined == null) return equation;
+        const resolution = expression_operations.combine(parent, left, right);
+        if (resolution.status === 'ambiguous') return null;
+        if (resolution.status !== 'resolved') return equation;
 
         return paths.replace(equation, parent_path, 
-                grouplikes.collapse(parent, source_index, target_index, combined));
+                grouplikes.collapse(parent, source_index, target_index, resolution.expression));
 
     }
 
@@ -142,12 +143,13 @@ function Equations(dependencies) {
         const parent = paths.resolve(equation, parent_path);
         if (parent == null) return equation;
 
-        const distributed = expression_operations.distribute(
+        const resolution = expression_operations.distribute(
             parent, source, target, source_index, target_index);
-        if (distributed == null) return equation;
+        if (resolution.status === 'ambiguous') return null;
+        if (resolution.status !== 'resolved') return equation;
 
         return paths.replace(equation, parent_path, 
-                grouplikes.collapse(parent, source_index, target_index, distributed));
+                grouplikes.collapse(parent, source_index, target_index, resolution.expression));
     }
 
     function simplify(equation) {

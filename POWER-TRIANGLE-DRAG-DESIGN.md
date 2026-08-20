@@ -831,3 +831,44 @@ The following constraints should guide future changes:
 - Views remain responsible only for notation/rendering.
 - Auto-simplification remains a post-drag transformation and should not alter which mathematical law was applied.
 
+
+## Implementation status — 2026-08-20
+
+Implemented and passing the full algebra suite:
+
+- `PowerTriangle` with `base`, `exponent`, `result`, and `computed` coordinates.
+- `PowerTriangles` result projection for `pow(base, exponent)`.
+- Explicit, law-controlled promotion of ordinary Expressions to the degenerate result projection `x = x^1`.
+- `PowerTriangleSameness` as one reusable implementation parameterized by fixed/computed vertex and the operations on the two free coordinates.
+- `same:base:result`:
+  - `a^b * a^c -> a^(b+c)`
+  - `a^(b+c) -> a^b * a^c`
+- `same:exponent:result`:
+  - `a^c * b^c -> (ab)^c`
+  - `(ab)^c -> a^c * b^c`
+- Constant bases use the same implementation as symbolic bases.
+- Existing `PowerExpressions` same-base combination delegates to the triangle law.
+- Existing `PowerExpressions` power-of-product distribution delegates to the same-exponent triangle law.
+- Programmatic interpretation resolution deduplicates structurally identical results.
+- Resolution now distinguishes `none`, `resolved`, and `ambiguous`; an ambiguous combine/distribute blocks fallback to a lower-priority operation such as commute.
+- Example genuine ambiguity: `a^c * a^c` has both same-base and same-exponent interpretations and therefore currently produces a no-op.
+- Primitive `Grouplike` combination still has first refusal, so promoted triangle interpretations do not override identities/cancellation.
+- Same-exponent combination does not promote arbitrary ordinary factors; this prevents `ab` from becoming the vacuous `(ab)^1`.
+
+Current top-level gesture priority remains:
+
+1. combine
+2. distribute
+3. commute
+
+Within combine or distribute, mathematical interpretations are resolved as a set rather than by implementation order.
+
+Next milestone:
+
+1. Add `log(base, result)` as the projection computing `exponent`.
+2. Extend `PowerTriangles` projection metadata and Expression shape/evaluation/view support for `log`.
+3. Implement the fixed-base inverse pair:
+   - `a^log_a(b) -> b`
+   - `log_a(a^b) -> b`
+4. Connect that inverse structure to append/cancel across an equation, so dragging the base or exponent of `a^b = c` can produce logarithmic/root-equivalent equations without special cases in `Equations`.
+

@@ -91,9 +91,15 @@ const power_triangles = PowerTriangles(grouplikes, expression_shape);
 const same_base_result = PowerTriangleSameness(
     power_triangles, grouplikes,
     power_triangles.BASE, power_triangles.RESULT,
-    'add', 'mul'
+    'add', 'mul', true
 );
-const power_expressions = PowerExpressions(grouplikes, powers, same_base_result);
+const same_exponent_result = PowerTriangleSameness(
+    power_triangles, grouplikes,
+    power_triangles.EXPONENT, power_triangles.RESULT,
+    'mul', 'mul', false
+);
+const power_expressions = PowerExpressions(
+    grouplikes, powers, same_base_result, same_exponent_result);
 const ringlikes = Ringlike({
     add: scale_expressions,
     mul: power_expressions,
@@ -1251,8 +1257,7 @@ function multiplicativeCommutativity() {
             a !== b &&
             a.type !== 'mul' &&
             b.type !== 'mul' &&
-            grouplikes.combine('mul', a, b) == null &&
-            ringlikes.combine('mul', a, b) == null &&
+            expression_operations.combine(left, a, b).status === 'none' &&
             a.type !== 'add' &&
             b.type !== 'add'
         ) {
@@ -1476,6 +1481,52 @@ function powerTriangleSameness() {
         'legacy ringlike and triangle law resolve to the same expression',
         variables => isDefined(x, variables),
         manual_drag_options
+    );
+
+    assert(
+        same_exponent_result.key === 'exponent:result',
+        'power triangle same-exponent law should use the exponent:result key'
+    );
+
+    const three_to_x = grouplikes.pow(three, x);
+    const product_base = grouplikes.mul([two, three]);
+    const product_to_x = grouplikes.pow(product_base, x);
+
+    assertMoveTransforms(
+        grouplikes.mul([two_to_x, three_to_x]),
+        'L/0',
+        'path:L/1',
+        product_to_x,
+        'power triangle same-exponent combination',
+        '2^x * 3^x -> (2*3)^x',
+        variables => isDefined(x, variables),
+        manual_drag_options
+    );
+
+    assertMoveTransforms(
+        product_to_x,
+        'L/1',
+        'path:L/0',
+        grouplikes.mul([two_to_x, three_to_x]),
+        'power triangle same-exponent distribution',
+        'drag the fixed exponent across 2*3',
+        variables => isDefined(x, variables),
+        manual_drag_options
+    );
+
+    assert(
+        same_exponent_result.combine(x, grouplikes.variable('y')) == null,
+        'same-exponent combination should not manufacture a power-of-one interpretation for ordinary factors'
+    );
+
+    const squared = grouplikes.pow(x, grouplikes.constant(2));
+    const ambiguous_product = grouplikes.mul([squared, squared]);
+    const ambiguous_equation = new Equation(ambiguous_product, zero);
+    assert(
+        algebra.move(
+            ambiguous_equation, 'L/0', 'path:L/1', manual_drag_options
+        ) === ambiguous_equation,
+        'a^c * a^c should be a no-op when same-base and same-exponent combination disagree'
     );
 }
 

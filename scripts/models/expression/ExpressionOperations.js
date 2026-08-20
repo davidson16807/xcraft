@@ -1,30 +1,32 @@
 'use strict';
 
 /*
-Programmatic resolver for user-facing expression operations.  Mathematical
-implementations may overlap; a drag succeeds only when enabled interpretations
-within the requested operation resolve to one distinct changed Expression.
+Programmatic resolver for user-facing expression operations. Mathematical
+implementations may overlap. Within one operation, interpretations are
+deduplicated structurally and resolve as none, one result, or ambiguous.
 Top-level drag priority (combine -> distribute -> commute) remains outside this
-object.
+object, but an ambiguous higher-priority operation blocks fallback.
 */
 const ExpressionOperations = (dependencies) => {
     const grouplikes = dependencies.grouplikes;
     const ringlikes = dependencies.ringlikes;
     const shape = dependencies.expression_shape;
 
-    function unique(expressions) {
+    function resolve(expressions) {
         const results = new Map();
         expressions.filter(expression => expression != null).forEach(expression =>
             results.set(shape.encode(expression), expression)
         );
-        return results.size === 1? [...results.values()][0] : null;
+        if (results.size === 0) return Object.freeze({ status:'none', expression:null });
+        if (results.size > 1) return Object.freeze({ status:'ambiguous', expression:null });
+        return Object.freeze({ status:'resolved', expression:[...results.values()][0] });
     }
 
     function combine(parent, left, right) {
         const local = grouplikes.combine(parent.type, left, right);
-        if (local != null) return local;
+        if (local != null) return Object.freeze({ status:'resolved', expression:local });
 
-        return unique([
+        return resolve([
             ringlikes.combine(parent.type, left, right),
             ...ringlikes.laws.map(law =>
                 law.combine == null || law.computed_operation !== parent.type? null : law.combine(left, right)
@@ -37,7 +39,7 @@ const ExpressionOperations = (dependencies) => {
             ringlikes.left_distribute(target.type, parent, source, target)
           : ringlikes.right_distribute(target.type, parent, target, source);
 
-        return unique([
+        return resolve([
             legacy,
             ...ringlikes.laws.map(law => law.distribute == null? null : law.distribute(parent, source, target)),
         ]);

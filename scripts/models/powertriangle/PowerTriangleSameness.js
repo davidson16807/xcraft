@@ -12,14 +12,15 @@ const PowerTriangleSameness = (
     fixed,
     computed,
     other_operation,
-    computed_operation
+    computed_operation,
+    promote
 ) => {
     const other = power_triangles.other(fixed, computed);
     const key = `${fixed}:${computed}`;
 
     function combine(left, right) {
-        const a = power_triangles.as(left, computed);
-        const b = power_triangles.as(right, computed);
+        const a = power_triangles.as(left, computed, promote);
+        const b = power_triangles.as(right, computed, promote);
         if (a == null || b == null) return null;
         if (!power_triangles.same(a[fixed], b[fixed])) return null;
 
@@ -55,6 +56,7 @@ const PowerTriangleSameness = (
         key,
         other_operation,
         computed_operation,
+        promote,
         combine,
         distribute,
     });

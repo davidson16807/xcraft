@@ -22,7 +22,7 @@ const PowerTriangles = (grouplikes, expression_shape) => {
         return projection_for_tag[expression.type] || null;
     }
 
-    function as(expression, computed) {
+    function as(expression, computed, promote) {
         if (computed !== RESULT) return null;
         if (expression.type === 'pow') {
             return new PowerTriangle(
@@ -32,6 +32,7 @@ const PowerTriangles = (grouplikes, expression_shape) => {
                 RESULT
             );
         }
+        if (!promote) return null;
         return new PowerTriangle(
             expression,
             grouplikes.constant(1),

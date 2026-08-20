@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 `EquationDragOperations` presents and consolidates operations under `Equations`
@@ -34,8 +33,10 @@ function EquationDragOperations(dependencies) {
                 paths.is_ancestor(target_path, source_path)
             ) return equation;
             moved = equations.combine(equation, source_path, target_path);
+            if (moved == null) return equation;
             if (moved !== equation) break;
             moved = equations.distribute(equation, source_path, target_path);
+            if (moved == null) return equation;
             if (moved !== equation) break;
             moved = equations.commute(equation, source_path, target_path);
             break;
