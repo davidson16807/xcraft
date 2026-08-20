@@ -288,14 +288,14 @@ function Levels(grouplikes) {
         {
             title: 'Logarithm power rule',
             concept: 'Power composition mirrored through logarithms gives log_a(x^c) = c log_a(x).',
-            context: roadmap_context,
+            context: positive_context,
             equation: e(l(c(2), p(x(), c(3))), av()),
             goal: e(m([c(3), l(c(2), x())]), av()),
         },
         {
             title: 'Combine a logarithm coefficient',
             concept: 'The logarithm power rule combines in reverse: c log_a(x) = log_a(x^c).',
-            context: roadmap_context,
+            context: positive_context,
             equation: e(m([c(3), l(c(2), x())]), av()),
             goal: e(l(c(2), p(x(), c(3))), av()),
         },

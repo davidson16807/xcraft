@@ -112,7 +112,10 @@ const same_base_exponent = PowerTriangleSameness(
     power_triangles.BASE, power_triangles.EXPONENT,
     'mul', 'add', false
 );
-const power_composition = PowerTriangleComposition(power_triangles, grouplikes);
+const power_composition = PowerTriangleComposition(
+    power_triangles, grouplikes, power_triangles.RESULT);
+const log_composition = PowerTriangleComposition(
+    power_triangles, grouplikes, power_triangles.EXPONENT);
 const inverse_exponent_result = PowerTriangleInverse(
     power_triangles, power_triangles.EXPONENT, power_triangles.RESULT);
 const inverse_base_result = PowerTriangleInverse(
@@ -123,7 +126,7 @@ const inverse_result_exponent = PowerTriangleInverse(
     power_triangles, power_triangles.RESULT, power_triangles.EXPONENT);
 const power_expressions = PowerExpressions(
     grouplikes, powers, same_base_result, same_exponent_result,
-    same_base_exponent, power_composition);
+    same_base_exponent, power_composition, log_composition);
 const ringlikes = Ringlike({
     add: scale_expressions,
     mul: power_expressions,
@@ -301,6 +304,8 @@ function solvePowerTriangleLogLevels() {
         [32, 'L/0', 'path:L/1'],               // log_2(x)+log_2(y) -> log_2(xy)
         [33, 'L/0', 'path:L/1'],               // log_2(xy) -> log_2(x)+log_2(y)
         [34, 'L/1', 'side:R'],                  // log_x(8)=3 -> x=8^(1/3)
+        [37, 'L/0', 'path:L/1'],               // log_2(x^3) -> 3 log_2(x)
+        [38, 'L/0', 'path:L/1'],               // 3 log_2(x) -> log_2(x^3)
     ];
 
     cases.forEach(([index, source, target]) => {
@@ -1686,6 +1691,54 @@ function powerTriangleComposition() {
         manual_drag_options
     );
 
+    assert(
+        log_composition.family === 'composition' &&
+        log_composition.key === 'base:exponent',
+        'logarithm composition should identify the fixed base/exponent projection'
+    );
+
+    const log_two_x = grouplikes.log(two, x);
+    const log_two_x_cubed = grouplikes.log(two, grouplikes.pow(x, three));
+    const scaled_log_two_x = grouplikes.mul([three, log_two_x]);
+
+    assertMoveTransforms(
+        scaled_log_two_x,
+        'L/0',
+        'path:L/1',
+        log_two_x_cubed,
+        'power triangle logarithm composition combination',
+        '3*log_2(x) -> log_2(x^3)',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+
+    assertMoveTransforms(
+        log_two_x_cubed,
+        'L/0',
+        'path:L/1',
+        scaled_log_two_x,
+        'power triangle logarithm composition distribution',
+        'drag fixed base 2 across x^3 -> 3*log_2(x)',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+
+    // When both factors are logarithm projections, either can be interpreted
+    // as the logarithm being scaled by the other.  Those structurally distinct
+    // results are a genuine ambiguity and must block fallback to commutation.
+    const log_three_y = grouplikes.log(three, grouplikes.variable('y'));
+    const ambiguous_log_product = grouplikes.mul([log_two_x, log_three_y]);
+    const ambiguous_log_equation = new Equation(ambiguous_log_product, zero);
+    assert(
+        algebra.move(
+            ambiguous_log_equation,
+            'L/0',
+            'path:L/1',
+            manual_drag_options
+        ) === ambiguous_log_equation,
+        'logarithm composition should no-op when either logarithm can be the scaled projection'
+    );
+
     // This is the previously missing (a^b)^(1/b) path. Composition exposes
     // the exponent product; a subsequent same-base combination of b and b^-1
     // can then reduce the inverse pair.
@@ -2302,7 +2355,7 @@ function distributivity() {
 ].forEach(test => test());
 
 console.log(
-    `ok - 19 level solutions; `+
+    `ok - 21 level solutions; `+
     `${stats.semantic_cases} property cases; `+
     `${stats.evaluations} evaluations; `+
     `${stats.domain_skips} domain exclusions; `+

@@ -902,6 +902,12 @@ Additional implementation completed:
 - The mirrored same-base law is registered as a mathematical law exposed by `PowerExpressions`; no logarithm-specific combine/distribute matcher was added.
 - A genuine overlap is now tested explicitly: `log_a(x)+log_a(x)` has both a ScaleExpressions interpretation (`2 log_a(x)`) and a triangle interpretation (`log_a(x*x)`), so the drag is a no-op while both interpretations are enabled.
 - `inverse:result:exponent` is implemented: `log_x(a)=b -> x=a^(1/b)` by cancelling the fixed result and constructing the missing base projection.
+- `PowerTriangleComposition` now supports the mirrored fixed-base/exponent projection as the same composition structure:
+  - `c log_a(x) -> log_a(x^c)`
+  - `log_a(x^c) -> c log_a(x)`
+- The mirrored composition law is keyed `base:exponent`; no logarithm-specific rewrite class was introduced.
+- A single law may now return multiple candidate interpretations. `ExpressionOperations.resolve` flattens and deduplicates those candidates before deciding `none`, `resolved`, or `ambiguous`.
+- Example internal ambiguity: in `log_a(x) * log_b(y)`, either logarithm can occupy the scaled projection role, so the combine stage blocks the drag rather than silently choosing one orientation or falling through to commutation.
 
 Known UI limitation:
 
@@ -909,9 +915,10 @@ Known UI limitation:
 
 Next milestone:
 
-1. Implement the mirrored composition/scaling law `log_a(x^c) <-> c log_a(x)` using power-triangle composition metadata rather than a logarithm-specific rewrite.
-2. Then address the remaining result-fixed logarithm sameness law, which requires harmonic addition: `log_x(a) || log_y(a) <-> log_(xy)(a)`.
-3. Decide at that point whether harmonic addition and/or `root` should become first-class Expression operations or remain structured projections over the existing `add`/`mul`/`pow` AST.
+1. Address the remaining result-fixed logarithm sameness law, which requires harmonic addition: `log_x(a) || log_y(a) <-> log_(xy)(a)`.
+2. Decide whether harmonic addition should become a first-class Expression operation or remain a structured projection over the existing reciprocal/add AST.
+3. Then implement reciprocal scaling when the logarithm base is powered: `log_(a^c)(x) <-> (1/c)log_a(x)`.
+4. Revisit whether a first-class `root` Expression adds enough interaction value beyond the existing `result^(1/exponent)` base projection.
 
 
 ## Level coverage — 2026-08-20
@@ -937,8 +944,12 @@ The first nine are exercised through the public drag API in `tests/algebra.test.
 Roadmap fixtures still record the unimplemented logarithmic mirrors:
 
 - same-result harmonic-log combination
-- `log_a(x^c) <-> c log_a(x)`
 - reciprocal scaling when the logarithm base is powered
+
+The composition-mirror levels are now playable:
+
+- `log_a(x^c) -> c log_a(x)`
+- `c log_a(x) -> log_a(x^c)`
 
 These roadmap entries intentionally describe transformations ahead of their
 implementation so each future law has a concrete user-facing target. Their

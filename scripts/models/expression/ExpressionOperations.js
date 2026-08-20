@@ -18,7 +18,9 @@ const ExpressionOperations = (dependencies) => {
 
     function resolve(expressions) {
         const results = new Map();
-        expressions.filter(expression => expression != null).forEach(expression =>
+        expressions.flatMap(expression =>
+            Array.isArray(expression)? expression : [expression]
+        ).filter(expression => expression != null).forEach(expression =>
             results.set(shape.encode(expression), expression)
         );
         if (results.size === 0) return Object.freeze({ status:'none', expression:null });
