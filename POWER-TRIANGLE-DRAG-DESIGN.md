@@ -8,7 +8,7 @@ The core design principle is:
 
 > Mathematical objects should describe real algebraic structure. Drag dispatch should be explicitly programmatic and should derive or test interpretations against those structures.
 
-The power-triangle work must coexist with the existing `Grouplike`, `ScaleExpressions`, and `PowerExpressions` architecture. It should not force `Ringlike` implementations to acquire methods solely because `Equations` needs somewhere to dispatch a drag.
+The power-triangle work must coexist with the existing `Grouplike`, `ScaleExpressions`, `Powers`, and `Ringlike` architecture. It should not force mathematical structures to acquire methods solely because `Equations` needs somewhere to dispatch a drag.
 
 ---
 
@@ -670,26 +670,22 @@ The model should consume only the enabled mathematical interpretations, not depe
 
 ---
 
-## 10. Coexistence with existing `ScaleExpressions` and `PowerExpressions`
+## 10. Coexistence with existing algebra
 
-The new triangle operations must not silently override or compete unpredictably with the existing algebra.
-
-The existing structures remain mathematically meaningful:
+The triangle operations must not silently override or compete unpredictably with the existing algebra.
 
 ### `ScaleExpressions`
 
-Represents additive/multiplicative scaling relationships such as:
+`ScaleExpressions` continues to represent additive/multiplicative scaling relationships such as:
 
 ```text
 a(b+c) <-> ab+ac
 ax+bx <-> (a+b)x
 ```
 
-### `PowerExpressions`
+### `Powers`
 
-Should be preserved where it represents genuine multiplication/exponent structure rather than being used merely as a drag dispatcher.
-
-Existing behavior such as reciprocal/inverse representation can remain there if it forms a coherent multiplicative-power structure.
+`Powers` owns the numeric-power decomposition used to represent multiplicative inverses. It now supplies the unary multiplicative `inverse` / `is_inverse` behavior consumed by `Ringlike` directly. Same-base combination, same-exponent distribution, and scalar composition are power-triangle laws rather than responsibilities of an intermediate expression wrapper.
 
 ### Collision handling
 
@@ -697,9 +693,8 @@ A drag may eventually be interpretable by:
 
 - `Grouplike` local operation;
 - `ScaleExpressions`;
-- `PowerExpressions`;
-- power-triangle sameness;
-- power-triangle inverse.
+- a power-triangle sameness/composition law;
+- a power-triangle inverse law.
 
 Rather than hard-code a permanent priority among all of them, the preferred direction is to expose their interpretations to a common resolver and apply the ambiguity policy above.
 
@@ -770,7 +765,7 @@ Equation/Expression operation resolver
     |
     +-- Grouplike interpretations
     +-- ScaleExpressions interpretations
-    +-- PowerExpressions interpretations
+    +-- Powers unary inverse interpretation
     +-- PowerTriangle sameness interpretations
     +-- PowerTriangle inverse interpretations
     |
@@ -827,7 +822,7 @@ The following constraints should guide future changes:
 - Competing enabled interpretations are evaluated explicitly; a drag applies only when exactly one distinct changed result survives.
 - Structurally identical results from multiple interpretations are deduplicated rather than treated as ambiguity.
 - Operation-family controls may restrict which interpretations participate in ambiguity resolution.
-- `ScaleExpressions`, `PowerExpressions`, and power-triangle structures may overlap; overlap is resolved by result uniqueness, not accidental dispatcher priority.
+- `ScaleExpressions` and power-triangle structures may overlap; overlap is resolved by result uniqueness, not accidental dispatcher priority.
 - Views remain responsible only for notation/rendering.
 - Auto-simplification remains a post-drag transformation and should not alter which mathematical law was applied.
 
@@ -860,8 +855,7 @@ Implemented and passing the full algebra suite:
   - appending that exponent to a result `b` constructs `b^(1/a)`.
 - Equation balancing now asks registered inverse laws before falling back to the legacy ringlike inverse path. Thus `x^2 = 9` can become `x = 9^(1/2)` and auto-simplify to `x = 3` without defining `Ringlike.inverse('pow', ...)`.
 - Constant bases use the same implementation as symbolic bases.
-- Existing `PowerExpressions` same-base combination delegates to the triangle law.
-- Existing `PowerExpressions` power-of-product distribution delegates to the same-exponent triangle law.
+- Same-base combination and power-of-product distribution are registered directly as power-triangle laws; no multiplicative expression wrapper duplicates them.
 - Programmatic interpretation resolution deduplicates structurally identical results.
 - Resolution distinguishes `none`, `resolved`, and `ambiguous`; an ambiguous combine/distribute blocks fallback to a lower-priority operation such as commute.
 - Example genuine ambiguity: `a^c * a^c` has both same-base and same-exponent interpretations and therefore currently produces a no-op.
@@ -898,11 +892,11 @@ Additional implementation completed:
 - Structurally mismatched fixed bases do not cancel.
 - `log` rendering is supported in `ExpressionView` as `log_base(result)` and `ExpressionShape` treats log argument order as significant.
 - `log` is enabled alongside `pow` as a local structural operation; Add/Multiply toolbar toggles do not disable it.
-- The existing ScaleExpressions and PowerExpressions test suite remains green; nested inverse cancellation occupies a non-sibling drag geometry and did not collide with their sibling combine/distribute laws.
+- The existing ScaleExpressions and multiplicative inverse tests remain green; nested inverse cancellation occupies a non-sibling drag geometry and does not collide with sibling scale operations.
 - `same:base:exponent` is implemented through the same generic `PowerTriangleSameness` object:
   - `log_a(x) + log_a(y) -> log_a(xy)`
   - `log_a(xy) -> log_a(x) + log_a(y)`
-- The mirrored same-base law is registered as a mathematical law exposed by `PowerExpressions`; no logarithm-specific combine/distribute matcher was added.
+- The mirrored same-base law is registered directly as a mathematical power-triangle law; no logarithm-specific combine/distribute matcher was added.
 - A genuine overlap is now tested explicitly: `log_a(x)+log_a(x)` has both a ScaleExpressions interpretation (`2 log_a(x)`) and a triangle interpretation (`log_a(x*x)`), so the drag is a no-op while both interpretations are enabled.
 - `inverse:result:exponent` is implemented: `log_x(a)=b -> x=a^(1/b)` by cancelling the fixed result and constructing the missing base projection.
 - `PowerTriangleComposition` now supports the mirrored fixed-base/exponent projection as the same composition structure:
@@ -954,9 +948,26 @@ Step 9 root projection completed:
 
 Next milestone:
 
-1. Audit the completed projection/law matrix for duplicated legacy behavior in `PowerExpressions` and for missing property-generated symmetry tests.
+1. Add property-generated symmetry tests across the completed projection/law matrix.
 2. Consider the two remaining root-side scalar/composition projections now that `computed=BASE` is first-class.
 3. Revisit operation-family UI controls for the concrete ambiguities accumulated during implementation.
+
+
+## PowerExpressions removal audit — 2026-08-20
+
+`PowerExpressions` has been removed.
+
+Its former responsibilities resolved as follows:
+
+- multiplicative reciprocal representation and detection -> `Powers.inverse` / `Powers.is_inverse`, exposed through `Ringlike` under `mul`;
+- same-base combination -> `PowerTriangleSameness(base, result)`;
+- same-exponent distribution -> `PowerTriangleSameness(exponent, result)`;
+- mirrored sameness and scalar composition -> the corresponding registered power-triangle laws;
+- law aggregation -> the explicit `ExpressionOperations.laws` registry.
+
+`Ringlike` now tolerates providers that implement only the operations that are mathematically meaningful for them. `Powers` therefore supplies unary multiplicative inverse behavior without pretending to provide scale-like `combine` or `distribute` methods. `ScaleExpressions` retains its existing richer interface for the addition/multiplication relationship.
+
+The complete algebra test suite remains green after deleting `scripts/models/ringlike/PowerExpressions.js`. This confirms that the class had become an adapter/dispatcher rather than an independent mathematical structure.
 
 
 ## Level coverage — 2026-08-20

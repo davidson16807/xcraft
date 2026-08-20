@@ -15,7 +15,6 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/ringlike/ScaleExpressions.js',
     'scripts/models/ringlike/Power.js',
     'scripts/models/ringlike/Powers.js',
-    'scripts/models/ringlike/PowerExpressions.js',
     'scripts/models/powertriangle/PowerTriangle.js',
     'scripts/models/powertriangle/PowerTriangles.js',
     'scripts/models/powertriangle/PowerTriangleSameness.js',
@@ -169,13 +168,9 @@ const inverse_exponent_base = PowerTriangleInverse(
     power_triangles, power_triangles.EXPONENT, power_triangles.BASE);
 const inverse_result_base = PowerTriangleInverse(
     power_triangles, power_triangles.RESULT, power_triangles.BASE);
-const power_expressions = PowerExpressions(
-    grouplikes, powers, same_base_result, same_exponent_result,
-    same_base_exponent, same_result_exponent, same_exponent_base, same_result_base,
-    power_composition, log_composition, result_log_composition);
 const ringlikes = Ringlike({
     add: scale_expressions,
-    mul: power_expressions,
+    mul: powers,
 });
 const equation_shape = EquationShape(expression_shape);
 const paths = ExpressionPaths(grouplikes);
@@ -184,6 +179,15 @@ const expression_operations = ExpressionOperations({
     ringlikes: ringlikes,
     expression_shape: expression_shape,
     laws: Object.freeze([
+        same_base_result,
+        same_exponent_result,
+        same_base_exponent,
+        same_result_exponent,
+        same_exponent_base,
+        same_result_base,
+        power_composition,
+        log_composition,
+        result_log_composition,
         inverse_exponent_result,
         inverse_base_result,
         inverse_base_exponent,
@@ -990,8 +994,8 @@ function fractionPreservation() {
         'combine should collapse 6/3 to 2'
     );
     assert(
-        power_expressions.combine(six, third) == null,
-        'fraction preservation: PowerExpressions.combine should remain limited to power laws'
+        same_base_result.combine(six, third) == null,
+        'fraction preservation: power-triangle same-base combination should remain limited to matching bases'
     );
 
     const thirds = grouplikes.add([
@@ -1133,14 +1137,20 @@ function ringExpressionInterface() {
 
     const product = grouplikes.mul([x, three]);
     const square = grouplikes.pow(product, two);
+    const power_distribution = expression_operations.distribute(
+        square, two, product, 1, 0);
+    assert(
+        power_distribution.status === 'resolved',
+        'power triangle: power distribution should resolve uniquely'
+    );
     assertSameExpression(
-        ringlikes.right_distribute('mul', square, product, two),
+        power_distribution.expression,
         grouplikes.mul([
             grouplikes.pow(x, two),
             grouplikes.pow(three, two),
         ]),
-        'Ringlike',
-        'right distribution should distribute powers over multiplication'
+        'power triangle',
+        'same-exponent distribution should distribute powers over multiplication'
     );
 
     assertMoveTransforms(
@@ -1577,9 +1587,7 @@ function powerTriangleSameness() {
         manual_drag_options
     );
 
-    // Numeric exponents exercise the legacy PowerExpressions route and the
-    // registered triangle law simultaneously.  They must deduplicate to one
-    // interpretation rather than become ambiguous.
+    // Numeric exponents use the same power-triangle law as symbolic exponents.
     assertMoveTransforms(
         grouplikes.mul([
             grouplikes.pow(x, grouplikes.constant(2)),
@@ -1591,8 +1599,8 @@ function powerTriangleSameness() {
             grouplikes.constant(2),
             three,
         ])),
-        'power triangle duplicate interpretation',
-        'legacy ringlike and triangle law resolve to the same expression',
+        'power triangle numeric exponent combination',
+        'numeric exponents use the same-base triangle law',
         variables => isDefined(x, variables),
         manual_drag_options
     );
@@ -2340,14 +2348,12 @@ function multiplicativeInverse() {
         );
 
         // Test cancellation through the public move API when a and a^-1 are
-        // represented as two direct sibling factors *and* PowerExpressions
-        // currently recognizes them as a combinable pair.  For example x*x^-1
-        // is supported, while (x^2)*(x^2)^-1 would require power-of-a-power
-        // normalization that the game does not yet implement.
-        const combined = power_expressions.combine(a, reciprocal_a);
+        // represented as two direct sibling factors and the complete combine
+        // resolver identifies their product uniquely as one.
+        const combination = expression_operations.combine(product, a, reciprocal_a);
         if (
-            combined != null &&
-            orderedExpressionKey(combined) === orderedExpressionKey(one) &&
+            combination.status === 'resolved' &&
+            orderedExpressionKey(combination.expression) === orderedExpressionKey(one) &&
             product.type === 'mul' &&
             product.contents.length === 2 &&
             product.contents[0] === a &&

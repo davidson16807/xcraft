@@ -12,19 +12,20 @@ const Ringlike = ringlikes_expressions_for_tag => {
 
     function combine(type, left, right) {
         const group_expression_for_type = ringlikes_expressions_for_tag[type];
-        return group_expression_for_type == null? null :
+        return group_expression_for_type == null || group_expression_for_type.combine == null? null :
             group_expression_for_type.combine(left, right);
     }
 
     function inverse(type, expression) {
         const group_expression_for_type = ringlikes_expressions_for_tag[type];
-        return group_expression_for_type == null? null :
+        return group_expression_for_type == null || group_expression_for_type.inverse == null? null :
             group_expression_for_type.inverse(expression);
     }
 
     function is_inverse(type, expression) {
         const group_expression_for_type = ringlikes_expressions_for_tag[type];
         return group_expression_for_type != null &&
+            group_expression_for_type.is_inverse != null &&
             group_expression_for_type.is_inverse(expression);
     }
 
@@ -34,13 +35,13 @@ const Ringlike = ringlikes_expressions_for_tag => {
 
     function left_distribute(type, parent, left, right) {
         const group_expression_for_type = ringlikes_expressions_for_tag[type];
-        return group_expression_for_type == null? null :
+        return group_expression_for_type == null || group_expression_for_type.left_distribute == null? null :
             group_expression_for_type.left_distribute(parent, left, right);
     }
 
     function right_distribute(type, parent, left, right) {
         const group_expression_for_type = ringlikes_expressions_for_tag[type];
-        return group_expression_for_type == null? null :
+        return group_expression_for_type == null || group_expression_for_type.right_distribute == null? null :
             group_expression_for_type.right_distribute(parent, left, right);
     }
 

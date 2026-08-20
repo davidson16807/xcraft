@@ -24,7 +24,6 @@
     <script src="./scripts/models/ringlike/ScaleExpressions.js"></script>
     <script src="./scripts/models/ringlike/Power.js"></script>
     <script src="./scripts/models/ringlike/Powers.js"></script>
-    <script src="./scripts/models/ringlike/PowerExpressions.js"></script>
     <script src="./scripts/models/powertriangle/PowerTriangle.js"></script>
     <script src="./scripts/models/powertriangle/PowerTriangles.js"></script>
     <script src="./scripts/models/powertriangle/PowerTriangleSameness.js"></script>
@@ -267,13 +266,9 @@
         power_triangles, power_triangles.EXPONENT, power_triangles.BASE);
     const inverse_result_base = PowerTriangleInverse(
         power_triangles, power_triangles.RESULT, power_triangles.BASE);
-    const power_expressions = PowerExpressions(
-        grouplikes, powers, same_base_result, same_exponent_result,
-        same_base_exponent, same_result_exponent, same_exponent_base, same_result_base,
-        power_composition, log_composition, result_log_composition);
     const ringlikes = Ringlike({
         add: scale_expressions,
-        mul: power_expressions,
+        mul: powers,
     });
     const expression_paths = ExpressionPaths(grouplikes);
     const expression_operations = ExpressionOperations({
@@ -281,6 +276,15 @@
         ringlikes: ringlikes,
         expression_shape: expression_shape,
         laws: Object.freeze([
+            same_base_result,
+            same_exponent_result,
+            same_base_exponent,
+            same_result_exponent,
+            same_exponent_base,
+            same_result_base,
+            power_composition,
+            log_composition,
+            result_log_composition,
             inverse_exponent_result,
             inverse_base_result,
             inverse_base_exponent,
