@@ -923,11 +923,21 @@ Step 7 implementation completed:
 - The first-class harmonic representation is tested against the desugared `(1/u + 1/v)^-1` form and for associativity/commutativity.
 - Add/Multiply toolbar toggles preserve `harmonic`, as they already preserve unrelated `pow` and `log` operations.
 
+Step 8 implementation completed:
+
+- `PowerTriangleComposition` now takes an explicit `(fixed, computed)` vertex pair instead of assuming the fixed vertex is always the base.
+- `composition:result:exponent` is implemented:
+  - `log_(a^c)(x) -> (1/c) log_a(x)` by dragging the fixed result across the powered base.
+  - `(1/c) log_a(x) -> log_(a^c)(x)` is registered as a valid result-fixed composition interpretation.
+- The result-fixed combine matcher recognizes the canonical expanded form only when the scalar coefficient is structurally multiplicative-inverse (`1/c`). This prevents the new law from making ordinary `c log_a(x)` ambiguous with the already implemented base-fixed composition mirror.
+- The reverse reciprocal-coefficient drag remains genuinely ambiguous through the full resolver because `(1/c)log_a(x)` also satisfies the base-fixed law `log_a(x^(1/c))`. It therefore returns a no-op until operation-family controls choose one interpretation.
+- The roadmap level `log_(2^3)(x) -> (1/3)log_2(x)` is now playable through the public drag API.
+
 Next milestone:
 
-1. Implement reciprocal scaling when the logarithm base is powered: `log_(a^c)(x) <-> (1/c)log_a(x)`.
-2. Determine whether that mirror belongs as another projection of `PowerTriangleComposition` or merits a more general scalar-action representation.
-3. Revisit whether a first-class `root` Expression adds enough interaction value beyond the existing `result^(1/exponent)` base projection.
+1. Add a recognizable base/root projection so `PowerTriangles.as(expression, BASE)` can participate symmetrically with `pow` and `log`.
+2. Use that projection to implement the remaining base-computed sameness and inverse laws without matching ad-hoc reciprocal-power syntax.
+3. Then complete the remaining scalar/composition projections and revisit operation-family UI controls for the ambiguities that now have concrete examples.
 
 
 ## Level coverage — 2026-08-20
@@ -952,9 +962,11 @@ The first nine are exercised through the public drag API in `tests/algebra.test.
 
 The same-result harmonic-log levels are now playable through the first-class `harmonic` operation.
 
-The remaining roadmap fixture records:
+The reciprocal-scaling logarithm-base level is now playable:
 
-- reciprocal scaling when the logarithm base is powered
+- `log_(a^c)(x) -> (1/c)log_a(x)`
+
+No logarithmic roadmap fixture currently remains; the next coverage work depends on a recognizable base/root projection.
 
 The composition-mirror levels are now playable:
 

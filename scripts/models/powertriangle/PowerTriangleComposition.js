@@ -1,28 +1,39 @@
 'use strict';
 
 /*
-Power-triangle composition with a fixed base.
+Power-triangle scalar composition for one fixed/computed vertex pair.
 
-Result projection:
+Fixed base, computed result:
     (a^b)^c  <->  a^(bc)
 
-Exponent projection (the logarithmic mirror):
+Fixed base, computed exponent:
     c log_a(x)  <->  log_a(x^c)
 
-`computed` selects which projection of the same fixed-base composition law is
-being represented.  A combine may return more than one candidate when both
-siblings can occupy the projection role; ExpressionOperations resolves that
-as a genuine ambiguity.
-*/
-const PowerTriangleComposition = (power_triangles, grouplikes, computed) => {
-    computed = computed || power_triangles.RESULT;
+Fixed result, computed exponent:
+    (1/c) log_a(x)  <->  log_(a^c)(x)
 
-    const fixed = power_triangles.BASE;
+A combine may return more than one candidate when either sibling can occupy
+an expression projection role. ExpressionOperations resolves those candidates
+as genuine ambiguity rather than choosing an interpretation by order.
+*/
+const PowerTriangleComposition = (
+    power_triangles, grouplikes, powers, fixed, computed
+) => {
     const other = power_triangles.other(fixed, computed);
     const key = `${fixed}:${computed}`;
-    const expanded_operation = computed === power_triangles.RESULT? 'pow' : 'mul';
+    const expanded_operation =
+        fixed === power_triangles.BASE && computed === power_triangles.RESULT?
+            'pow' : 'mul';
+
+    function inverse(expression) {
+        return powers.to_expression(
+            powers.invert(
+                powers.from_expression(expression)));
+    }
 
     function combine_result(left, right) {
+        if (fixed !== power_triangles.BASE) return null;
+
         const inner = power_triangles.as(left, computed, false);
         if (inner == null || left.type !== 'pow') return null;
 
@@ -42,10 +53,21 @@ const PowerTriangleComposition = (power_triangles, grouplikes, computed) => {
                 projection_expression, computed, false);
             if (projection == null || projection_expression.type !== 'log') return;
 
-            candidates.push(power_triangles.create(computed, {
-                [fixed]: projection[fixed],
-                [other]: grouplikes.pow(projection[other], scalar),
-            }));
+            if (fixed === power_triangles.BASE) {
+                candidates.push(power_triangles.create(computed, {
+                    [fixed]: projection[fixed],
+                    [other]: grouplikes.pow(projection[other], scalar),
+                }));
+                return;
+            }
+
+            if (fixed === power_triangles.RESULT) {
+                if (powers.from_expression(scalar).power !== -1) return;
+                candidates.push(power_triangles.create(computed, {
+                    [fixed]: projection[fixed],
+                    [other]: grouplikes.pow(projection[other], inverse(scalar)),
+                }));
+            }
         });
 
         if (candidates.length === 0) return null;
@@ -59,6 +81,8 @@ const PowerTriangleComposition = (power_triangles, grouplikes, computed) => {
     }
 
     function distribute_result(parent, source, target) {
+        if (fixed !== power_triangles.BASE) return null;
+
         const projection = power_triangles.projection(parent);
         if (projection == null || projection.computed !== computed) return null;
 
@@ -99,7 +123,15 @@ const PowerTriangleComposition = (power_triangles, grouplikes, computed) => {
             [other]: powered.base,
         });
 
-        return grouplikes.mul([powered.exponent, logarithm]);
+        if (fixed === power_triangles.BASE) {
+            return grouplikes.mul([powered.exponent, logarithm]);
+        }
+
+        if (fixed === power_triangles.RESULT) {
+            return grouplikes.mul([inverse(powered.exponent), logarithm]);
+        }
+
+        return null;
     }
 
     function distribute(parent, source, target) {

@@ -302,7 +302,7 @@ function Levels(grouplikes) {
         {
             title: 'Power in a logarithm base',
             concept: 'Scaling the base exponent scales a logarithm reciprocally: log_(a^c)(x) = (1/c)log_a(x).',
-            context: roadmap_context,
+            context: positive_context,
             equation: e(l(p(c(2), c(3)), x()), av()),
             goal: e(m([reciprocal(c(3)), l(c(2), x())]), av()),
         },
