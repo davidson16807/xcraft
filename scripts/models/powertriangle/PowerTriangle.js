@@ -2,15 +2,15 @@
 // HUMAN VETTED
 
 /*
-Represents one view of the ternary relationship base^exponent=result.
-`computed` identifies the vertex represented by the source Expression.
+Represents the ternary relationship base^exponent=result with exactly one
+unknown coordinate. The nullish coordinate is the value computed by the
+projection represented by the source Expression.
 */
 class PowerTriangle {
-    constructor(base, exponent, result, computed) {
+    constructor(base, exponent, result) {
         this.base = base;
         this.exponent = exponent;
         this.result = result;
-        this.computed = computed;
         Object.freeze(this);
     }
 }

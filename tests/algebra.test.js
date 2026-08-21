@@ -2029,6 +2029,26 @@ function powerTriangleRootProjection() {
     const eight = grouplikes.constant(8);
     const nine = grouplikes.constant(9);
 
+    const power_view = power_triangles.as(grouplikes.pow(two, x), power_triangles.RESULT, false);
+    const log_view = power_triangles.as(grouplikes.log(two, x), power_triangles.EXPONENT, false);
+    const root_view = power_triangles.as(grouplikes.root(two, x), power_triangles.BASE, false);
+    assert(
+        power_view.base === two && power_view.exponent === x && power_view.result == null,
+        'pow triangle view should leave only the result coordinate nullish'
+    );
+    assert(
+        log_view.base === two && log_view.exponent == null && log_view.result === x,
+        'log triangle view should leave only the exponent coordinate nullish'
+    );
+    assert(
+        root_view.base == null && root_view.exponent === two && root_view.result === x,
+        'root triangle view should leave only the base coordinate nullish'
+    );
+    assert(
+        !('computed' in power_view) && !('computed' in log_view) && !('computed' in root_view),
+        'PowerTriangle should not store a redundant computed attribute'
+    );
+
     const square_root_x = grouplikes.root(two, x);
     const projection = power_triangles.projection(square_root_x);
     assert(

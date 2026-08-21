@@ -36,32 +36,28 @@ const PowerTriangles = (grouplikes, expression_shape) => {
             return new PowerTriangle(
                 expression.contents[0],
                 expression.contents[1],
-                expression,
-                RESULT
+                null
             );
         }
         if (computed === EXPONENT && expression.type === 'log') {
             return new PowerTriangle(
                 expression.contents[0],
-                expression,
-                expression.contents[1],
-                EXPONENT
+                null,
+                expression.contents[1]
             );
         }
         if (computed === BASE && expression.type === 'root') {
             return new PowerTriangle(
-                expression,
+                null,
                 expression.contents[0],
-                expression.contents[1],
-                BASE
+                expression.contents[1]
             );
         }
         if (computed !== RESULT || !promote) return null;
         return new PowerTriangle(
             expression,
             grouplikes.constant(1),
-            expression,
-            RESULT
+            null
         );
     }
 
