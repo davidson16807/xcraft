@@ -434,6 +434,16 @@ main {
     opacity: 0.93;
 }
 
+.power-triangle-ghost-projection {
+    display: inline-flex;
+    align-items: center;
+}
+
+.power-triangle-ghost-slot {
+    color: var(--quiet);
+    opacity: 0.72;
+}
+
 #app[data-theme="night"] .drag-ghost {
     box-shadow: 0 6px 24px rgba(255,255,255,0.08);
 }

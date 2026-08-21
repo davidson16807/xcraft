@@ -171,6 +171,68 @@ function ExpressionView(dependencies) {
         return node;
     }
 
+    function projection_slot() {
+        return math('\\square', 'power-triangle-ghost-slot');
+    }
+
+    function projection_expression(expression, parent_precedence, is_power_base) {
+        return expression == null? projection_slot() :
+            draw(expression, null, null, null, parent_precedence, is_power_base);
+    }
+
+    function draw_log_projection(base_node, result_node, attributes) {
+        return html.span(attributes, [
+            html.span({ class:'log-operator' }, [
+                math('\\log', 'math-operator'),
+                html.node('sub', { class:'log-base' }, [base_node]),
+            ]),
+            math('(', 'math-paren'),
+            result_node,
+            math(')', 'math-paren'),
+        ]);
+    }
+
+    function draw_root_projection(exponent_node, result_node, attributes) {
+        return html.span(attributes, [
+            html.node('sup', { class:'root-index' }, [exponent_node]),
+            math('\\sqrt{}', 'root-radical'),
+            html.span({ class:'root-radicand' }, [result_node]),
+        ]);
+    }
+
+    function draw_power_projection(base_node, exponent_node, attributes) {
+        return html.span(attributes, [
+            base_node,
+            html.node('sup', { class:'power-exponent' }, [exponent_node]),
+        ]);
+    }
+
+    function draw_power_triangle_projection(computed, vertices) {
+        const attributes = { class:'expression-node power-triangle-ghost-projection' };
+        switch (computed) {
+        case 'result':
+            return draw_power_projection(
+                projection_expression(vertices.base, 3, true),
+                projection_expression(vertices.exponent, 0, false),
+                attributes
+            );
+        case 'exponent':
+            return draw_log_projection(
+                projection_expression(vertices.base, 0, false),
+                projection_expression(vertices.result, 0, false),
+                attributes
+            );
+        case 'base':
+            return draw_root_projection(
+                projection_expression(vertices.exponent, 0, false),
+                projection_expression(vertices.result, 0, false),
+                attributes
+            );
+        default:
+            return projection_slot();
+        }
+    }
+
     function _draw(expression, path, draggable_paths, valid_targets, parent_precedence, is_power_base) {
         draggable_paths = draggable_paths || empty_paths;
         valid_targets = valid_targets || empty_paths;
@@ -218,19 +280,10 @@ function ExpressionView(dependencies) {
             case 'log': {
                 const base = expression.contents[0];
                 const result = expression.contents[1];
-                return html.span(
-                    path_attributes(path, draggable_paths, valid_targets, 'expression-log'),
-                    [
-                        html.span({ class:'log-operator' }, [
-                            math('\\log', 'math-operator'),
-                            html.node('sub', { class:'log-base' }, [
-                                draw(base, paths.base(path), draggable_paths, valid_targets, 0)
-                            ]),
-                        ]),
-                        math('(', 'math-paren'),
-                        draw(result, paths.nary(path, 1), draggable_paths, valid_targets, 0),
-                        math(')', 'math-paren'),
-                    ]
+                return draw_log_projection(
+                    draw(base, paths.base(path), draggable_paths, valid_targets, 0),
+                    draw(result, paths.nary(path, 1), draggable_paths, valid_targets, 0),
+                    path_attributes(path, draggable_paths, valid_targets, 'expression-log')
                 );
             }
 
@@ -238,17 +291,10 @@ function ExpressionView(dependencies) {
             case 'root': {
                 const exponent = expression.contents[0];
                 const result = expression.contents[1];
-                return html.span(
-                    path_attributes(path, draggable_paths, valid_targets, 'expression-root'),
-                    [
-                        html.node('sup', { class:'root-index' }, [
-                            draw(exponent, paths.nary(path, 0), draggable_paths, valid_targets, 0)
-                        ]),
-                        math('\\sqrt{}', 'root-radical'),
-                        html.span({ class:'root-radicand' }, [
-                            draw(result, paths.nary(path, 1), draggable_paths, valid_targets, 0)
-                        ]),
-                    ]
+                return draw_root_projection(
+                    draw(exponent, paths.nary(path, 0), draggable_paths, valid_targets, 0),
+                    draw(result, paths.nary(path, 1), draggable_paths, valid_targets, 0),
+                    path_attributes(path, draggable_paths, valid_targets, 'expression-root')
                 );
             }
 
@@ -267,27 +313,23 @@ function ExpressionView(dependencies) {
                         ]
                     );
                 } else {
-                    return html.span(
-                        path_attributes(path, draggable_paths, valid_targets, 'expression-power'),
-                        [
-                            draw(
-                                base,
-                                paths.base(path),
-                                draggable_paths,
-                                valid_targets,
-                                3,
-                                true
-                            ),
-                            html.node('sup', { class:'power-exponent' }, [
-                                draw(
-                                    exponent,
-                                    paths.exponent(path),
-                                    draggable_paths,
-                                    valid_targets,
-                                    0
-                                )
-                            ]),
-                        ]
+                    return draw_power_projection(
+                        draw(
+                            base,
+                            paths.base(path),
+                            draggable_paths,
+                            valid_targets,
+                            3,
+                            true
+                        ),
+                        draw(
+                            exponent,
+                            paths.exponent(path),
+                            draggable_paths,
+                            valid_targets,
+                            0
+                        ),
+                        path_attributes(path, draggable_paths, valid_targets, 'expression-power')
                     );
                 }
                 break;
@@ -310,6 +352,9 @@ function ExpressionView(dependencies) {
         );
     }
 
-    return Object.freeze({ draw: draw });
+    return Object.freeze({
+        draw: draw,
+        draw_power_triangle_projection: draw_power_triangle_projection,
+    });
 
 }

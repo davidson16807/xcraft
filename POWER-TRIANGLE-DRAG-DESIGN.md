@@ -1006,3 +1006,27 @@ The composition-mirror levels are now playable:
 These roadmap entries intentionally describe transformations ahead of their
 implementation so each future law has a concrete user-facing target. Their
 level context explicitly identifies them as roadmap functionality.
+
+## Power-triangle inverse drag ghosts — 2026-08-20
+
+Balance ghosts now portray power-triangle inverses as partial projections in the
+view layer. A visible square marks the coordinate that will be supplied by the
+opposite equation side; no placeholder `Expression` is introduced into the
+model.
+
+Examples:
+
+```text
+2^x = 8, drag 2     -> log_2(□)
+2^x = 8, drag x     -> root_x(□)
+log_2(x) = 3, drag 2 -> 2^□
+log_x(8) = 3, drag 8 -> root_□(8)
+root_2(x) = 3, drag 2 -> □^2
+root_x(8) = 2, drag 8 -> log_□(8)
+```
+
+`EquationView` derives the fixed/computed vertices from `PowerTriangles`
+projection metadata and asks `ExpressionView` to render the complementary
+projection. The existing additive/multiplicative inverse ghosts are unchanged.
+The ghost is shown only when the hovered equation side is an actually advertised
+balance target, so a partial projection is never shown for an invalid drag.

@@ -6,6 +6,7 @@ function EquationView(dependencies) {
     const equation_drag_ops = dependencies.equation_drag_operations;
     const paths = dependencies.expression_paths;
     const ringlikes = dependencies.ringlikes;
+    const power_triangles = dependencies.power_triangles;
     const expression_view = dependencies.expression_view;
     const render = dependencies.render;
 
@@ -29,17 +30,21 @@ function EquationView(dependencies) {
         ]);
     }
 
-    function draw_ghost(expression, point, class_name, prefix) {
+    function draw_ghost_node(contents, point, class_name) {
         const node = html.div(
             { class:`drag-ghost ${class_name}` },
-            [
-                ...(prefix == null? [] : [math(prefix, 'math-operator')]),
-                expression_view.draw(expression),
-            ]
+            contents
         );
         node.style.left = `${point.x}px`;
         node.style.top = `${point.y}px`;
         return node;
+    }
+
+    function draw_ghost(expression, point, class_name, prefix) {
+        return draw_ghost_node([
+            ...(prefix == null? [] : [math(prefix, 'math-operator')]),
+            expression_view.draw(expression),
+        ], point, class_name);
     }
 
     function operation_for_source(equation, source_path, drag_options) {
@@ -63,6 +68,41 @@ function EquationView(dependencies) {
         const operation = operation_for_source(equation, source_path, drag_options);
         if (operation == null || ringlikes.is_inverse(operation, inverse)) return null;
         return ({ add:'+', mul:'\\cdot' })[operation] || null;
+    }
+
+    function triangle_inverse_projection(equation, source_path) {
+        const parsed = paths.split(source_path);
+        const parent_path = paths.parent(source_path);
+        if (parent_path == null || parent_path !== parsed.side) return null;
+
+        const parent = paths.resolve(equation, parent_path);
+        const projection = parent == null? null : power_triangles.projection(parent);
+        if (projection == null) return null;
+
+        const segment = paths.segment(source_path);
+        if (!/^\d+$/.test(segment)) return null;
+        const index = Number(segment);
+        if (index >= projection.children.length) return null;
+
+        const fixed = projection.children[index];
+        const computed = projection.computed;
+        const inverse_computed = power_triangles.other(fixed, computed);
+        const source = paths.resolve(equation, source_path);
+        if (inverse_computed == null || source == null) return null;
+
+        return {
+            computed: inverse_computed,
+            vertices: { [fixed]: source },
+        };
+    }
+
+    function draw_triangle_inverse_ghost(projection, point, class_name) {
+        return draw_ghost_node([
+            expression_view.draw_power_triangle_projection(
+                projection.computed,
+                projection.vertices
+            )
+        ], point, class_name);
     }
 
     function draw_ghosts(equation, drag_state, drag_options) {
@@ -89,6 +129,26 @@ function EquationView(dependencies) {
                     }, 'drag-ghost-origin', prefix),
                     draw_ghost(inverse, drag_state.current, 'drag-ghost-current', prefix),
                 ];
+            }
+
+            if (drag_state.candidates.includes(target_key)) {
+                const projection = triangle_inverse_projection(
+                    equation,
+                    drag_state.source_path
+                );
+                if (projection != null) {
+                    return [
+                        draw_triangle_inverse_ghost(projection, {
+                            x: drag_state.start.x + 40,
+                            y: drag_state.start.y + 40,
+                        }, 'drag-ghost-origin'),
+                        draw_triangle_inverse_ghost(
+                            projection,
+                            drag_state.current,
+                            'drag-ghost-current'
+                        ),
+                    ];
+                }
             }
         }
 
