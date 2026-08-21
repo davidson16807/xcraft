@@ -10,6 +10,8 @@ const PowerTriangles = (grouplikes, expression_shape) => {
     const BASE = 'base';
     const EXPONENT = 'exponent';
     const RESULT = 'result';
+    const VECTOR = BASE;
+    const SCALAR = EXPONENT;
     const shape = expression_shape;
 
     const projection_for_tag = Object.freeze({
@@ -26,6 +28,17 @@ const PowerTriangles = (grouplikes, expression_shape) => {
             children: Object.freeze([EXPONENT, RESULT]),
         }),
     });
+
+    function supports(computed) {
+        return computed === BASE || computed === EXPONENT || computed === RESULT;
+    }
+
+    function operation(computed) {
+        if (computed === RESULT) return 'pow';
+        if (computed === EXPONENT) return 'log';
+        if (computed === BASE) return 'root';
+        return null;
+    }
 
     function projection(expression) {
         return projection_for_tag[expression.type] || null;
@@ -94,6 +107,10 @@ const PowerTriangles = (grouplikes, expression_shape) => {
         BASE,
         EXPONENT,
         RESULT,
+        VECTOR,
+        SCALAR,
+        supports,
+        operation,
         projection_for_tag,
         projection,
         as,

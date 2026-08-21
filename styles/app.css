@@ -345,21 +345,29 @@ main {
     display: inline-flex;
     font-size: 0.52em;
     line-height: 1;
-    margin-right: -0.18em;
+    margin-right: -0.22em;
     transform: translateY(0.08em);
     z-index: 1;
 }
 
+.root-body {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 0;
+}
+
 .root-radical {
     display: inline-flex;
-    transform: translateY(-0.2em);
+    margin-right: -0.18em;
+    transform: translateY(0.01em);
 }
 
 .root-radicand {
     display: inline-flex;
     align-items: center;
     border-top: max(1px, 0.025em) solid currentColor;
-    padding: 0.03em 0.04em 0 0.08em;
+    margin-left: -0.04em;
+    padding: 0.03em 0.04em 0 0.12em;
 }
 
 .expression-reciprocal {

@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 Decomposes grouplikes into a numeric coefficient and algebraic basis.
@@ -45,20 +44,20 @@ const Scales = (grouplikes, expression_shape) => {
         return new Scale(-scale.coefficient, scale.basis, scale.key);
     }
 
-    function combine(scale1, scale2) {
-        if (scale1.key !== scale2.key) return null;
-        return new Scale(
-            scale1.coefficient + scale2.coefficient,
-            scale1.basis,
-            scale1.key
-        );
+    function inverse(expression) {
+        return to_expression(invert(from_expression(expression)));
+    }
+
+    function is_inverse(expression) {
+        return from_expression(expression).coefficient < 0;
     }
 
     return Object.freeze({
         from_expression,
         to_expression,
         invert,
-        combine,
+        inverse,
+        is_inverse,
     });
 
 };

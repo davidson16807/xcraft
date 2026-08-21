@@ -21,14 +21,13 @@
     <script src="./scripts/models/grouplike/Grouplikes.js"></script>
     <script src="./scripts/models/ringlike/Scale.js"></script>
     <script src="./scripts/models/ringlike/Scales.js"></script>
-    <script src="./scripts/models/ringlike/ScaleExpressions.js"></script>
     <script src="./scripts/models/ringlike/Power.js"></script>
     <script src="./scripts/models/ringlike/Powers.js"></script>
     <script src="./scripts/models/powertriangle/PowerTriangle.js"></script>
     <script src="./scripts/models/powertriangle/PowerTriangles.js"></script>
-    <script src="./scripts/models/powertriangle/PowerTriangleSameness.js"></script>
-    <script src="./scripts/models/powertriangle/PowerTriangleComposition.js"></script>
-    <script src="./scripts/models/powertriangle/PowerTriangleInverse.js"></script>
+    <script src="./scripts/models/vectorline/ScaleAction.js"></script>
+    <script src="./scripts/models/vectorline/VectorLine.js"></script>
+    <script src="./scripts/models/vectorline/LinearActionInterpretations.js"></script>
     <script src="./scripts/models/ringlike/Ringlike.js"></script>
     <script src="./scripts/models/equation/Equation.js"></script>
     <script src="./scripts/models/equation/Equations.js"></script>
@@ -212,86 +211,86 @@
         ),
     });
     const scales = Scales(grouplikes, expression_shape);
-    const scale_expressions = ScaleExpressions(grouplikes, scales);
     const powers = Powers(grouplikes, expression_shape);
     const power_triangles = PowerTriangles(grouplikes, expression_shape);
-    const same_base_result = PowerTriangleSameness(
-        power_triangles, grouplikes,
-        power_triangles.BASE, power_triangles.RESULT,
-        'add', 'mul', true
-    );
-    const same_exponent_result = PowerTriangleSameness(
-        power_triangles, grouplikes,
-        power_triangles.EXPONENT, power_triangles.RESULT,
-        'mul', 'mul', false
-    );
-    const same_base_exponent = PowerTriangleSameness(
-        power_triangles, grouplikes,
-        power_triangles.BASE, power_triangles.EXPONENT,
-        'mul', 'add', false
-    );
-    const same_result_exponent = PowerTriangleSameness(
-        power_triangles, grouplikes,
-        power_triangles.RESULT, power_triangles.EXPONENT,
-        'mul', 'harmonic', false
-    );
-    const same_exponent_base = PowerTriangleSameness(
-        power_triangles, grouplikes,
-        power_triangles.EXPONENT, power_triangles.BASE,
-        'mul', 'mul', false
-    );
-    const same_result_base = PowerTriangleSameness(
-        power_triangles, grouplikes,
-        power_triangles.RESULT, power_triangles.BASE,
-        'harmonic', 'mul', false
-    );
-    const power_composition = PowerTriangleComposition(
-        power_triangles, grouplikes, powers,
-        power_triangles.BASE, power_triangles.RESULT);
-    const log_composition = PowerTriangleComposition(
-        power_triangles, grouplikes, powers,
-        power_triangles.BASE, power_triangles.EXPONENT);
-    const result_log_composition = PowerTriangleComposition(
-        power_triangles, grouplikes, powers,
-        power_triangles.RESULT, power_triangles.EXPONENT);
-    const inverse_exponent_result = PowerTriangleInverse(
-        power_triangles, power_triangles.EXPONENT, power_triangles.RESULT);
-    const inverse_base_result = PowerTriangleInverse(
-        power_triangles, power_triangles.BASE, power_triangles.RESULT);
-    const inverse_base_exponent = PowerTriangleInverse(
-        power_triangles, power_triangles.BASE, power_triangles.EXPONENT);
-    const inverse_result_exponent = PowerTriangleInverse(
-        power_triangles, power_triangles.RESULT, power_triangles.EXPONENT);
-    const inverse_exponent_base = PowerTriangleInverse(
-        power_triangles, power_triangles.EXPONENT, power_triangles.BASE);
-    const inverse_result_base = PowerTriangleInverse(
-        power_triangles, power_triangles.RESULT, power_triangles.BASE);
+    const scale_action = ScaleAction(grouplikes, scales, expression_shape);
+
+    const add_operation = Object.freeze({
+        tag: 'add',
+        create: grouplikes.add,
+    });
+    const scale_scalar_add = Object.freeze({
+        tag: 'add',
+        create: grouplikes.add,
+        combine: (left, right) => grouplikes.combine('add', left, right),
+    });
+    const mul_operation = Object.freeze({
+        tag: 'mul',
+        create: grouplikes.mul,
+    });
+    const harmonic_operation = Object.freeze({
+        tag: 'harmonic',
+        create: grouplikes.harmonic,
+    });
+
+    const additive_line = VectorLine({
+        name: 'additive-real-line',
+        action: scale_action,
+        vector: Object.freeze({
+            add: add_operation,
+            zero: grouplikes.constant(0),
+        }),
+        scalar: Object.freeze({
+            add: scale_scalar_add,
+            multiply: mul_operation,
+            zero: grouplikes.constant(0),
+            one: grouplikes.constant(1),
+            inverse: powers.inverse,
+            is_inverse: powers.is_inverse,
+        }),
+    });
+    const power_line = VectorLine({
+        name: 'multiplicative-positive-real-line',
+        action: power_triangles,
+        vector: Object.freeze({
+            add: mul_operation,
+            zero: grouplikes.constant(1),
+        }),
+        scalar: Object.freeze({
+            add: add_operation,
+            multiply: mul_operation,
+            zero: grouplikes.constant(0),
+            one: grouplikes.constant(1),
+            inverse: powers.inverse,
+            is_inverse: powers.is_inverse,
+        }),
+        parallel_add: harmonic_operation,
+    });
+
+    const scale_interpretations = LinearActionInterpretations(additive_line, {
+        combine_fixed: new Set([additive_line.VECTOR]),
+        distribute_fixed: new Set([additive_line.SCALAR]),
+        projection_inverses: false,
+        composition: false,
+    });
+    const power_interpretations = LinearActionInterpretations(power_line, {
+        promote: (fixed, computed) =>
+            fixed === power_line.VECTOR && computed === power_line.RESULT,
+    });
+    const linear_laws = Object.freeze([
+        ...scale_interpretations.laws,
+        ...power_interpretations.laws,
+    ]);
+
     const ringlikes = Ringlike({
-        add: scale_expressions,
+        add: scales,
         mul: powers,
     });
     const expression_paths = ExpressionPaths(grouplikes);
     const expression_operations = ExpressionOperations({
         grouplikes: grouplikes,
-        ringlikes: ringlikes,
         expression_shape: expression_shape,
-        laws: Object.freeze([
-            same_base_result,
-            same_exponent_result,
-            same_base_exponent,
-            same_result_exponent,
-            same_exponent_base,
-            same_result_base,
-            power_composition,
-            log_composition,
-            result_log_composition,
-            inverse_exponent_result,
-            inverse_base_result,
-            inverse_base_exponent,
-            inverse_result_exponent,
-            inverse_exponent_base,
-            inverse_result_base,
-        ]),
+        laws: linear_laws,
     });
     const equation_drag_ops = EquationDragOperations({
         expression_paths: expression_paths,

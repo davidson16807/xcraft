@@ -9,12 +9,8 @@ object, but an ambiguous higher-priority operation blocks fallback.
 */
 const ExpressionOperations = (dependencies) => {
     const grouplikes = dependencies.grouplikes;
-    const ringlikes = dependencies.ringlikes;
     const shape = dependencies.expression_shape;
-    const laws = Object.freeze([
-        ...ringlikes.laws,
-        ...(dependencies.laws || []),
-    ]);
+    const laws = Object.freeze(dependencies.laws || []);
 
     function resolve(expressions) {
         const results = new Map();
@@ -32,23 +28,17 @@ const ExpressionOperations = (dependencies) => {
         const local = grouplikes.combine(parent.type, left, right);
         if (local != null) return Object.freeze({ status:'resolved', expression:local });
 
-        return resolve([
-            ringlikes.combine(parent.type, left, right),
-            ...laws.map(law =>
-                law.combine == null || law.expanded_operation !== parent.type? null : law.combine(left, right)
-            ),
-        ]);
+        return resolve(laws.map(law =>
+            law.combine == null || law.expanded_operation !== parent.type? null :
+                law.combine(left, right)
+        ));
     }
 
     function distribute(parent, source, target, source_index, target_index) {
-        const legacy = source_index < target_index?
-            ringlikes.left_distribute(target.type, parent, source, target)
-          : ringlikes.right_distribute(target.type, parent, target, source);
-
-        return resolve([
-            legacy,
-            ...laws.map(law => law.distribute == null? null : law.distribute(parent, source, target)),
-        ]);
+        return resolve(laws.map(law =>
+            law.distribute == null? null :
+                law.distribute(parent, source, target, source_index, target_index)
+        ));
     }
 
 

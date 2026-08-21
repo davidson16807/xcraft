@@ -965,7 +965,7 @@ Its former responsibilities resolved as follows:
 - mirrored sameness and scalar composition -> the corresponding registered power-triangle laws;
 - law aggregation -> the explicit `ExpressionOperations.laws` registry.
 
-`Ringlike` now tolerates providers that implement only the operations that are mathematically meaningful for them. `Powers` therefore supplies unary multiplicative inverse behavior without pretending to provide scale-like `combine` or `distribute` methods. `ScaleExpressions` retains its existing richer interface for the addition/multiplication relationship.
+`Ringlike` now tolerates providers that implement only the operations that are mathematically meaningful for them. `Powers` therefore supplies unary multiplicative inverse behavior without pretending to provide scale-like `combine` or `distribute` methods. `ScaleExpressions` was subsequently removed by the VectorLine consolidation described below.
 
 The complete algebra test suite remains green after deleting `scripts/models/ringlike/PowerExpressions.js`. This confirms that the class had become an adapter/dispatcher rather than an independent mathematical structure.
 
@@ -1030,3 +1030,104 @@ projection metadata and asks `ExpressionView` to render the complementary
 projection. The existing additive/multiplicative inverse ghosts are unchanged.
 The ghost is shown only when the hovered equation side is an actually advertised
 balance target, so a partial projection is never shown for an invalid drag.
+
+
+## VectorLine consolidation — 2026-08-20
+
+The power-triangle law classes and `ScaleExpressions` have now been replaced by
+a single one-dimensional vector-space model plus an explicitly programmatic
+compiler.
+
+### Mathematical structures
+
+Two `VectorLine` instances are wired:
+
+```text
+additive real line
+    scalar addition       = add
+    scalar multiplication = mul
+    vector addition       = add
+    vector zero           = 0
+    scalar action         = multiplication-as-scaling
+
+multiplicative positive-real line
+    scalar addition       = add
+    scalar multiplication = mul
+    vector addition       = mul
+    vector zero           = 1
+    scalar action         = pow / log / root projections
+    fixed-result scalar coordinate addition = harmonic
+```
+
+`VectorLine` explicitly records the four vector-space action axioms:
+
+```text
+1·v = v
+(rs)·v = r·(s·v)
+(r+s)·v = r·v + s·v
+r·(u+v) = r·u + r·v
+```
+
+For the multiplicative line, vector `+` in those formulas is ordinary
+multiplication, so these become the familiar exponent laws.
+
+`PowerTriangles` is no longer a container for separately registered power
+facts. It is the representation of the ternary scalar-action relation, with
+three projections:
+
+```text
+pow(base, exponent)    -> result
+log(base, result)      -> exponent
+root(exponent, result) -> base
+```
+
+### Programmatic compilation
+
+`LinearActionInterpretations` is deliberately not a mathematical structure. It
+compiles a `VectorLine` into the concrete drag interpretations supported by the
+current AST representation and canonical-form policy.
+
+The multiplicative line generates exactly the former 15 hand-instantiated
+objects:
+
+```text
+6 additivity/sameness projection views
+6 projection inverse/round-trip views
+3 scalar-composition projection views
+```
+
+The additive line currently generates two result-projection additivity views:
+like-term combination and ordinary distribution. Because scalar and vector
+values share the same Expression carrier on this line, the UI advertises one
+canonical distribution orientation; the other vector-space axiom produces the
+same mathematics but can differ in unsimplified presentation for identities such
+as zero.
+
+### Deleted adapters
+
+The following files no longer exist:
+
+```text
+scripts/models/ringlike/ScaleExpressions.js
+scripts/models/powertriangle/PowerTriangleSameness.js
+scripts/models/powertriangle/PowerTriangleComposition.js
+scripts/models/powertriangle/PowerTriangleInverse.js
+```
+
+Their behavior is generated from `VectorLine` instead.
+
+`Ringlike` has also been reduced to unary inverse presentation only:
+
+```text
+inverse
+is_inverse
+absolute
+```
+
+It has no `combine`, `left_distribute`, `right_distribute`, or law-aggregation
+hooks. Cross-operation mathematics is resolved exclusively through the explicit
+interpretation registry in `ExpressionOperations`.
+
+The full level/property suite passes with unchanged counts after this
+consolidation, which is evidence that the deleted classes represented sampled
+views of the same linear-action structure rather than independent mathematics.

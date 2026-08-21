@@ -1,11 +1,10 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 `Grouplike` describes one binary operation on Expressions together with the
 properties needed by `Grouplikes` to construct, append, combine, commute, and
-cancel expressions.  Laws involving relationships between multiple operations
-belong to the ringlike layer instead.
+cancel expressions.  Laws involving relationships between multiple operations belong to mathematical
+structures such as VectorLine and are compiled into drag interpretations separately.
 
 label           String
 identity        Expression|undefined

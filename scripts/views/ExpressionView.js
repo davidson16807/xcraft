@@ -195,8 +195,10 @@ function ExpressionView(dependencies) {
     function draw_root_projection(exponent_node, result_node, attributes) {
         return html.span(attributes, [
             html.node('sup', { class:'root-index' }, [exponent_node]),
-            math('\\sqrt{}', 'root-radical'),
-            html.span({ class:'root-radicand' }, [result_node]),
+            html.span({ class:'root-body' }, [
+                math('\\sqrt{}', 'root-radical'),
+                html.span({ class:'root-radicand' }, [result_node]),
+            ]),
         ]);
     }
 

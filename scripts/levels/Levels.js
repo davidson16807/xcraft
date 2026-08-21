@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 function Levels(grouplikes) {
     const c = grouplikes.constant;

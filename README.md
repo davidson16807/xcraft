@@ -1,5 +1,3 @@
-<!-- HUMAN VETTED -->
-
 # xcraft
 
 A small browser game for building algebraic intuition. Symbols can be dragged and dropped to apply them to each side of an equation.
@@ -69,6 +67,9 @@ scripts/
   models/
     expression/  immutable expression trees + operations, paths, and shapes
     equation/    immutable equations + shapes and rewrite rules
+    vectorline/  one-dimensional vector-space structure + drag compilation
+    powertriangle/ pow/log/root projections of the multiplicative scalar action
+    ringlike/    additive/multiplicative inverse representations
     app/         immutable AppState, history, drag-state transitions
   updaters/   messages -> new AppState
     drags/    drag interfaces
@@ -77,7 +78,16 @@ scripts/
   dom/        tiny DOM construction helpers
 ```
 
-`App.js` is the small imperative shell: it owns the current immutable `AppState`, sends messages through `AppUpdater.update(message, state)`, then calls `AppView.draw(state)`.
+The algebra shared by ordinary scaling and exponentiation is represented by two
+`VectorLine` instances. The additive real line uses `+` as vector addition and
+multiplication as scalar action; the positive multiplicative line uses `*` as
+vector addition and exponentiation as scalar action. `LinearActionInterpretations`
+compiles those mathematical structures into the reversible drag interpretations
+consumed by `ExpressionOperations`.
+
+`pow`, `log`, and `root` are the three projections of the multiplicative scalar
+action relation. Harmonic addition is the derived fixed-result scalar-coordinate
+operation used by that same line.
 
 ## Tests
 
@@ -87,4 +97,4 @@ Run:
 node tests/algebra.test.js
 ```
 
-The test suite verifies a solution path for all ten levels. It also explores reachable states and, for every drag the algebra engine advertises, samples integer values of `x` before and after the rewrite to verify that the equation's solution set is unchanged over those samples.
+The test suite verifies the advertised solution paths for all playable levels. It also explores reachable states and, for every drag the algebra engine advertises, samples integer values of `x` before and after the rewrite to verify that the equation's solution set is unchanged over those samples.

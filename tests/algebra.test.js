@@ -12,14 +12,13 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/grouplike/Grouplikes.js',
     'scripts/models/ringlike/Scale.js',
     'scripts/models/ringlike/Scales.js',
-    'scripts/models/ringlike/ScaleExpressions.js',
     'scripts/models/ringlike/Power.js',
     'scripts/models/ringlike/Powers.js',
     'scripts/models/powertriangle/PowerTriangle.js',
     'scripts/models/powertriangle/PowerTriangles.js',
-    'scripts/models/powertriangle/PowerTriangleSameness.js',
-    'scripts/models/powertriangle/PowerTriangleComposition.js',
-    'scripts/models/powertriangle/PowerTriangleInverse.js',
+    'scripts/models/vectorline/ScaleAction.js',
+    'scripts/models/vectorline/VectorLine.js',
+    'scripts/models/vectorline/LinearActionInterpretations.js',
     'scripts/models/ringlike/Ringlike.js',
     'scripts/models/equation/Equation.js',
     'scripts/models/equation/EquationShape.js',
@@ -114,87 +113,120 @@ const grouplikes = Grouplikes({
     ),
 });
 const scales = Scales(grouplikes, expression_shape);
-const scale_expressions = ScaleExpressions(grouplikes, scales);
 const powers = Powers(grouplikes, expression_shape);
 const power_triangles = PowerTriangles(grouplikes, expression_shape);
-const same_base_result = PowerTriangleSameness(
-    power_triangles, grouplikes,
-    power_triangles.BASE, power_triangles.RESULT,
-    'add', 'mul', true
-);
-const same_exponent_result = PowerTriangleSameness(
-    power_triangles, grouplikes,
-    power_triangles.EXPONENT, power_triangles.RESULT,
-    'mul', 'mul', false
-);
-const same_base_exponent = PowerTriangleSameness(
-    power_triangles, grouplikes,
-    power_triangles.BASE, power_triangles.EXPONENT,
-    'mul', 'add', false
-);
-const same_result_exponent = PowerTriangleSameness(
-    power_triangles, grouplikes,
-    power_triangles.RESULT, power_triangles.EXPONENT,
-    'mul', 'harmonic', false
-);
-const same_exponent_base = PowerTriangleSameness(
-    power_triangles, grouplikes,
-    power_triangles.EXPONENT, power_triangles.BASE,
-    'mul', 'mul', false
-);
-const same_result_base = PowerTriangleSameness(
-    power_triangles, grouplikes,
-    power_triangles.RESULT, power_triangles.BASE,
-    'harmonic', 'mul', false
-);
-const power_composition = PowerTriangleComposition(
-    power_triangles, grouplikes, powers,
-    power_triangles.BASE, power_triangles.RESULT);
-const log_composition = PowerTriangleComposition(
-    power_triangles, grouplikes, powers,
-    power_triangles.BASE, power_triangles.EXPONENT);
-const result_log_composition = PowerTriangleComposition(
-    power_triangles, grouplikes, powers,
-    power_triangles.RESULT, power_triangles.EXPONENT);
-const inverse_exponent_result = PowerTriangleInverse(
-    power_triangles, power_triangles.EXPONENT, power_triangles.RESULT);
-const inverse_base_result = PowerTriangleInverse(
-    power_triangles, power_triangles.BASE, power_triangles.RESULT);
-const inverse_base_exponent = PowerTriangleInverse(
-    power_triangles, power_triangles.BASE, power_triangles.EXPONENT);
-const inverse_result_exponent = PowerTriangleInverse(
-    power_triangles, power_triangles.RESULT, power_triangles.EXPONENT);
-const inverse_exponent_base = PowerTriangleInverse(
-    power_triangles, power_triangles.EXPONENT, power_triangles.BASE);
-const inverse_result_base = PowerTriangleInverse(
-    power_triangles, power_triangles.RESULT, power_triangles.BASE);
+const scale_action = ScaleAction(grouplikes, scales, expression_shape);
+
+const add_operation = Object.freeze({
+    tag: 'add',
+    create: grouplikes.add,
+});
+const scale_scalar_add = Object.freeze({
+    tag: 'add',
+    create: grouplikes.add,
+    combine: (left, right) => grouplikes.combine('add', left, right),
+});
+const mul_operation = Object.freeze({
+    tag: 'mul',
+    create: grouplikes.mul,
+});
+const harmonic_operation = Object.freeze({
+    tag: 'harmonic',
+    create: grouplikes.harmonic,
+});
+
+const additive_line = VectorLine({
+    name: 'additive-real-line',
+    action: scale_action,
+    vector: Object.freeze({
+        add: add_operation,
+        zero: grouplikes.constant(0),
+    }),
+    scalar: Object.freeze({
+        add: scale_scalar_add,
+        multiply: mul_operation,
+        zero: grouplikes.constant(0),
+        one: grouplikes.constant(1),
+        inverse: powers.inverse,
+        is_inverse: powers.is_inverse,
+    }),
+});
+const power_line = VectorLine({
+    name: 'multiplicative-positive-real-line',
+    action: power_triangles,
+    vector: Object.freeze({
+        add: mul_operation,
+        zero: grouplikes.constant(1),
+    }),
+    scalar: Object.freeze({
+        add: add_operation,
+        multiply: mul_operation,
+        zero: grouplikes.constant(0),
+        one: grouplikes.constant(1),
+        inverse: powers.inverse,
+        is_inverse: powers.is_inverse,
+    }),
+    parallel_add: harmonic_operation,
+});
+
+const scale_interpretations = LinearActionInterpretations(additive_line, {
+    combine_fixed: new Set([additive_line.VECTOR]),
+    distribute_fixed: new Set([additive_line.SCALAR]),
+    projection_inverses: false,
+    composition: false,
+});
+const power_interpretations = LinearActionInterpretations(power_line, {
+    promote: (fixed, computed) =>
+        fixed === power_line.VECTOR && computed === power_line.RESULT,
+});
+const linear_laws = Object.freeze([
+    ...scale_interpretations.laws,
+    ...power_interpretations.laws,
+]);
+
+// Named handles are test conveniences only; production wiring consumes the
+// generated interpretation collection as a whole.
+const same_base_result = power_interpretations.get(
+    'same', power_line.VECTOR, power_line.RESULT);
+const same_exponent_result = power_interpretations.get(
+    'same', power_line.SCALAR, power_line.RESULT);
+const same_base_exponent = power_interpretations.get(
+    'same', power_line.VECTOR, power_line.SCALAR);
+const same_result_exponent = power_interpretations.get(
+    'same', power_line.RESULT, power_line.SCALAR);
+const same_exponent_base = power_interpretations.get(
+    'same', power_line.SCALAR, power_line.VECTOR);
+const same_result_base = power_interpretations.get(
+    'same', power_line.RESULT, power_line.VECTOR);
+const power_composition = power_interpretations.get(
+    'composition', power_line.VECTOR, power_line.RESULT);
+const log_composition = power_interpretations.get(
+    'composition', power_line.VECTOR, power_line.SCALAR);
+const result_log_composition = power_interpretations.get(
+    'composition', power_line.RESULT, power_line.SCALAR);
+const inverse_exponent_result = power_interpretations.get(
+    'inverse', power_line.SCALAR, power_line.RESULT);
+const inverse_base_result = power_interpretations.get(
+    'inverse', power_line.VECTOR, power_line.RESULT);
+const inverse_base_exponent = power_interpretations.get(
+    'inverse', power_line.VECTOR, power_line.SCALAR);
+const inverse_result_exponent = power_interpretations.get(
+    'inverse', power_line.RESULT, power_line.SCALAR);
+const inverse_exponent_base = power_interpretations.get(
+    'inverse', power_line.SCALAR, power_line.VECTOR);
+const inverse_result_base = power_interpretations.get(
+    'inverse', power_line.RESULT, power_line.VECTOR);
+
 const ringlikes = Ringlike({
-    add: scale_expressions,
+    add: scales,
     mul: powers,
 });
 const equation_shape = EquationShape(expression_shape);
 const paths = ExpressionPaths(grouplikes);
 const expression_operations = ExpressionOperations({
     grouplikes: grouplikes,
-    ringlikes: ringlikes,
     expression_shape: expression_shape,
-    laws: Object.freeze([
-        same_base_result,
-        same_exponent_result,
-        same_base_exponent,
-        same_result_exponent,
-        same_exponent_base,
-        same_result_base,
-        power_composition,
-        log_composition,
-        result_log_composition,
-        inverse_exponent_result,
-        inverse_base_result,
-        inverse_base_exponent,
-        inverse_result_exponent,
-        inverse_exponent_base,
-        inverse_result_base,
-    ]),
+    laws: linear_laws,
 });
 const equations = Equations({
     grouplikes: grouplikes,
@@ -1098,41 +1130,41 @@ function ringExpressionInterface() {
     const two = grouplikes.constant(2);
     const three = grouplikes.constant(3);
     const x_plus_three = grouplikes.add([x, three]);
+    const left_scale_distribution = expression_operations.distribute(
+        grouplikes.mul([two, x_plus_three]), two, x_plus_three, 0, 1);
+    assert(
+        left_scale_distribution.status === 'resolved',
+        'VectorLine: left scale distribution should resolve uniquely'
+    );
     assertSameExpression(
-        ringlikes.left_distribute(
-            'add',
-            grouplikes.mul([two, x_plus_three]),
-            two,
-            x_plus_three
-        ),
+        left_scale_distribution.expression,
         grouplikes.add([
             grouplikes.mul([two, x]),
             grouplikes.mul([two, three]),
         ]),
-        'Ringlike',
-        'left distribution should delegate through the additive group expression'
+        'VectorLine',
+        'left distribution should be generated from linearity'
+    );
+    const right_scale_distribution = expression_operations.distribute(
+        grouplikes.mul([x_plus_three, two]), two, x_plus_three, 1, 0);
+    assert(
+        right_scale_distribution.status === 'resolved',
+        'VectorLine: right scale distribution should resolve uniquely'
     );
     assertSameExpression(
-        ringlikes.right_distribute(
-            'add',
-            grouplikes.mul([x_plus_three, two]),
-            x_plus_three,
-            two
-        ),
+        right_scale_distribution.expression,
         grouplikes.add([
             grouplikes.mul([x, two]),
             grouplikes.mul([three, two]),
         ]),
-        'Ringlike',
-        'right distribution should delegate through the additive group expression'
+        'VectorLine',
+        'right distribution should be generated from linearity'
     );
     assert(
-        ringlikes.left_distribute('mul', grouplikes.mul([two, x_plus_three]), two, x_plus_three) == null,
-        'Ringlike: unsupported left distribution should return null'
-    );
-    assert(
-        ringlikes.right_distribute('mul', grouplikes.mul([x_plus_three, two]), x_plus_three, two) == null,
-        'Ringlike: unsupported right distribution should return null'
+        ringlikes.combine == null &&
+        ringlikes.left_distribute == null &&
+        ringlikes.right_distribute == null,
+        'Ringlike should expose unary inverses only; cross-operation laws belong to VectorLine interpretations'
     );
 
     const product = grouplikes.mul([x, three]);
@@ -1202,8 +1234,7 @@ function additiveCommutativity() {
             a !== b &&
             a.type !== 'add' &&
             b.type !== 'add' &&
-            grouplikes.combine('add', a, b) == null &&
-            ringlikes.combine('add', a, b) == null
+            expression_operations.combine(left, a, b).status === 'none'
         ) {
             assertMoveTransforms(
                 left,
@@ -1245,6 +1276,60 @@ function additiveAssociativity() {
             where
         );
     });
+}
+
+// -----------------------------------------------------------------------------
+// Vector-line architecture
+// The former hand-instantiated laws are generated from two line structures.
+// -----------------------------------------------------------------------------
+
+function vectorLineArchitecture() {
+    assert(
+        additive_line.axioms.scalar_identity.scalar.contents === 1 &&
+        additive_line.axioms.scalar_additivity.scalar_add.tag === 'add' &&
+        additive_line.axioms.vector_additivity.vector_add.tag === 'add',
+        'additive line should expose the ordinary real vector-space axioms'
+    );
+    assert(
+        power_line.axioms.scalar_identity.scalar.contents === 1 &&
+        power_line.axioms.scalar_additivity.scalar_add.tag === 'add' &&
+        power_line.axioms.vector_additivity.vector_add.tag === 'mul' &&
+        power_line.axioms.scalar_composition.scalar_multiply.tag === 'mul',
+        'multiplicative line should expose exponentiation as a real scalar action'
+    );
+    assert(
+        power_line.action.operation(power_line.RESULT) === 'pow' &&
+        power_line.action.operation(power_line.SCALAR) === 'log' &&
+        power_line.action.operation(power_line.VECTOR) === 'root',
+        'pow/log/root should be the three projections of one scalar-action relation'
+    );
+
+    const power_family_counts = power_interpretations.laws.reduce((counts, law) => {
+        counts[law.family] = (counts[law.family] || 0) + 1;
+        return counts;
+    }, {});
+    assert(
+        power_interpretations.laws.length === 15 &&
+        power_family_counts.same === 6 &&
+        power_family_counts.inverse === 6 &&
+        power_family_counts.composition === 3,
+        'one multiplicative VectorLine should generate the former 15 power interpretations'
+    );
+    assert(
+        scale_interpretations.laws.length === 2 &&
+        scale_interpretations.laws.every(law => law.family === 'same'),
+        'additive VectorLine should generate like-term combination and ordinary distribution'
+    );
+
+    [
+        'scripts/models/ringlike/ScaleExpressions.js',
+        'scripts/models/powertriangle/PowerTriangleSameness.js',
+        'scripts/models/powertriangle/PowerTriangleComposition.js',
+        'scripts/models/powertriangle/PowerTriangleInverse.js',
+    ].forEach(file => assert(
+        !fs.existsSync(path.join(root, file)),
+        `${file} should be removed after VectorLine compilation replaces it`
+    ));
 }
 
 // -----------------------------------------------------------------------------
@@ -1740,7 +1825,7 @@ function powerTriangleSameness() {
             'path:L/1',
             manual_drag_options
         ) === duplicate_log_equation,
-        'log_a(x)+log_a(x) should be a no-op when ScaleExpressions and triangle sameness disagree'
+        'log_a(x)+log_a(x) should be a no-op when additive-line and multiplicative-line interpretations disagree'
     );
 
     const squared = grouplikes.pow(x, grouplikes.constant(2));
@@ -2618,15 +2703,16 @@ function distributivity() {
 
         const sum = grouplikes.add([b, c]);
         if (
-            grouplikes.combine('mul', a, sum) != null ||
-            ringlikes.combine('mul', a, sum) != null
+            expression_operations.combine(
+                grouplikes.mul([a, sum]), a, sum
+            ).status !== 'none'
         ) continue;
-        const left_expanded = grouplikes.add(
-            ringlikes.left_distribute('add', grouplikes.mul([a, sum]), a, sum).contents
-        );
-        const right_expanded = grouplikes.add(
-            ringlikes.right_distribute('add', grouplikes.mul([sum, a]), sum, a).contents
-        );
+        const left_expanded = grouplikes.add(sum.contents.map(term =>
+            grouplikes.mul([a, term])
+        ));
+        const right_expanded = grouplikes.add(sum.contents.map(term =>
+            grouplikes.mul([term, a])
+        ));
         const context = `a = ${describeCase(a)}\nb = ${describeCase(b)}\nc = ${describeCase(c)}`;
 
         assertMoveTransforms(
@@ -2677,6 +2763,7 @@ function distributivity() {
     automaticSimplification,
     fractionPreservation,
     ringExpressionInterface,
+    vectorLineArchitecture,
     additiveClosure,
     additiveCommutativity,
     additiveAssociativity,
