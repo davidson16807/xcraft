@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 const ExpressionShape = () => {
     function encode(expression) {

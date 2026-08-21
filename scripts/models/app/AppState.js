@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 `AppState` contains all application state.  Model values are immutable so the

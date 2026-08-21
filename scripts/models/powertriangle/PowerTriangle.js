@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 Represents one view of the ternary relationship base^exponent=result.
