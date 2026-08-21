@@ -352,7 +352,7 @@ main {
 
 .root-radical {
     display: inline-flex;
-    margin-right: -0.08em;
+    transform: translateY(-0.2em);
 }
 
 .root-radicand {
