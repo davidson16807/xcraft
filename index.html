@@ -19,6 +19,8 @@
     <script src="./scripts/models/expression/ExpressionPaths.js"></script>
     <script src="./scripts/models/grouplike/Grouplike.js"></script>
     <script src="./scripts/models/grouplike/Grouplikes.js"></script>
+    <script src="./scripts/models/ringlike/ScalarAction.js"></script>
+    <script src="./scripts/models/ringlike/ScalarActionExpressions.js"></script>
     <script src="./scripts/models/ringlike/Scale.js"></script>
     <script src="./scripts/models/ringlike/Scales.js"></script>
     <script src="./scripts/models/ringlike/ScaleExpressions.js"></script>
@@ -187,13 +189,13 @@
         ),
     });
     const scales = Scales(grouplikes, expression_shape);
-    const scale_expressions = ScaleExpressions(grouplikes, scales);
+    const scale_expressions = ScaleExpressions(grouplikes, scales, expression_shape);
     const powers = Powers(grouplikes, expression_shape);
-    const power_expressions = PowerExpressions(grouplikes, powers);
+    const power_expressions = PowerExpressions(grouplikes, powers, expression_shape);
     const ringlikes = Ringlike({
         add: scale_expressions,
         mul: power_expressions,
-    });
+    }, expression_shape);
     const expression_paths = ExpressionPaths(grouplikes);
     const equation_drag_ops = EquationDragOperations({
         expression_paths: expression_paths,

@@ -10,6 +10,8 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/expression/ExpressionShape.js',
     'scripts/models/grouplike/Grouplike.js',
     'scripts/models/grouplike/Grouplikes.js',
+    'scripts/models/ringlike/ScalarAction.js',
+    'scripts/models/ringlike/ScalarActionExpressions.js',
     'scripts/models/ringlike/Scale.js',
     'scripts/models/ringlike/Scales.js',
     'scripts/models/ringlike/ScaleExpressions.js',
@@ -39,50 +41,45 @@ const root = path.resolve(__dirname, '..');
 const expression_shape = ExpressionShape();
 const grouplikes = Grouplikes({
     'add': Grouplike(
-        'add',
-        new Expression('constant', 0),
-        new Expression('constant', 0),
-        true,
-        true,
-        true,
+        'add', new Expression('constant', 0),
+        {
+            is_commutative: true,
+            is_associative: true,
+            is_invertible: true,
+            is_left_cancellative: true,
+            is_right_cancellative: true,
+        },
         evaluate => expression => expression.contents.reduce(
-            (accumulator, item) => accumulator + evaluate(item),
-            0
-        )
+            (accumulator, item) => accumulator + evaluate(item), 0)
     ),
     'mul': Grouplike(
-        'mul',
-        new Expression('constant', 1),
-        new Expression('constant', 1),
-        true,
-        true,
-        true,
+        'mul', new Expression('constant', 1),
+        {
+            is_commutative: true,
+            is_associative: true,
+            is_invertible: true,
+            is_left_cancellative: true,
+            is_right_cancellative: true,
+        },
         evaluate => expression => expression.contents.reduce(
-            (accumulator, item) => accumulator * evaluate(item),
-            1
-        )
+            (accumulator, item) => accumulator * evaluate(item), 1)
     ),
     'pow': Grouplike(
-        'pow',
-        undefined,
-        new Expression('constant', 1),
-        false,
-        false,
-        false,
+        'pow', new Expression('constant', 1),
+        { is_right_cancellative: true },
         evaluate => expression => Math.pow(
             evaluate(expression.contents[0]),
-            evaluate(expression.contents[1])
-        )
+            evaluate(expression.contents[1]))
     ),
 });
 const scales = Scales(grouplikes, expression_shape);
-const scale_expressions = ScaleExpressions(grouplikes, scales);
+const scale_expressions = ScaleExpressions(grouplikes, scales, expression_shape);
 const powers = Powers(grouplikes, expression_shape);
-const power_expressions = PowerExpressions(grouplikes, powers);
+const power_expressions = PowerExpressions(grouplikes, powers, expression_shape);
 const ringlikes = Ringlike({
     add: scale_expressions,
     mul: power_expressions,
-});
+}, expression_shape);
 const equation_shape = EquationShape(expression_shape);
 const paths = ExpressionPaths(grouplikes);
 const equations = Equations({
@@ -1728,6 +1725,77 @@ function distributivity() {
     }
 }
 
+
+// -----------------------------------------------------------------------------
+// Scalar-action generated laws
+// ScaleExpressions and PowerExpressions share one executable four-axiom
+// structure. These cases exercise behavior the previous Power/Powers adapter
+// could not express.
+// -----------------------------------------------------------------------------
+
+function scalarActionGeneratedLaws() {
+    const two = grouplikes.constant(2);
+    const three = grouplikes.constant(3);
+
+    const same_base = grouplikes.mul([
+        grouplikes.pow(two, x),
+        grouplikes.pow(two, three),
+    ]);
+    assertMoveTransforms(
+        same_base,
+        'L/0',
+        'path:L/1',
+        grouplikes.pow(two, grouplikes.add([x, three])),
+        'scalar action: symbolic same-base combination',
+        '2^x * 2^3 -> 2^(x+3)',
+        () => true,
+        manual_drag_options
+    );
+
+    const exponent_sum = grouplikes.pow(two, grouplikes.add([x, three]));
+    assertMoveTransforms(
+        exponent_sum,
+        'L/0',
+        'path:L/1',
+        grouplikes.mul([
+            grouplikes.pow(two, x),
+            grouplikes.pow(two, three),
+        ]),
+        'scalar action: symbolic exponent distribution',
+        '2^(x+3) -> 2^x * 2^3',
+        () => true,
+        manual_drag_options
+    );
+
+    const same_exponent = grouplikes.mul([
+        grouplikes.pow(two, x),
+        grouplikes.pow(three, x),
+    ]);
+    assertMoveTransforms(
+        same_exponent,
+        'L/0',
+        'path:L/1',
+        grouplikes.pow(grouplikes.constant(6), x),
+        'scalar action: same-exponent combination',
+        '2^x * 3^x -> 6^x',
+        () => true,
+        manual_drag_options
+    );
+
+    const square = grouplikes.pow(x, two);
+    const ambiguous = grouplikes.mul([square, square]);
+    const equation = new Equation(ambiguous, grouplikes.constant(17));
+    assert(
+        algebra.move(
+            equation,
+            'L/0',
+            'path:L/1',
+            manual_drag_options
+        ) === equation,
+        'scalar action: ambiguous same-base/same-exponent drag should be a no-op'
+    );
+}
+
 // -----------------------------------------------------------------------------
 // Run the specification
 // -----------------------------------------------------------------------------
@@ -1751,6 +1819,7 @@ function distributivity() {
     automaticSimplification,
     fractionPreservation,
     ringExpressionInterface,
+    scalarActionGeneratedLaws,
     additiveClosure,
     additiveCommutativity,
     additiveAssociativity,

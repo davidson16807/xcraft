@@ -102,8 +102,8 @@ function Equations(dependencies) {
         if (index1 >= parent.contents.length || index2 >= parent.contents.length) return equation;
 
         const commuted = grouplikes.commute(parent, index1, index2);
-
-        return paths.replace(equation, parent_path, commuted);
+        const result = paths.replace(equation, parent_path, commuted);
+        return JSON.stringify(result) === JSON.stringify(equation)? equation : result;
     }
 
     function combine(equation, source_path, target_path) {
@@ -120,14 +120,22 @@ function Equations(dependencies) {
 
         const left = source_index < target_index? source : target;
         const right = source_index < target_index? target : source;
-        const combined = (
-            grouplikes.combine(parent.type, left, right) ||
-            ringlikes.combine(parent.type, left, right)
-        );
-        if (combined == null) return equation;
+        const replacements = [
+            grouplikes.combine(parent.type, left, right),
+            ...ringlikes.combinations(parent.type, left, right),
+        ].filter(replacement => replacement != null);
 
-        return paths.replace(equation, parent_path, 
-                grouplikes.collapse(parent, source_index, target_index, combined));
+        const results = new Map();
+        replacements.forEach(replacement => {
+            const collapsed = grouplikes.collapse(
+                parent, source_index, target_index, replacement);
+            const result = paths.replace(equation, parent_path, collapsed);
+            if (JSON.stringify(result) !== JSON.stringify(equation)) {
+                results.set(JSON.stringify(result), result);
+            }
+        });
+
+        return results.size === 1? [...results.values()][0] : equation;
 
     }
 
@@ -144,15 +152,24 @@ function Equations(dependencies) {
         const parent = paths.resolve(equation, parent_path);
         if (parent == null) return equation;
 
-        // The source always distributes across the target,
-        // so source and target position determines whether the distribution is left or right.
-        const distributed = source_index < target_index?
-            ringlikes.left_distribute(target.type, parent, source, target)
-          : ringlikes.right_distribute(target.type, parent, target, source);
-        if (distributed == null) return equation;
+        // The source always distributes across the target.  Every registered
+        // mathematical structure may interpret the gesture; only one distinct
+        // changed equation is accepted.
+        const replacements = source_index < target_index?
+            ringlikes.left_distributions(parent, source, target)
+          : ringlikes.right_distributions(parent, target, source);
 
-        return paths.replace(equation, parent_path, 
-                grouplikes.collapse(parent, source_index, target_index, distributed));
+        const results = new Map();
+        replacements.forEach(replacement => {
+            const collapsed = grouplikes.collapse(
+                parent, source_index, target_index, replacement);
+            const result = paths.replace(equation, parent_path, collapsed);
+            if (JSON.stringify(result) !== JSON.stringify(equation)) {
+                results.set(JSON.stringify(result), result);
+            }
+        });
+
+        return results.size === 1? [...results.values()][0] : equation;
     }
 
     function simplify(equation) {
