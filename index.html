@@ -185,6 +185,27 @@
             },
             evaluate => expression => Math.pow(evaluate(expression.contents[0]), evaluate(expression.contents[1]))
         ),
+        'log': Grouplike('log', undefined,
+            {},
+            evaluate => expression => Math.log(evaluate(expression.contents[1])) / Math.log(evaluate(expression.contents[0]))
+        ),
+        'root': Grouplike('root', undefined,
+            {},
+            evaluate => expression => Math.pow(
+                evaluate(expression.contents[1]),
+                1 / evaluate(expression.contents[0])
+            )
+        ),
+        'harmonic': Grouplike('harmonic', undefined,
+            {
+                is_commutative: true,
+                is_associative: true,
+            },
+            evaluate => expression => 1 / expression.contents.reduce(
+                (sum, item) => sum + 1 / evaluate(item),
+                0
+            )
+        ),
     });
     const scales = Scales(grouplikes, expression_shape);
     const scale_expressions = ScaleExpressions(grouplikes, scales);
@@ -228,6 +249,9 @@
                 case 'add': return 1;
                 case 'mul': return 2;
                 case 'pow': return 3;
+                case 'log': return 3;
+                case 'root': return 3;
+                case 'harmonic': return 3;
                 default: return 4;
             }
         }
@@ -259,7 +283,7 @@
             [], [], // history
             window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches?
                 'night' : 'day',
-            { enabled: new Set(['add', 'mul', 'pow']), auto_simplify:true }
+            { enabled: new Set(['add', 'mul', 'pow', 'log', 'root', 'harmonic']), auto_simplify:true }
         ), document
     );
 
