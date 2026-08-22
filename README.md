@@ -46,23 +46,9 @@ Then visit `http://localhost:8000/`.
 
 The page loads KaTeX and Bootstrap from jsDelivr, so those two assets require network access.
 
-## Interaction rules
-
-A drag is never interpreted as arbitrary text editing. `Equations` accepts only explicit equivalence-preserving rewrites. Invalid drops return the original equation reference and therefore do nothing.
-
-Implemented gestures include:
-
-- Drag an additive term to the opposite side of `=` to add its opposite there.
-- Drag a multiplicative factor across `=` to multiply the other side by its reciprocal.
-- Drag a reciprocal factor across `=` to multiply the other side by its base.
-- Drag like terms together to add coefficients.
-- Drag numeric factors together to multiply them.
-- Drag a numeric factor and reciprocal numeric factor together to evaluate the quotient.
-- Drag a numeric factor onto a parenthesized sum to distribute it.
-
-Division and grouping are not primitive AST nodes.  `a/b` is represented as the product `a*b^-1`; the view renders reciprocal factors below a fraction bar. Parentheses are inferred by the view from expression structure and precedence. Powers are represented explicitly so the same model can support exponent rules in later levels. Levels that allow an unknown to become a divisor carry an explicit nonzero context assumption.
-
 ## Architecture
+
+If software is implemented correctly, every drag in this application will produce an equation that logically follows from the starting equation. Invalid drops return the original equation reference and therefore do nothing. This pattern is used throughout model logic.
 
 ```text
 scripts/
@@ -87,4 +73,7 @@ Run:
 node tests/algebra.test.js
 ```
 
-The test suite verifies a solution path for all ten levels. It also explores reachable states and, for every drag the algebra engine advertises, samples integer values of `x` before and after the rewrite to verify that the equation's solution set is unchanged over those samples.
+Property based testing was used throughout unit tests. An LLM was used to generate tests based on the following criteria:
+
+* Each level must be solvable by a series of drags
+* Groups, rings, and other algebraic structures must demonstrate they preserve all properties that are ammenable to testing, e.g. invertibility, identity, commutativity, distributivity, etc.
