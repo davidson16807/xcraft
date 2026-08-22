@@ -6,6 +6,7 @@ const ExpressionShape = () => {
         switch (expression.type) {
             case 'constant': return `C(${expression.contents})`;
             case 'variable': return `V(${expression.contents})`;
+            case 'slot': return 'S';
             case 'pow': return `P(${encode(expression.contents[0])},${encode(expression.contents[1])})`;
             case 'log': return `L(${encode(expression.contents[0])},${encode(expression.contents[1])})`;
             case 'root': return `R(${encode(expression.contents[0])},${encode(expression.contents[1])})`;

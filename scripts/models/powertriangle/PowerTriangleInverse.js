@@ -11,34 +11,42 @@ For fixed=exponent, computed=result:
 constructs the missing coordinate from the fixed coordinate and the expression
 occupying the computed coordinate.
 */
-const PowerTriangleInverse = (power_triangles, fixed, computed) => {
-    const other = power_triangles.other(fixed, computed);
+const PowerTriangleInverse = (power_triangles, expression_shape, fixed, computed) => {
+    const other = ['base', 'exponent', 'result']
+        .find(vertex => vertex !== fixed && vertex !== computed);
     const key = `${fixed}:${computed}`;
 
+    function from_expression(expression, projection) {
+        const triangle = power_triangles.from_expression(expression);
+        return triangle != null && triangle[projection] == null? triangle : null;
+    }
+
+    function to_expression(vertices) {
+        return power_triangles.to_expression(new PowerTriangle(
+            vertices.base ?? null,
+            vertices.exponent ?? null,
+            vertices.result ?? null
+        ));
+    }
+
     function cancel(parent, source) {
-        const projection = power_triangles.projection(parent);
-        if (projection == null || projection.computed !== computed) return null;
-
-        const fixed_index = projection.children.indexOf(fixed);
-        const other_index = projection.children.indexOf(other);
-        if (fixed_index < 0 || other_index < 0) return null;
-        if (parent.contents[fixed_index] !== source) return null;
-
-        return parent.contents[other_index];
+        const triangle = from_expression(parent, computed);
+        if (triangle == null || triangle[fixed] !== source) return null;
+        return triangle[other];
     }
 
     function append(source, target) {
-        return power_triangles.create(other, {
+        return to_expression({
             [fixed]: source,
             [computed]: target,
         });
     }
 
     function cancel_pair(outer_expression, inner_expression, outer_fixed, inner_fixed) {
-        const outer = power_triangles.as(outer_expression, computed, false);
-        const inner = power_triangles.as(inner_expression, other, false);
+        const outer = from_expression(outer_expression, computed);
+        const inner = from_expression(inner_expression, other);
         if (outer == null || inner == null) return null;
-        if (!power_triangles.same(outer[fixed], inner[fixed])) return null;
+        if (expression_shape.encode(outer[fixed]) !== expression_shape.encode(inner[fixed])) return null;
         if (outer[other] !== inner_expression) return null;
         if (outer[fixed] !== outer_fixed || inner[fixed] !== inner_fixed) return null;
 

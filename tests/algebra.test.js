@@ -116,58 +116,58 @@ const grouplikes = Grouplikes({
 const scales = Scales(grouplikes, expression_shape);
 const scale_expressions = ScaleExpressions(grouplikes, scales);
 const powers = Powers(grouplikes, expression_shape);
-const power_triangles = PowerTriangles(grouplikes, expression_shape);
+const power_triangles = PowerTriangles(grouplikes);
 const same_base_result = PowerTriangleSameness(
-    power_triangles, grouplikes,
-    power_triangles.BASE, power_triangles.RESULT,
+    power_triangles, grouplikes, expression_shape,
+    'base', 'result',
     'add', 'mul', true
 );
 const same_exponent_result = PowerTriangleSameness(
-    power_triangles, grouplikes,
-    power_triangles.EXPONENT, power_triangles.RESULT,
+    power_triangles, grouplikes, expression_shape,
+    'exponent', 'result',
     'mul', 'mul', false
 );
 const same_base_exponent = PowerTriangleSameness(
-    power_triangles, grouplikes,
-    power_triangles.BASE, power_triangles.EXPONENT,
+    power_triangles, grouplikes, expression_shape,
+    'base', 'exponent',
     'mul', 'add', false
 );
 const same_result_exponent = PowerTriangleSameness(
-    power_triangles, grouplikes,
-    power_triangles.RESULT, power_triangles.EXPONENT,
+    power_triangles, grouplikes, expression_shape,
+    'result', 'exponent',
     'mul', 'harmonic', false
 );
 const same_exponent_base = PowerTriangleSameness(
-    power_triangles, grouplikes,
-    power_triangles.EXPONENT, power_triangles.BASE,
+    power_triangles, grouplikes, expression_shape,
+    'exponent', 'base',
     'mul', 'mul', false
 );
 const same_result_base = PowerTriangleSameness(
-    power_triangles, grouplikes,
-    power_triangles.RESULT, power_triangles.BASE,
+    power_triangles, grouplikes, expression_shape,
+    'result', 'base',
     'harmonic', 'mul', false
 );
 const power_composition = PowerTriangleComposition(
     power_triangles, grouplikes, powers,
-    power_triangles.BASE, power_triangles.RESULT);
+    'base', 'result');
 const log_composition = PowerTriangleComposition(
     power_triangles, grouplikes, powers,
-    power_triangles.BASE, power_triangles.EXPONENT);
+    'base', 'exponent');
 const result_log_composition = PowerTriangleComposition(
     power_triangles, grouplikes, powers,
-    power_triangles.RESULT, power_triangles.EXPONENT);
+    'result', 'exponent');
 const inverse_exponent_result = PowerTriangleInverse(
-    power_triangles, power_triangles.EXPONENT, power_triangles.RESULT);
+    power_triangles, expression_shape, 'exponent', 'result');
 const inverse_base_result = PowerTriangleInverse(
-    power_triangles, power_triangles.BASE, power_triangles.RESULT);
+    power_triangles, expression_shape, 'base', 'result');
 const inverse_base_exponent = PowerTriangleInverse(
-    power_triangles, power_triangles.BASE, power_triangles.EXPONENT);
+    power_triangles, expression_shape, 'base', 'exponent');
 const inverse_result_exponent = PowerTriangleInverse(
-    power_triangles, power_triangles.RESULT, power_triangles.EXPONENT);
+    power_triangles, expression_shape, 'result', 'exponent');
 const inverse_exponent_base = PowerTriangleInverse(
-    power_triangles, power_triangles.EXPONENT, power_triangles.BASE);
+    power_triangles, expression_shape, 'exponent', 'base');
 const inverse_result_base = PowerTriangleInverse(
-    power_triangles, power_triangles.RESULT, power_triangles.BASE);
+    power_triangles, expression_shape, 'result', 'base');
 const ringlikes = Ringlike({
     add: scale_expressions,
     mul: powers,
@@ -2019,19 +2019,24 @@ function powerTriangleRootBalance() {
 
 // -----------------------------------------------------------------------------
 // First-class root projection completes the power triangle.
-// The existing sameness and inverse implementations should work unchanged for
-// computed=base once root(exponent, result) can be mapped to triangle vertices.
+// PowerTriangles is only the converter between projection Expressions and the
+// coordinate representation. A nullish coordinate identifies the projection.
 // -----------------------------------------------------------------------------
 
 function powerTriangleRootProjection() {
+    assert(
+        Object.keys(power_triangles).sort().join(',') === 'from_expression,to_expression',
+        'PowerTriangles should expose only representation conversion'
+    );
+
     const two = grouplikes.constant(2);
     const three = grouplikes.constant(3);
     const eight = grouplikes.constant(8);
     const nine = grouplikes.constant(9);
 
-    const power_view = power_triangles.as(grouplikes.pow(two, x), power_triangles.RESULT, false);
-    const log_view = power_triangles.as(grouplikes.log(two, x), power_triangles.EXPONENT, false);
-    const root_view = power_triangles.as(grouplikes.root(two, x), power_triangles.BASE, false);
+    const power_view = power_triangles.from_expression(grouplikes.pow(two, x));
+    const log_view = power_triangles.from_expression(grouplikes.log(two, x));
+    const root_view = power_triangles.from_expression(grouplikes.root(two, x));
     assert(
         power_view.base === two && power_view.exponent === x && power_view.result == null,
         'pow triangle view should leave only the result coordinate nullish'
@@ -2048,24 +2053,29 @@ function powerTriangleRootProjection() {
         !('computed' in power_view) && !('computed' in log_view) && !('computed' in root_view),
         'PowerTriangle should not store a redundant computed attribute'
     );
+    assert(
+        power_triangles.from_expression(x) == null,
+        'non-projection expressions should not be converted to PowerTriangles'
+    );
 
     const square_root_x = grouplikes.root(two, x);
-    const projection = power_triangles.projection(square_root_x);
-    assert(
-        projection != null &&
-        projection.computed === power_triangles.BASE &&
-        projection.children[0] === power_triangles.EXPONENT &&
-        projection.children[1] === power_triangles.RESULT,
-        'root should be the base projection with exponent/result children'
-    );
     assertSameExpression(
-        power_triangles.create(power_triangles.BASE, {
-            exponent: two,
-            result: x,
-        }),
+        power_triangles.to_expression(root_view),
         square_root_x,
         'power triangle base projection creation',
-        'create(BASE, exponent/result) should construct a root expression'
+        'a triangle with a missing base should convert to a root expression'
+    );
+    assertSameExpression(
+        power_triangles.to_expression(power_view),
+        grouplikes.pow(two, x),
+        'power triangle result projection round trip',
+        'a triangle with a missing result should convert to a power expression'
+    );
+    assertSameExpression(
+        power_triangles.to_expression(log_view),
+        grouplikes.log(two, x),
+        'power triangle exponent projection round trip',
+        'a triangle with a missing exponent should convert to a log expression'
     );
     assert(
         approximatelyEqual(grouplikes.evaluate(grouplikes.root(two, nine), {}), 3),
@@ -2218,7 +2228,7 @@ function powerTriangleLogInverse() {
     const eight = grouplikes.constant(8);
 
     assert(
-        power_triangles.projection(grouplikes.log(two, x)).computed === power_triangles.EXPONENT,
+        power_triangles.from_expression(grouplikes.log(two, x)).exponent == null,
         'log should be the exponent projection of a power triangle'
     );
     assert(

@@ -214,58 +214,58 @@
     const scales = Scales(grouplikes, expression_shape);
     const scale_expressions = ScaleExpressions(grouplikes, scales);
     const powers = Powers(grouplikes, expression_shape);
-    const power_triangles = PowerTriangles(grouplikes, expression_shape);
+    const power_triangles = PowerTriangles(grouplikes);
     const same_base_result = PowerTriangleSameness(
-        power_triangles, grouplikes,
-        power_triangles.BASE, power_triangles.RESULT,
+        power_triangles, grouplikes, expression_shape,
+        'base', 'result',
         'add', 'mul', true
     );
     const same_exponent_result = PowerTriangleSameness(
-        power_triangles, grouplikes,
-        power_triangles.EXPONENT, power_triangles.RESULT,
+        power_triangles, grouplikes, expression_shape,
+        'exponent', 'result',
         'mul', 'mul', false
     );
     const same_base_exponent = PowerTriangleSameness(
-        power_triangles, grouplikes,
-        power_triangles.BASE, power_triangles.EXPONENT,
+        power_triangles, grouplikes, expression_shape,
+        'base', 'exponent',
         'mul', 'add', false
     );
     const same_result_exponent = PowerTriangleSameness(
-        power_triangles, grouplikes,
-        power_triangles.RESULT, power_triangles.EXPONENT,
+        power_triangles, grouplikes, expression_shape,
+        'result', 'exponent',
         'mul', 'harmonic', false
     );
     const same_exponent_base = PowerTriangleSameness(
-        power_triangles, grouplikes,
-        power_triangles.EXPONENT, power_triangles.BASE,
+        power_triangles, grouplikes, expression_shape,
+        'exponent', 'base',
         'mul', 'mul', false
     );
     const same_result_base = PowerTriangleSameness(
-        power_triangles, grouplikes,
-        power_triangles.RESULT, power_triangles.BASE,
+        power_triangles, grouplikes, expression_shape,
+        'result', 'base',
         'harmonic', 'mul', false
     );
     const power_composition = PowerTriangleComposition(
         power_triangles, grouplikes, powers,
-        power_triangles.BASE, power_triangles.RESULT);
+        'base', 'result');
     const log_composition = PowerTriangleComposition(
         power_triangles, grouplikes, powers,
-        power_triangles.BASE, power_triangles.EXPONENT);
+        'base', 'exponent');
     const result_log_composition = PowerTriangleComposition(
         power_triangles, grouplikes, powers,
-        power_triangles.RESULT, power_triangles.EXPONENT);
+        'result', 'exponent');
     const inverse_exponent_result = PowerTriangleInverse(
-        power_triangles, power_triangles.EXPONENT, power_triangles.RESULT);
+        power_triangles, expression_shape, 'exponent', 'result');
     const inverse_base_result = PowerTriangleInverse(
-        power_triangles, power_triangles.BASE, power_triangles.RESULT);
+        power_triangles, expression_shape, 'base', 'result');
     const inverse_base_exponent = PowerTriangleInverse(
-        power_triangles, power_triangles.BASE, power_triangles.EXPONENT);
+        power_triangles, expression_shape, 'base', 'exponent');
     const inverse_result_exponent = PowerTriangleInverse(
-        power_triangles, power_triangles.RESULT, power_triangles.EXPONENT);
+        power_triangles, expression_shape, 'result', 'exponent');
     const inverse_exponent_base = PowerTriangleInverse(
-        power_triangles, power_triangles.EXPONENT, power_triangles.BASE);
+        power_triangles, expression_shape, 'exponent', 'base');
     const inverse_result_base = PowerTriangleInverse(
-        power_triangles, power_triangles.RESULT, power_triangles.BASE);
+        power_triangles, expression_shape, 'result', 'base');
     const ringlikes = Ringlike({
         add: scale_expressions,
         mul: powers,
@@ -341,7 +341,7 @@
         equation_drag_operations: equation_drag_ops,
         expression_paths: expression_paths,
         ringlikes: ringlikes,
-        power_triangles: power_triangles,
+        expressions: expressions,
         expression_view: expression_view,
     });
 

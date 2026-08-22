@@ -1,42 +1,50 @@
 'use strict';
-
 /*
-Maps Expressions to and from power-triangle coordinates. The three first-class
-projections are pow(base, exponent), log(base, result), and
-root(exponent, result). Result projection also supports the degenerate promotion
-x=x^1 used by same-base combination.
+Converts between the three Expression projections of base^exponent=result and
+PowerTriangle coordinates. The nullish coordinate identifies the projection.
 */
-const PowerTriangles = (grouplikes, expression_shape) => {
+const PowerTriangles = grouplikes => {
     const freeze = Object.freeze;
-    const BASE = 'base';
-    const EXPONENT = 'exponent';
-    const RESULT = 'result';
-    const shape = expression_shape;
 
+    // For each triangle vertex, gives the corresponding Expression contents
+    // index. The null entry is the coordinate computed by that projection.
     const indices_for_tag = freeze({
-        pow: [0, 1, null],
-        log: [0, null, 1],
-        root: [null, 0, 1],
+        pow: freeze([0, 1, null]),
+        log: freeze([0, null, 1]),
+        root: freeze([null, 0, 1]),
     });
 
+    // The missing triangle coordinate determines the projection tag:
+    // base -> root, exponent -> log, result -> pow.
     const tag_for_id = freeze('root log pow'.split(' '));
 
-    function to_expression(triangle){
-        const id = [triangle.base, triangle.exponent, triangle.result].findIndex(vertex => vertex == null);
-        return new Expression(projection_for_tag[tag_for_id[id]]);
+    function from_expression(expression) {
+        const indices = indices_for_tag[expression.type];
+        if (indices == null) return null;
+
+        const vertices = indices.map(index =>
+            index == null? null : expression.contents[index]
+        );
+        return new PowerTriangle(...vertices);
     }
 
-    function from_expression(expression){
-        const projection = projection_for_tag[expression.type];
-        const triangle = new PowerTriangle(
-            indices_for_tag[expression.type].map(
-                i => i == null? null : expression.contents[i]
-            )
-        );
+    function to_expression(triangle) {
+        const vertices = [triangle.base, triangle.exponent, triangle.result];
+        const missing = vertices
+            .map((vertex, id) => vertex == null? id : null)
+            .filter(id => id != null);
+        if (missing.length !== 1) return null;
+
+        const tag = tag_for_id[missing[0]];
+        const contents = [];
+        indices_for_tag[tag].forEach((index, id) => {
+            if (index != null) contents[index] = vertices[id];
+        });
+        return grouplikes[tag](...contents);
     }
 
     return freeze({
+        from_expression,
         to_expression,
-        from_expression
     });
 };

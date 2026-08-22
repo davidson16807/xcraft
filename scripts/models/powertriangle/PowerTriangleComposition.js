@@ -19,11 +19,25 @@ as genuine ambiguity rather than choosing an interpretation by order.
 const PowerTriangleComposition = (
     power_triangles, grouplikes, powers, fixed, computed
 ) => {
-    const other = power_triangles.other(fixed, computed);
+    const other = ['base', 'exponent', 'result']
+        .find(vertex => vertex !== fixed && vertex !== computed);
     const key = `${fixed}:${computed}`;
     const expanded_operation =
-        fixed === power_triangles.BASE && computed === power_triangles.RESULT?
+        fixed === 'base' && computed === 'result'?
             'pow' : 'mul';
+
+    function from_expression(expression, projection) {
+        const triangle = power_triangles.from_expression(expression);
+        return triangle != null && triangle[projection] == null? triangle : null;
+    }
+
+    function to_expression(vertices) {
+        return power_triangles.to_expression(new PowerTriangle(
+            vertices.base ?? null,
+            vertices.exponent ?? null,
+            vertices.result ?? null
+        ));
+    }
 
     function inverse(expression) {
         return powers.to_expression(
@@ -32,12 +46,12 @@ const PowerTriangleComposition = (
     }
 
     function combine_result(left, right) {
-        if (fixed !== power_triangles.BASE) return null;
+        if (fixed !== 'base') return null;
 
-        const inner = power_triangles.as(left, computed, false);
-        if (inner == null || left.type !== 'pow') return null;
+        const inner = from_expression(left, computed);
+        if (inner == null) return null;
 
-        return power_triangles.create(computed, {
+        return to_expression({
             [fixed]: inner[fixed],
             [other]: grouplikes.mul([inner[other], right]),
         });
@@ -49,21 +63,20 @@ const PowerTriangleComposition = (
             [left, right],
             [right, left],
         ].forEach(([projection_expression, scalar]) => {
-            const projection = power_triangles.as(
-                projection_expression, computed, false);
-            if (projection == null || projection_expression.type !== 'log') return;
+            const projection = from_expression(projection_expression, computed);
+            if (projection == null) return;
 
-            if (fixed === power_triangles.BASE) {
-                candidates.push(power_triangles.create(computed, {
+            if (fixed === 'base') {
+                candidates.push(to_expression({
                     [fixed]: projection[fixed],
                     [other]: grouplikes.pow(projection[other], scalar),
                 }));
                 return;
             }
 
-            if (fixed === power_triangles.RESULT) {
+            if (fixed === 'result') {
                 if (powers.from_expression(scalar).power !== -1) return;
-                candidates.push(power_triangles.create(computed, {
+                candidates.push(to_expression({
                     [fixed]: projection[fixed],
                     [other]: grouplikes.pow(projection[other], inverse(scalar)),
                 }));
@@ -75,59 +88,49 @@ const PowerTriangleComposition = (
     }
 
     function combine(left, right) {
-        return computed === power_triangles.RESULT?
+        return computed === 'result'?
             combine_result(left, right) :
             combine_exponent(left, right);
     }
 
     function distribute_result(parent, source, target) {
-        if (fixed !== power_triangles.BASE) return null;
+        if (fixed !== 'base') return null;
 
-        const projection = power_triangles.projection(parent);
-        if (projection == null || projection.computed !== computed) return null;
-
-        const fixed_index = projection.children.indexOf(fixed);
-        const other_index = projection.children.indexOf(other);
-        if (fixed_index < 0 || other_index < 0) return null;
-        if (parent.contents[fixed_index] !== source) return null;
-        if (parent.contents[other_index] !== target) return null;
+        const projection = from_expression(parent, computed);
+        if (projection == null) return null;
+        if (projection[fixed] !== source || projection[other] !== target) return null;
         if (target.type !== 'mul' || target.contents.length < 2) return null;
 
-        const inner = power_triangles.create(computed, {
+        const inner = to_expression({
             [fixed]: source,
             [other]: target.contents[0],
         });
         const outer_exponent = grouplikes.mul(target.contents.slice(1));
 
-        return power_triangles.create(computed, {
+        return to_expression({
             [fixed]: inner,
             [other]: outer_exponent,
         });
     }
 
     function distribute_exponent(parent, source, target) {
-        const projection = power_triangles.projection(parent);
-        if (projection == null || projection.computed !== computed) return null;
+        const projection = from_expression(parent, computed);
+        if (projection == null) return null;
+        if (projection[fixed] !== source || projection[other] !== target) return null;
 
-        const fixed_index = projection.children.indexOf(fixed);
-        const other_index = projection.children.indexOf(other);
-        if (fixed_index < 0 || other_index < 0) return null;
-        if (parent.contents[fixed_index] !== source) return null;
-        if (parent.contents[other_index] !== target) return null;
+        const powered = from_expression(target, 'result');
+        if (powered == null) return null;
 
-        const powered = power_triangles.as(target, power_triangles.RESULT, false);
-        if (powered == null || target.type !== 'pow') return null;
-
-        const logarithm = power_triangles.create(computed, {
+        const logarithm = to_expression({
             [fixed]: source,
             [other]: powered.base,
         });
 
-        if (fixed === power_triangles.BASE) {
+        if (fixed === 'base') {
             return grouplikes.mul([powered.exponent, logarithm]);
         }
 
-        if (fixed === power_triangles.RESULT) {
+        if (fixed === 'result') {
             return grouplikes.mul([inverse(powered.exponent), logarithm]);
         }
 
@@ -135,7 +138,7 @@ const PowerTriangleComposition = (
     }
 
     function distribute(parent, source, target) {
-        return computed === power_triangles.RESULT?
+        return computed === 'result'?
             distribute_result(parent, source, target) :
             distribute_exponent(parent, source, target);
     }

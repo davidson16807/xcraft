@@ -1,74 +1,59 @@
 'use strict';
 
 /*
-`PowerTriangleSameness` handles laws where 
-one vertex of the triangle of power stays the same.
-
-This consists of:
-
-    x^a x^b = x^(a+b)
-    log_x(a) + log_x(b) = log_x(ab)
-    ᵃ√x ᵇ√x = ᵃ⊕ᵇ√x 
-
-or, in triangle of power notation:
-
-     a      b    (a+b)
-    △  *  △  =  △ 
-   x      x      x   
-
-    △  +  △  =  △ 
-   x  a   x  b   x  (a*b)
-
-     a      b   (a⊕b)
-    △  *  △  =  △ 
-      x      x      x
-
-and there are another 3 laws where triangles are mirrored.
-Here, "⊕" indicates harmonic addition such that a⊕b = 1 / (1/a + 1/b).
-
-Using drags, each power law is handled by two operations:
-* a "combine" operation that combines triangles belonging to the same operation
-* a "distribute" operation that decomposes a triangle to its component triangles
-
-Names for drags are chosen by analogy to drags for arithmetic.
+One reversible sameness law for a fixed power-triangle vertex and computed
+projection. The operations on the remaining and computed vertices determine
+the two sides of the equality.
 */
 const PowerTriangleSameness = (
     power_triangles,
     grouplikes,
+    expression_shape,
     fixed,
     computed,
     other_operation,
     computed_operation,
     promote
 ) => {
-    const other = power_triangles.other(fixed, computed);
+    const other = ['base', 'exponent', 'result']
+        .find(vertex => vertex !== fixed && vertex !== computed);
     const key = `${fixed}:${computed}`;
 
-    function combine(left, right) {
-        const a = power_triangles.as(left, computed, promote);
-        const b = power_triangles.as(right, computed, promote);
-        if (a == null || b == null) return null;
-        if (!power_triangles.same(a[fixed], b[fixed])) return null;
+    function from_expression(expression) {
+        const triangle = power_triangles.from_expression(expression);
+        if (triangle != null && triangle[computed] == null) return triangle;
+        if (computed !== 'result' || !promote) return null;
+        return new PowerTriangle(expression, grouplikes.constant(1), null);
+    }
 
-        return power_triangles.create(computed, {
+    function to_expression(vertices) {
+        return power_triangles.to_expression(new PowerTriangle(
+            vertices.base ?? null,
+            vertices.exponent ?? null,
+            vertices.result ?? null
+        ));
+    }
+
+    function combine(left, right) {
+        const a = from_expression(left);
+        const b = from_expression(right);
+        if (a == null || b == null) return null;
+        if (expression_shape.encode(a[fixed]) !== expression_shape.encode(b[fixed])) return null;
+
+        return to_expression({
             [fixed]: a[fixed],
             [other]: grouplikes[other_operation]([a[other], b[other]]),
         });
     }
 
     function distribute(parent, source, target) {
-        const projection = power_triangles.projection(parent);
-        if (projection == null || projection.computed !== computed) return null;
-
-        const fixed_index = projection.children.indexOf(fixed);
-        const other_index = projection.children.indexOf(other);
-        if (fixed_index < 0 || other_index < 0) return null;
-        if (parent.contents[fixed_index] !== source) return null;
-        if (parent.contents[other_index] !== target) return null;
+        const triangle = power_triangles.from_expression(parent);
+        if (triangle == null || triangle[computed] != null) return null;
+        if (triangle[fixed] !== source || triangle[other] !== target) return null;
         if (target.type !== other_operation) return null;
 
         return grouplikes[computed_operation](target.contents.map(term =>
-            power_triangles.create(computed, {
+            to_expression({
                 [fixed]: source,
                 [other]: term,
             })

@@ -6,7 +6,7 @@ function EquationView(dependencies) {
     const equation_drag_ops = dependencies.equation_drag_operations;
     const paths = dependencies.expression_paths;
     const ringlikes = dependencies.ringlikes;
-    const power_triangles = dependencies.power_triangles;
+    const expressions = dependencies.expressions;
     const expression_view = dependencies.expression_view;
     const render = dependencies.render;
 
@@ -66,30 +66,19 @@ function EquationView(dependencies) {
         return ({ add:'+', mul:'\\cdot' })[operation] || null;
     }
 
-    function triangle_inverse_expression(equation, source_path) {
+    function balance_inverse_expression(equation, source_path) {
         const parsed = paths.split(source_path);
         const parent_path = paths.parent(source_path);
         if (parent_path == null || parent_path !== parsed.side) return null;
 
         const parent = paths.resolve(equation, parent_path);
-        const projection = parent == null? null : power_triangles.projection(parent);
-        if (projection == null) return null;
-
-        const segment = paths.segment(source_path);
-        if (!/^\d+$/.test(segment)) return null;
-        const index = Number(segment);
-        if (index >= projection.children.length) return null;
-
-        const fixed = projection.children[index];
-        const computed = projection.computed;
-        const inverse_computed = power_triangles.other(fixed, computed);
         const source = paths.resolve(equation, source_path);
-        if (inverse_computed == null || source == null) return null;
+        if (parent == null || source == null) return null;
 
-        return power_triangles.create(inverse_computed, {
-            [fixed]: source,
-            [computed]: new Expression('slot'),
-        });
+        const resolution = expressions.balance(
+            parent, source, new Expression('slot')
+        );
+        return resolution.status === 'resolved'? resolution.target : null;
     }
 
     function draw_ghosts(equation, drag_state, drag_options) {
@@ -119,7 +108,7 @@ function EquationView(dependencies) {
             }
 
             if (drag_state.candidates.includes(target_key)) {
-                const inverse_expression = triangle_inverse_expression(
+                const inverse_expression = balance_inverse_expression(
                     equation,
                     drag_state.source_path
                 );
