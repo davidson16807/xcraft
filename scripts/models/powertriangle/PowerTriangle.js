@@ -5,6 +5,9 @@
 Represents the ternary relationship base^exponent=result with exactly one
 unknown coordinate. The nullish coordinate is the value computed by the
 projection represented by the source Expression.
+
+For motivation, see PowerTriangle.pdf, or the 3blue1brown 
+video here: https://www.youtube.com/watch?v=sULa9Lc4pck
 */
 class PowerTriangle {
     constructor(base, exponent, result) {
@@ -12,5 +15,13 @@ class PowerTriangle {
         this.exponent = exponent;
         this.result = result;
         Object.freeze(this);
+    }
+
+    with(attributes) {
+        return new PowerTriangle(
+            'base' in attributes? attributes.base : this.base,
+            'exponent' in attributes? attributes.exponent : this.exponent,
+            'result' in attributes? attributes.result : this.result,
+        );
     }
 }

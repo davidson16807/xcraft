@@ -6,6 +6,7 @@ function EquationView(dependencies) {
     const equation_drag_ops = dependencies.equation_drag_operations;
     const paths = dependencies.expression_paths;
     const ringlikes = dependencies.ringlikes;
+    const power_triangles = dependencies.power_triangles;
     const expression_view = dependencies.expression_view;
     const render = dependencies.render;
 
@@ -65,6 +66,32 @@ function EquationView(dependencies) {
         return ({ add:'+', mul:'\\cdot' })[operation] || null;
     }
 
+    function triangle_inverse_expression(equation, source_path) {
+        const parsed = paths.split(source_path);
+        const parent_path = paths.parent(source_path);
+        if (parent_path == null || parent_path !== parsed.side) return null;
+
+        const parent = paths.resolve(equation, parent_path);
+        const triangle = parent == null? null : power_triangles.from_expression(parent, false);
+        if (triangle == null) return null;
+
+        const segment = paths.segment(source_path);
+        if (!/^\d+$/.test(segment)) return null;
+        const index = Number(segment);
+        const fixed = power_triangles.inputs(triangle)[index];
+        const computed = power_triangles.computed(triangle);
+        if (fixed == null || computed == null) return null;
+
+        const other = power_triangles.other(fixed, computed);
+        const source = paths.resolve(equation, source_path);
+        if (other == null || source == null) return null;
+
+        return power_triangles.to_expression(triangle.with({
+            [computed]: new Expression('slot'),
+            [other]: null,
+        }));
+    }
+
     function draw_ghosts(equation, drag_state, drag_options) {
         if (!drag_state || !drag_state.source_path) return [];
 
@@ -89,6 +116,26 @@ function EquationView(dependencies) {
                     }, 'drag-ghost-origin', prefix),
                     draw_ghost(inverse, drag_state.current, 'drag-ghost-current', prefix),
                 ];
+            }
+
+            if (drag_state.candidates.includes(target_key)) {
+                const inverse_expression = triangle_inverse_expression(
+                    equation,
+                    drag_state.source_path
+                );
+                if (inverse_expression != null) {
+                    return [
+                        draw_ghost(inverse_expression, {
+                            x: drag_state.start.x + 40,
+                            y: drag_state.start.y + 40,
+                        }, 'drag-ghost-origin'),
+                        draw_ghost(
+                            inverse_expression,
+                            drag_state.current,
+                            'drag-ghost-current'
+                        ),
+                    ];
+                }
             }
         }
 
