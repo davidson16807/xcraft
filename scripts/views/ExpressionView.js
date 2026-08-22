@@ -5,7 +5,6 @@ function ExpressionView(dependencies) {
 
     const html = dependencies.html;
     const paths = dependencies.expression_paths;
-    const grouplikes = dependencies.grouplikes;
     const ringlikes = dependencies.ringlikes;
     const render = dependencies.render;
     const precedence_for_tag = dependencies.precedence_for_tag;
@@ -132,6 +131,27 @@ function ExpressionView(dependencies) {
         );
     }
 
+    function draw_harmonic(expression, path, draggable_paths, valid_targets) {
+        return html.span(
+            path_attributes(path, draggable_paths, valid_targets, 'expression-harmonic expression-fraction'),
+            [
+                html.span({ class:'fraction-numerator' }, [math('1')]),
+                html.span({ class:'fraction-denominator harmonic-denominator' }, 
+                    expression.contents.map((term, i) =>
+                        html.span({ class:'expression-fraction harmonic-term' }, [
+                            html.span({ class:'fraction-numerator' }, [math('1')]),
+                            html.span({ class:'fraction-denominator' }, [
+                                draw(term, paths.nary(path, i), draggable_paths, valid_targets, 0)
+                            ]),
+                        ])
+                    ).flatMap((term, i) =>
+                        i === 0? [term] : [math('+', 'math-operator'), term]
+                    )
+                ),
+            ]
+        );
+    }
+
     /*
     Draw the contents of a node without duplicating its outer path wrapper.
     This is used for signed addends so the visible sign and term behave as one
@@ -150,12 +170,48 @@ function ExpressionView(dependencies) {
         return node;
     }
 
+    function draw_log_projection(base_node, result_node, attributes) {
+        return html.span(attributes, [
+            html.span({ class:'log-operator' }, [
+                math('\\log', 'math-operator'),
+                html.node('sub', { class:'log-base' }, [base_node]),
+            ]),
+            math('(', 'math-paren'),
+            result_node,
+            math(')', 'math-paren'),
+        ]);
+    }
+
+    function draw_root_projection(exponent_node, result_node, attributes) {
+        return html.span(attributes, [
+            html.node('sup', { class:'root-index' }, [exponent_node]),
+            html.span({ class:'root-body' }, [
+                math('\\sqrt{}', 'root-radical'),
+                html.span({ class:'root-radicand' }, [result_node]),
+            ]),
+        ]);
+    }
+
+    function draw_power_projection(base_node, exponent_node, attributes) {
+        return html.span(attributes, [
+            base_node,
+            html.node('sup', { class:'power-exponent' }, [exponent_node]),
+        ]);
+    }
+
     function _draw(expression, path, draggable_paths, valid_targets, parent_precedence, is_power_base) {
         draggable_paths = draggable_paths || empty_paths;
         valid_targets = valid_targets || empty_paths;
         let node;
 
         switch (expression.type) {
+            case 'slot':
+                return html.span(
+                    path_attributes(path, draggable_paths, valid_targets, 'expression-slot'),
+                    [math('\\square')]
+                );
+                break;
+
             case 'constant':
                 return html.span(path_attributes(path, draggable_paths, valid_targets), [math(String(expression.contents))]);
                 break;
@@ -190,6 +246,31 @@ function ExpressionView(dependencies) {
                 return draw_mul(expression, path, draggable_paths, valid_targets);
                 break;
 
+            case 'harmonic':
+                return draw_harmonic(expression, path, draggable_paths, valid_targets);
+                break;
+
+            case 'log': {
+                const base = expression.contents[0];
+                const result = expression.contents[1];
+                return draw_log_projection(
+                    draw(base, paths.base(path), draggable_paths, valid_targets, 0),
+                    draw(result, paths.nary(path, 1), draggable_paths, valid_targets, 0),
+                    path_attributes(path, draggable_paths, valid_targets, 'expression-log')
+                );
+            }
+
+
+            case 'root': {
+                const exponent = expression.contents[0];
+                const result = expression.contents[1];
+                return draw_root_projection(
+                    draw(exponent, paths.nary(path, 0), draggable_paths, valid_targets, 0),
+                    draw(result, paths.nary(path, 1), draggable_paths, valid_targets, 0),
+                    path_attributes(path, draggable_paths, valid_targets, 'expression-root')
+                );
+            }
+
             case 'pow': {
                 const base = expression.contents[0];
                 const exponent = expression.contents[1];
@@ -205,27 +286,23 @@ function ExpressionView(dependencies) {
                         ]
                     );
                 } else {
-                    return html.span(
-                        path_attributes(path, draggable_paths, valid_targets, 'expression-power'),
-                        [
-                            draw(
-                                base,
-                                paths.base(path),
-                                draggable_paths,
-                                valid_targets,
-                                3,
-                                true
-                            ),
-                            html.node('sup', { class:'power-exponent' }, [
-                                draw(
-                                    exponent,
-                                    paths.exponent(path),
-                                    draggable_paths,
-                                    valid_targets,
-                                    0
-                                )
-                            ]),
-                        ]
+                    return draw_power_projection(
+                        draw(
+                            base,
+                            paths.base(path),
+                            draggable_paths,
+                            valid_targets,
+                            3,
+                            true
+                        ),
+                        draw(
+                            exponent,
+                            paths.exponent(path),
+                            draggable_paths,
+                            valid_targets,
+                            0
+                        ),
+                        path_attributes(path, draggable_paths, valid_targets, 'expression-power')
                     );
                 }
                 break;
