@@ -2,26 +2,24 @@
 // HUMAN VETTED
 
 /*
-Represents the ternary relationship base^exponent=result with exactly one
-unknown coordinate. The nullish coordinate is the value computed by the
-projection represented by the source Expression.
-
-For motivation, see PowerTriangle.pdf, or the 3blue1brown 
-video here: https://www.youtube.com/watch?v=sULa9Lc4pck
+Represents base^exponent=result as the three vertices [base, exponent, result].
+Exactly one vertex is nullish; its index is the projection being computed.
 */
-class PowerTriangle {
+class PowerTriangle extends Array {
+    static get [Symbol.species]() { return Array; }
+
     constructor(base, exponent, result) {
-        this.base = base;
-        this.exponent = exponent;
-        this.result = result;
+        super(base, exponent, result);
         Object.freeze(this);
     }
 
-    with(attributes) {
-        return new PowerTriangle(
-            'base' in attributes? attributes.base : this.base,
-            'exponent' in attributes? attributes.exponent : this.exponent,
-            'result' in attributes? attributes.result : this.result,
-        );
+    base(){return this[0];}
+    exponent(){return this[0];}
+    result(){return this[0];}
+
+    with(vertex, value) {
+        const values = [...this];
+        values[vertex] = value;
+        return new PowerTriangle(...values);
     }
 }

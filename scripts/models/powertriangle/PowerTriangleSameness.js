@@ -42,7 +42,6 @@ const PowerTriangleSameness = (
     promote
 ) => {
     const other = power_triangles.other(fixed, computed);
-    const key = `${fixed}:${computed}`;
 
     function combine(left, right) {
         const a = power_triangles.from_expression(left, promote);
@@ -51,9 +50,10 @@ const PowerTriangleSameness = (
         if (a[computed] != null || b[computed] != null) return null;
         if (!power_triangles.same(a, b, fixed)) return null;
 
-        return power_triangles.to_expression(a.with({
-            [other]: grouplikes[other_operation]([a[other], b[other]]),
-        }));
+        return power_triangles.to_expression(a.with(
+            other,
+            grouplikes[other_operation]([a[other], b[other]])
+        ));
     }
 
     function distribute(parent, source, target) {
@@ -63,7 +63,7 @@ const PowerTriangleSameness = (
         if (target.type !== other_operation) return null;
 
         return grouplikes[computed_operation](target.contents.map(term =>
-            power_triangles.to_expression(triangle.with({ [other]:term }))
+            power_triangles.to_expression(triangle.with(other, term))
         ));
     }
 
@@ -71,7 +71,6 @@ const PowerTriangleSameness = (
         family: 'same',
         fixed,
         computed,
-        key,
         other_operation,
         computed_operation,
         expanded_operation: computed_operation,

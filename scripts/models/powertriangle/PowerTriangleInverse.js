@@ -13,7 +13,6 @@ occupying the computed coordinate.
 */
 const PowerTriangleInverse = (power_triangles, fixed, computed) => {
     const other = power_triangles.other(fixed, computed);
-    const key = `${fixed}:${computed}`;
 
     function cancel(parent, source) {
         const triangle = power_triangles.from_expression(parent, false);
@@ -23,16 +22,10 @@ const PowerTriangleInverse = (power_triangles, fixed, computed) => {
     }
 
     function append(source, target) {
-        const values = {
-            [fixed]: source,
-            [computed]: target,
-            [other]: null,
-        };
-        return power_triangles.to_expression(new PowerTriangle(
-            values.base,
-            values.exponent,
-            values.result
-        ));
+        const values = [null, null, null];
+        values[fixed] = source;
+        values[computed] = target;
+        return power_triangles.to_expression(new PowerTriangle(...values));
     }
 
     function cancel_pair(outer_expression, inner_expression, outer_fixed, inner_fixed) {
@@ -51,7 +44,6 @@ const PowerTriangleInverse = (power_triangles, fixed, computed) => {
         family: 'inverse',
         fixed,
         computed,
-        key,
         cancel,
         append,
         cancel_pair,

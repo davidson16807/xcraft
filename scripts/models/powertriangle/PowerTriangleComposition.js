@@ -16,10 +16,7 @@ multiplying their exponents.
 const PowerTriangleComposition = (power_triangles, grouplikes, computed) => {
     const exponent = power_triangles.EXPONENT;
     const recursive = power_triangles.other(computed, exponent);
-    const expanded_operation = Object.freeze({
-        [power_triangles.BASE]: 'root',
-        [power_triangles.RESULT]: 'pow',
-    })[computed];
+    const expanded_operation = Object.freeze(['root', null, 'pow'])[computed];
 
     if (expanded_operation == null) return null;
 
@@ -30,12 +27,10 @@ const PowerTriangleComposition = (power_triangles, grouplikes, computed) => {
     ].filter(vertex => vertex !== computed);
 
     function triangle_from_inputs(left, right) {
-        const values = {
-            [computed]: null,
-            [coordinates[0]]: left,
-            [coordinates[1]]: right,
-        };
-        return new PowerTriangle(values.base, values.exponent, values.result);
+        const values = [null, null, null];
+        values[coordinates[0]] = left;
+        values[coordinates[1]] = right;
+        return new PowerTriangle(...values);
     }
 
     function combine(left, right) {
@@ -43,9 +38,10 @@ const PowerTriangleComposition = (power_triangles, grouplikes, computed) => {
         const inner = power_triangles.from_expression(outer[recursive], false);
         if (inner == null || inner[computed] != null) return null;
 
-        return power_triangles.to_expression(inner.with({
-            [exponent]: grouplikes.mul([inner[exponent], outer[exponent]]),
-        }));
+        return power_triangles.to_expression(inner.with(
+            exponent,
+            grouplikes.mul([inner[exponent], outer[exponent]])
+        ));
     }
 
     function distribute(parent, source, target) {
@@ -54,15 +50,14 @@ const PowerTriangleComposition = (power_triangles, grouplikes, computed) => {
         if (triangle[recursive] !== source || triangle[exponent] !== target) return null;
         if (target.type !== 'mul' || target.contents.length < 2) return null;
 
-        const inner = power_triangles.to_expression(triangle.with({
-            [exponent]: target.contents[0],
-        }));
+        const inner = power_triangles.to_expression(
+            triangle.with(exponent, target.contents[0])
+        );
         const outer_exponent = grouplikes.mul(target.contents.slice(1));
 
-        return power_triangles.to_expression(triangle.with({
-            [recursive]: inner,
-            [exponent]: outer_exponent,
-        }));
+        return power_triangles.to_expression(
+            triangle.with(recursive, inner).with(exponent, outer_exponent)
+        );
     }
 
     return Object.freeze({

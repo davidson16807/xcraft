@@ -1554,11 +1554,6 @@ function powerTriangleSameness() {
     const two_cubed = grouplikes.pow(two, three);
     const combined = grouplikes.pow(two, grouplikes.add([x, three]));
 
-    assert(
-        same_base_result.key === 'base:result',
-        'power triangle sameness should be keyed by fixed and computed vertices'
-    );
-
     assertMoveTransforms(
         grouplikes.mul([two_to_x, two_cubed]),
         'L/0',
@@ -1599,11 +1594,6 @@ function powerTriangleSameness() {
         manual_drag_options
     );
 
-    assert(
-        same_exponent_result.key === 'exponent:result',
-        'power triangle same-exponent law should use the exponent:result key'
-    );
-
     const three_to_x = grouplikes.pow(three, x);
     const product_base = grouplikes.mul([two, three]);
     const product_to_x = grouplikes.pow(product_base, x);
@@ -1635,11 +1625,6 @@ function powerTriangleSameness() {
         'same-exponent combination should not manufacture a power-of-one interpretation for ordinary factors'
     );
 
-    assert(
-        same_base_exponent.key === 'base:exponent',
-        'mirrored same-base logarithm law should use the base:exponent key'
-    );
-
     const log_two_x = grouplikes.log(two, x);
     const log_two_three = grouplikes.log(two, three);
     const log_two_product = grouplikes.log(two, grouplikes.mul([x, three]));
@@ -1664,11 +1649,6 @@ function powerTriangleSameness() {
         'drag fixed base 2 across x*3',
         variables => variables.x > 0,
         manual_drag_options
-    );
-
-    assert(
-        same_result_exponent.key === 'result:exponent',
-        'mirrored same-result logarithm law should use the result:exponent key'
     );
 
     const log_three_x = grouplikes.log(three, x);
@@ -1904,9 +1884,8 @@ function powerTriangleRootBalance() {
     const expected_root = grouplikes.root(two, nine);
 
     assert(
-        inverse_exponent_result.family === 'inverse' &&
-        inverse_exponent_result.key === 'exponent:result',
-        'power triangle root inverse should use the exponent:result key'
+        inverse_exponent_result.family === 'inverse',
+        'power triangle root inverse should belong to the inverse family'
     );
 
     const advertised = algebra.moves_for_source(equation, 'L/1', manual_drag_options);
@@ -1962,6 +1941,13 @@ function powerTriangleRootBalance() {
 // -----------------------------------------------------------------------------
 
 function powerTriangleRootProjection() {
+    assert(
+        power_triangles.BASE === 0 &&
+        power_triangles.EXPONENT === 1 &&
+        power_triangles.RESULT === 2,
+        'power triangle vertices should be numeric array indices'
+    );
+
     const two = grouplikes.constant(2);
     const three = grouplikes.constant(3);
     const eight = grouplikes.constant(8);
@@ -1971,15 +1957,21 @@ function powerTriangleRootProjection() {
     const log_view = power_triangles.from_expression(grouplikes.log(two, x), false);
     const root_view = power_triangles.from_expression(grouplikes.root(two, x), false);
     assert(
-        power_view.base === two && power_view.exponent === x && power_view.result == null,
+        power_view[power_triangles.BASE] === two &&
+        power_view[power_triangles.EXPONENT] === x &&
+        power_view[power_triangles.RESULT] == null,
         'pow triangle view should leave only the result coordinate nullish'
     );
     assert(
-        log_view.base === two && log_view.exponent == null && log_view.result === x,
+        log_view[power_triangles.BASE] === two &&
+        log_view[power_triangles.EXPONENT] == null &&
+        log_view[power_triangles.RESULT] === x,
         'log triangle view should leave only the exponent coordinate nullish'
     );
     assert(
-        root_view.base == null && root_view.exponent === two && root_view.result === x,
+        root_view[power_triangles.BASE] == null &&
+        root_view[power_triangles.EXPONENT] === two &&
+        root_view[power_triangles.RESULT] === x,
         'root triangle view should leave only the base coordinate nullish'
     );
     assert(
@@ -1997,8 +1989,8 @@ function powerTriangleRootProjection() {
         'PowerTriangles.same should compare PowerTriangle coordinates structurally'
     );
     assert(
-        power_triangles.from_expression(x, true).result == null &&
-        power_triangles.from_expression(x, true).base === x,
+        power_triangles.from_expression(x, true)[power_triangles.RESULT] == null &&
+        power_triangles.from_expression(x, true)[power_triangles.BASE] === x,
         'promotion should interpret an ordinary expression as a result projection x=x^1'
     );
 
@@ -2021,10 +2013,6 @@ function powerTriangleRootProjection() {
     );
 
     // Same exponent: root_n(x) root_n(y) <-> root_n(xy).
-    assert(
-        same_exponent_base.key === 'exponent:base',
-        'root same-exponent law should use the exponent:base key'
-    );
     const square_root_nine = grouplikes.root(two, nine);
     const root_product = grouplikes.root(two, grouplikes.mul([x, nine]));
     assertMoveTransforms(
@@ -2049,10 +2037,6 @@ function powerTriangleRootProjection() {
     );
 
     // Same result: root_x(a) root_y(a) <-> root_(x||y)(a).
-    assert(
-        same_result_base.key === 'result:base',
-        'root same-result law should use the result:base key'
-    );
     const square_root_x_result = grouplikes.root(two, x);
     const cube_root_x_result = grouplikes.root(three, x);
     const harmonic_index = grouplikes.harmonic([two, three]);
@@ -2079,11 +2063,6 @@ function powerTriangleRootProjection() {
     );
 
     // The two root-side inverse laws also become ordinary registrations.
-    assert(
-        inverse_exponent_base.key === 'exponent:base' &&
-        inverse_result_base.key === 'result:base',
-        'root inverse laws should be keyed by their fixed/computed vertices'
-    );
 
     const root_equation = new Equation(grouplikes.root(two, x), three);
     assertEquationMoveTransforms(
@@ -2172,11 +2151,6 @@ function powerTriangleLogInverse() {
         'log should be the exponent projection of a power triangle'
     );
     assert(
-        inverse_base_result.key === 'base:result' &&
-        inverse_base_exponent.key === 'base:exponent',
-        'fixed-base inverse laws should be keyed by their computed projection'
-    );
-    assert(
         approximatelyEqual(grouplikes.evaluate(grouplikes.log(two, eight), {}), 3),
         'log_2(8) should evaluate to 3'
     );
@@ -2253,11 +2227,6 @@ function powerTriangleLogInverse() {
         'log_2(2^x) -> x',
         () => true,
         manual_drag_options
-    );
-
-    assert(
-        inverse_result_exponent.key === 'result:exponent',
-        'fixed-result logarithm inverse should use the result:exponent key'
     );
 
     const variable_base_log = new Equation(grouplikes.log(x, eight), three);

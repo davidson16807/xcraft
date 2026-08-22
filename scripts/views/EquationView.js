@@ -86,10 +86,11 @@ function EquationView(dependencies) {
         const source = paths.resolve(equation, source_path);
         if (other == null || source == null) return null;
 
-        return power_triangles.to_expression(triangle.with({
-            [computed]: new Expression('slot'),
-            [other]: null,
-        }));
+        return power_triangles.to_expression(
+            triangle
+                .with(computed, new Expression('slot'))
+                .with(other, null)
+        );
     }
 
     function draw_ghosts(equation, drag_state, drag_options) {
