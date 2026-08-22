@@ -246,14 +246,9 @@
         'harmonic', 'mul', false
     );
     const power_composition = PowerTriangleComposition(
-        power_triangles, grouplikes, powers,
-        power_triangles.BASE, power_triangles.RESULT);
-    const log_composition = PowerTriangleComposition(
-        power_triangles, grouplikes, powers,
-        power_triangles.BASE, power_triangles.EXPONENT);
-    const result_log_composition = PowerTriangleComposition(
-        power_triangles, grouplikes, powers,
-        power_triangles.RESULT, power_triangles.EXPONENT);
+        power_triangles, grouplikes, power_triangles.RESULT);
+    const root_composition = PowerTriangleComposition(
+        power_triangles, grouplikes, power_triangles.BASE);
     const inverse_exponent_result = PowerTriangleInverse(
         power_triangles, power_triangles.EXPONENT, power_triangles.RESULT);
     const inverse_base_result = PowerTriangleInverse(
@@ -283,8 +278,7 @@
             same_exponent_base,
             same_result_base,
             power_composition,
-            log_composition,
-            result_log_composition,
+            root_composition,
             inverse_exponent_result,
             inverse_base_result,
             inverse_base_exponent,
