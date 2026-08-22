@@ -7,94 +7,36 @@ root(exponent, result). Result projection also supports the degenerate promotion
 x=x^1 used by same-base combination.
 */
 const PowerTriangles = (grouplikes, expression_shape) => {
+    const freeze = Object.freeze;
     const BASE = 'base';
     const EXPONENT = 'exponent';
     const RESULT = 'result';
     const shape = expression_shape;
 
-    const projection_for_tag = Object.freeze({
-        pow: Object.freeze({
-            computed: RESULT,
-            children: Object.freeze([BASE, EXPONENT]),
-        }),
-        log: Object.freeze({
-            computed: EXPONENT,
-            children: Object.freeze([BASE, RESULT]),
-        }),
-        root: Object.freeze({
-            computed: BASE,
-            children: Object.freeze([EXPONENT, RESULT]),
-        }),
+    const indices_for_tag = freeze({
+        pow: [0, 1, null],
+        log: [0, null, 1],
+        root: [null, 0, 1],
     });
 
-    function projection(expression) {
-        return projection_for_tag[expression.type] || null;
+    const tag_for_id = freeze('root log pow'.split(' '));
+
+    function to_expression(triangle){
+        const id = [triangle.base, triangle.exponent, triangle.result].findIndex(vertex => vertex == null);
+        return new Expression(projection_for_tag[tag_for_id[id]]);
     }
 
-    function as(expression, computed, promote) {
-        if (computed === RESULT && expression.type === 'pow') {
-            return new PowerTriangle(
-                expression.contents[0],
-                expression.contents[1],
-                null
-            );
-        }
-        if (computed === EXPONENT && expression.type === 'log') {
-            return new PowerTriangle(
-                expression.contents[0],
-                null,
-                expression.contents[1]
-            );
-        }
-        if (computed === BASE && expression.type === 'root') {
-            return new PowerTriangle(
-                null,
-                expression.contents[0],
-                expression.contents[1]
-            );
-        }
-        if (computed !== RESULT || !promote) return null;
-        return new PowerTriangle(
-            expression,
-            grouplikes.constant(1),
-            null
+    function from_expression(expression){
+        const projection = projection_for_tag[expression.type];
+        const triangle = new PowerTriangle(
+            indices_for_tag[expression.type].map(
+                i => i == null? null : expression.contents[i]
+            )
         );
     }
 
-    function create(computed, vertices) {
-        if (computed === RESULT) {
-            if (vertices.base == null || vertices.exponent == null) return null;
-            return grouplikes.pow(vertices.base, vertices.exponent);
-        }
-        if (computed === EXPONENT) {
-            if (vertices.base == null || vertices.result == null) return null;
-            return grouplikes.log(vertices.base, vertices.result);
-        }
-        if (computed === BASE) {
-            if (vertices.exponent == null || vertices.result == null) return null;
-            return grouplikes.root(vertices.exponent, vertices.result);
-        }
-        return null;
-    }
-
-    function same(left, right) {
-        return left != null && right != null && shape.encode(left) === shape.encode(right);
-    }
-
-    function other(first, second) {
-        return [BASE, EXPONENT, RESULT]
-            .find(vertex => vertex !== first && vertex !== second) || null;
-    }
-
-    return Object.freeze({
-        BASE,
-        EXPONENT,
-        RESULT,
-        projection_for_tag,
-        projection,
-        as,
-        create,
-        same,
-        other,
+    return freeze({
+        to_expression,
+        from_expression
     });
 };
