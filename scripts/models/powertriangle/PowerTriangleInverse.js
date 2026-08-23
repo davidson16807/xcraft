@@ -2,56 +2,33 @@
 // HUMAN VETTED
 
 /*
-`PowerTriangleSameness` handles laws on `Expression`s where 
-there are nested triangles representing inverse relationships.
+`PowerTriangleInverse` handles nested inverse relationships and balancing one
+known triangle vertex across an equation.
 
-This consists of:
-
-    x^logₓ(k) = k
-    logₓ(xᵏ)  = k
-    ᵏ√xᵏ      = k
-
-or, in triangle of power notation:
-
-
-    △ 
-   ˣ△ᵏ = k
-   x   
-
-
-    △ ₖ  = k
-   x  △
-     ˣ
-
-
-     x
-    △ ₓ  = k
-      △
-     ᵏ
-
-
-and there are another 3 laws where triangles are mirrored.
-Here, "⊕" indicates harmonic addition such that a⊕b = 1 / (1/a + 1/b).
-
-Using drags, each power law is implemented by two operations:
-* a "combine" operation that combines triangles belonging to the same operation
-* a "distribute" operation that distributes the matching vertex
-  across the operation of the other known vertex
-
-Names for drags are chosen by analogy to drags for arithmetic.
+The fixed and computed vertices are derived from the actual parent projection,
+so one instance handles all six inverse/co-inverse orientations.
 */
-const PowerTriangleInverse = (triangles, expression_shape, fixed, computed) => {
-    const other = triangles.other(fixed, computed);
+const PowerTriangleInverse = (triangles, expression_shape) => {
 
     function cancel(parent, source) {
         const triangle = triangles.from_expression(parent, false);
         if (triangle == null) return null;
-        if (triangles.computed(triangle) !== computed) return null;
-        if (triangle[fixed] !== source) return null;
-        return triangle[other];
+
+        const computed = triangles.computed(triangle);
+        const fixed = triangle.indexOf(source);
+        if (computed == null || fixed < 0) return null;
+
+        return triangle[triangles.other(fixed, computed)];
     }
 
-    function append(source, target) {
+    function append(parent, source, target) {
+        const triangle = triangles.from_expression(parent, false);
+        if (triangle == null) return null;
+
+        const computed = triangles.computed(triangle);
+        const fixed = triangle.indexOf(source);
+        if (computed == null || fixed < 0) return null;
+
         const values = [null, null, null];
         values[fixed] = source;
         values[computed] = target;
