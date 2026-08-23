@@ -53,8 +53,8 @@ const Expressions = (dependencies) => {
 
     function cancel(outer, inner, outer_fixed, inner_fixed) {
         return resolve(laws.map(law =>
-            law.cancel_pair == null? null :
-                law.cancel_pair(outer, inner, outer_fixed, inner_fixed)
+            law.strip == null? null :
+                law.strip(outer, inner, outer_fixed, inner_fixed)
         ));
     }
 

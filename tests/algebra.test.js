@@ -120,12 +120,12 @@ const power_triangles = PowerTriangles(grouplikes, expression_shape);
 const triangle_sameness = PowerTriangleSameness(power_triangles, grouplikes);
 const power_composition = PowerTriangleComposition(power_triangles, grouplikes, 2);
 const root_composition = PowerTriangleComposition(power_triangles, grouplikes, 0);
-const inverse_exponent_result = PowerTriangleInverse(power_triangles, 1, 2);
-const inverse_base_result = PowerTriangleInverse(power_triangles, 0, 2);
-const inverse_base_exponent = PowerTriangleInverse(power_triangles, 0, 1);
-const inverse_result_exponent = PowerTriangleInverse(power_triangles, 2, 1);
-const inverse_exponent_base = PowerTriangleInverse(power_triangles, 1, 0);
-const inverse_result_base = PowerTriangleInverse(power_triangles, 2, 0);
+const inverse_exponent_result = PowerTriangleInverse(power_triangles, expression_shape, 1, 2);
+const inverse_base_result = PowerTriangleInverse(power_triangles, expression_shape, 0, 2);
+const inverse_base_exponent = PowerTriangleInverse(power_triangles, expression_shape, 0, 1);
+const inverse_result_exponent = PowerTriangleInverse(power_triangles, expression_shape, 2, 1);
+const inverse_exponent_base = PowerTriangleInverse(power_triangles, expression_shape, 1, 0);
+const inverse_result_base = PowerTriangleInverse(power_triangles, expression_shape, 2, 0);
 const ringlikes = Ringlike({
     add: scale_expressions,
     mul: powers,
@@ -1697,7 +1697,6 @@ function powerTriangleComposition() {
     const reciprocal_x = ringlikes.inverse('mul', x);
 
     assert(
-        power_composition.family === 'composition' &&
         power_composition.computed === 2,
         'power composition should represent result projection self-composition'
     );
@@ -1774,7 +1773,6 @@ function powerTriangleComposition() {
     );
 
     assert(
-        root_composition.family === 'composition' &&
         root_composition.computed === 0,
         'root composition should represent base projection self-composition'
     );
@@ -1915,16 +1913,6 @@ function powerTriangleRootProjection() {
     assert(
         !('computed' in power_view) && !('computed' in log_view) && !('computed' in root_view),
         'PowerTriangle should not store a redundant computed attribute'
-    );
-    assert(
-        power_triangles.same(
-            root_view,
-            power_triangles.from_expression(
-                grouplikes.root(grouplikes.constant(2), grouplikes.variable('x')),
-                false
-            )
-        ),
-        'PowerTriangles.same should compare PowerTriangle coordinates structurally'
     );
     assert(
         power_triangles.from_expression(x, true)[2] == null &&

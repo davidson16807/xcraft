@@ -44,17 +44,6 @@ const PowerTriangles = (grouplikes, expression_shape) => {
         );
     }
 
-    /* Returns whether the Expressions at the given index are the same in both triangles. */
-    function same(left, right, index) {
-        const compared = index == null? vertices : [index];
-        return compared.every(index => {
-            const a = left[index];
-            const b = right[index];
-            if (a == null || b == null) return a == b;
-            return expression_shape.encode(a) === expression_shape.encode(b);
-        });
-    }
-
     // Returns the PowerTriangle index computed by the triangle.
     function computed(triangle) {
         const computed = vertices.find(vertex => triangle[vertex] == null);
@@ -88,7 +77,6 @@ const PowerTriangles = (grouplikes, expression_shape) => {
         computed,
         matching,
         inputs,
-        same,
         other,
     });
 };
