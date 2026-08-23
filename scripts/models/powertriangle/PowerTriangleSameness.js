@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 `PowerTriangleSameness` handles laws on `Expression`s where 
@@ -57,17 +58,16 @@ const PowerTriangleSameness = (triangles, grouplikes) => {
         const computed = triangles.computed(a);
         if (computed !== triangles.computed(b)) return null;
 
-        const fixed = triangles.inputs(a).filter(vertex =>
-            triangles.same(a, b, vertex) &&
-            type === affinities[vertex][computed]
+        const fixeds = triangles.matching(a,b).filter(
+            vertex => type === affinities[vertex][computed]
         );
-        if (fixed.length === 0) return null;
+        if (fixeds.length === 0) return null;
 
-        return fixed.map(vertex => {
-            const varying = triangles.other(vertex, computed);
+        return fixeds.map(fixed => {
+            const varying = triangles.other(fixed, computed);
             return triangles.to_expression(a.with(
                 varying,
-                grouplikes[affinities[vertex][varying]]([
+                grouplikes[affinities[fixed][varying]]([
                     a[varying],
                     b[varying],
                 ])
@@ -91,8 +91,8 @@ const PowerTriangleSameness = (triangles, grouplikes) => {
         if (fixed < 0 || varying < 0) return null;
         if (target.type !== affinities[fixed][varying]) return null;
 
-        return grouplikes[affinities[fixed][computed]](target.contents.map(term =>
-            triangles.to_expression(triangle.with(varying, term))
+        return grouplikes[affinities[fixed][computed]](target.contents.map(
+            term => triangles.to_expression(triangle.with(varying, term))
         ));
     }
 

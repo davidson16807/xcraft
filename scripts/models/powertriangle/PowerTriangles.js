@@ -61,17 +61,6 @@ const PowerTriangles = (grouplikes, expression_shape) => {
         return computed == null? null : computed;
     }
 
-    /* Returns the matching uncomputed vertex between left and right, or null if no such vertex exists.*/
-    function matching(left, right) {
-        const matches = vertices.filter(vertex => {
-            const a = left[vertex];
-            const b = right[vertex];
-            return a != null && b != null &&
-                expression_shape.encode(a) === expression_shape.encode(b);
-        });
-        return matches.length === 1? matches[0] : null;
-    }
-
     /* Returns the two vertex indices that form the equivalent Expression's contents. */
     function inputs(triangle) {
         return freeze(vertices.filter(index => triangle[index] != null));
@@ -81,6 +70,16 @@ const PowerTriangles = (grouplikes, expression_shape) => {
     function other(first, second) {
         const index = vertices.find(index => index !== first && index !== second);
         return index == null? null : index;
+    }
+
+    /* Returns the matching uncomputed vertices between left and right, or null if no such vertex exists.*/
+    function matching(left, right) {
+        return freeze(vertices.filter(vertex => {
+            const a = left[vertex];
+            const b = right[vertex];
+            return a != null && b != null &&
+                expression_shape.encode(a) === expression_shape.encode(b);
+        }));
     }
 
     return freeze({
