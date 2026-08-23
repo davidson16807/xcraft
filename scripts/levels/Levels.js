@@ -246,9 +246,8 @@ function Levels(grouplikes) {
             goal: e(r(harmonic([x(), y()]), av()), bv()),
         },
 
-        // Logarithmic power-triangle demonstrations and roadmap fixtures.
-        // Implemented entries use their mathematical domain context; future
-        // entries remain explicitly marked as roadmap levels.
+        // Power-triangle logarithm sameness/inverse demonstrations, followed
+        // by projection self-composition examples for roots.
         {
             title: 'Logarithm of a product',
             concept: 'Same-base logarithms combine additively: log_a(x) + log_a(y) = log_a(xy).',
@@ -285,25 +284,25 @@ function Levels(grouplikes) {
             goal: e(harmonic([l(x(), av()), l(y(), av())]), bv()),
         },
         {
-            title: 'Logarithm power rule',
-            concept: 'Power composition mirrored through logarithms gives log_a(x^c) = c log_a(x).',
+            title: 'Root of a root',
+            concept: 'Nested roots multiply their indices: root_m(root_n(x)) = root_(nm)(x).',
             context: positive_context,
-            equation: e(l(c(2), p(x(), c(3))), av()),
-            goal: e(m([c(3), l(c(2), x())]), av()),
+            equation: e(r(c(3), r(c(2), x())), av()),
+            goal: e(r(m([c(2), c(3)]), x()), av()),
         },
         {
-            title: 'Combine a logarithm coefficient',
-            concept: 'The logarithm power rule combines in reverse: c log_a(x) = log_a(x^c).',
+            title: 'Split a root index',
+            concept: 'Factoring a root index forms nested roots: root_(nm)(x) = root_m(root_n(x)).',
             context: positive_context,
-            equation: e(m([c(3), l(c(2), x())]), av()),
-            goal: e(l(c(2), p(x(), c(3))), av()),
+            equation: e(r(m([c(2), c(3)]), x()), av()),
+            goal: e(r(c(3), r(c(2), x())), av()),
         },
         {
-            title: 'Power in a logarithm base',
-            concept: 'Scaling the base exponent scales a logarithm reciprocally: log_(a^c)(x) = (1/c)log_a(x).',
+            title: 'Factor a root index',
+            concept: 'A product root index can be split repeatedly into nested roots.',
             context: positive_context,
-            equation: e(l(p(c(2), c(3)), x()), av()),
-            goal: e(m([reciprocal(c(3)), l(c(2), x())]), av()),
+            equation: e(r(m([c(2), c(3), av()]), x()), bv()),
+            goal: e(r(m([c(3), av()]), r(c(2), x())), bv()),
         },
     ];
 
