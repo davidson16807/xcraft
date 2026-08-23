@@ -1,4 +1,3 @@
-<!-- HUMAN VETTED -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -17,6 +16,7 @@
     <script src="./scripts/models/expression/Expression.js"></script>
     <script src="./scripts/models/expression/ExpressionShape.js"></script>
     <script src="./scripts/models/expression/ExpressionPaths.js"></script>
+    <script src="./scripts/models/expression/Expressions.js"></script>
     <script src="./scripts/models/grouplike/Grouplike.js"></script>
     <script src="./scripts/models/grouplike/Grouplikes.js"></script>
     <script src="./scripts/models/ringlike/Scale.js"></script>
@@ -24,7 +24,11 @@
     <script src="./scripts/models/ringlike/ScaleExpressions.js"></script>
     <script src="./scripts/models/ringlike/Power.js"></script>
     <script src="./scripts/models/ringlike/Powers.js"></script>
-    <script src="./scripts/models/ringlike/PowerExpressions.js"></script>
+    <script src="./scripts/models/powertriangle/PowerTriangle.js"></script>
+    <script src="./scripts/models/powertriangle/PowerTriangles.js"></script>
+    <script src="./scripts/models/powertriangle/PowerTriangleSameness.js"></script>
+    <script src="./scripts/models/powertriangle/PowerTriangleComposition.js"></script>
+    <script src="./scripts/models/powertriangle/PowerTriangleInverse.js"></script>
     <script src="./scripts/models/ringlike/Ringlike.js"></script>
     <script src="./scripts/models/equation/Equation.js"></script>
     <script src="./scripts/models/equation/Equations.js"></script>
@@ -210,18 +214,32 @@
     const scales = Scales(grouplikes, expression_shape);
     const scale_expressions = ScaleExpressions(grouplikes, scales);
     const powers = Powers(grouplikes, expression_shape);
-    const power_expressions = PowerExpressions(grouplikes, powers);
+    const power_triangles = PowerTriangles(grouplikes, expression_shape);
+    const triangle_sameness = PowerTriangleSameness(power_triangles, grouplikes);
+    const triangle_composition = PowerTriangleComposition(power_triangles, grouplikes);
+    const triangle_inverse = PowerTriangleInverse(power_triangles, expression_shape);
     const ringlikes = Ringlike({
         add: scale_expressions,
-        mul: power_expressions,
+        mul: powers,
     });
     const expression_paths = ExpressionPaths(grouplikes);
+    const expressions = Expressions({
+        grouplikes: grouplikes,
+        ringlikes: ringlikes,
+        expression_shape: expression_shape,
+        laws: Object.freeze([
+            triangle_sameness,
+            triangle_composition,
+            triangle_inverse,
+        ]),
+    });
     const equation_drag_ops = EquationDragOperations({
         expression_paths: expression_paths,
         equations: Equations({
             grouplikes: grouplikes,
             expression_paths: expression_paths,
             ringlikes: ringlikes,
+            expressions: expressions,
         })
     });
     const equation_shape = EquationShape(expression_shape);
@@ -263,6 +281,7 @@
         equation_drag_operations: equation_drag_ops,
         expression_paths: expression_paths,
         ringlikes: ringlikes,
+        power_triangles: power_triangles,
         expression_view: expression_view,
     });
 
