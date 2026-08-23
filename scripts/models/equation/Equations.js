@@ -11,6 +11,7 @@ function Equations(dependencies) {
     const grouplikes = dependencies.grouplikes;
     const paths = dependencies.expression_paths;
     const ringlikes = dependencies.ringlikes;
+    const expressions = dependencies.expressions;
 
     function invert(equation, source_path, enabled) {
         if (source_path == null) return null; // no source? no-op
@@ -55,6 +56,19 @@ function Equations(dependencies) {
 
         const source_root = paths.resolve(equation, source_side);
         const target_root = paths.resolve(equation, target_side);
+
+        if (!is_alone) {
+            const source = paths.resolve(equation, source_path);
+            const resolution = expressions.balance(source_root, source, target_root);
+            if (resolution.status === 'ambiguous') return equation;
+            if (resolution.status === 'resolved') {
+                let left, right;
+                [left,right] = target_side==='L'?
+                    [resolution.target, resolution.source] :
+                    [resolution.source, resolution.target];
+                return equation.with({ left:left, right:right });
+            }
+        }
 
         let operation = source_root.type;
         let inverse = invert(equation, source_path, enabled);
@@ -107,27 +121,50 @@ function Equations(dependencies) {
     }
 
     function combine(equation, source_path, target_path) {
-        const parent_path = paths.parent(source_path);
-        if (parent_path == null || parent_path !== paths.parent(target_path)) return equation;
-
-        const parent = paths.resolve(equation, parent_path);
-        if (parent == null) return equation;
+        const source_parent_path = paths.parent(source_path);
+        const target_parent_path = paths.parent(target_path);
+        if (source_parent_path == null || target_parent_path == null) return equation;
 
         const source = paths.resolve(equation, source_path);
         const target = paths.resolve(equation, target_path);
+
+        if (source_parent_path !== target_parent_path) {
+            let outer_path, inner_path, outer_fixed, inner_fixed;
+            if (paths.is_ancestor(source_parent_path, target_parent_path)) {
+                [outer_path, inner_path, outer_fixed, inner_fixed] =
+                    [source_parent_path, target_parent_path, source, target];
+            } else if (paths.is_ancestor(target_parent_path, source_parent_path)) {
+                [outer_path, inner_path, outer_fixed, inner_fixed] =
+                    [target_parent_path, source_parent_path, target, source];
+            } else {
+                return equation;
+            }
+
+            const outer = paths.resolve(equation, outer_path);
+            const inner = paths.resolve(equation, inner_path);
+            if (outer == null || inner == null) return equation;
+
+            const resolution = expressions.cancel(
+                outer, inner, outer_fixed, inner_fixed);
+            if (resolution.status === 'ambiguous') return null;
+            if (resolution.status !== 'resolved') return equation;
+            return paths.replace(equation, outer_path, resolution.expression);
+        }
+
+        const parent = paths.resolve(equation, source_parent_path);
+        if (parent == null) return equation;
+
         const source_index = Number(paths.segment(source_path));
         const target_index = Number(paths.segment(target_path));
 
         const left = source_index < target_index? source : target;
         const right = source_index < target_index? target : source;
-        const combined = (
-            grouplikes.combine(parent.type, left, right) ||
-            ringlikes.combine(parent.type, left, right)
-        );
-        if (combined == null) return equation;
+        const resolution = expressions.combine(parent, left, right);
+        if (resolution.status === 'ambiguous') return null;
+        if (resolution.status !== 'resolved') return equation;
 
-        return paths.replace(equation, parent_path, 
-                grouplikes.collapse(parent, source_index, target_index, combined));
+        return paths.replace(equation, source_parent_path,
+                grouplikes.collapse(parent, source_index, target_index, resolution.expression));
 
     }
 
@@ -144,15 +181,13 @@ function Equations(dependencies) {
         const parent = paths.resolve(equation, parent_path);
         if (parent == null) return equation;
 
-        // The source always distributes across the target,
-        // so source and target position determines whether the distribution is left or right.
-        const distributed = source_index < target_index?
-            ringlikes.left_distribute(target.type, parent, source, target)
-          : ringlikes.right_distribute(target.type, parent, target, source);
-        if (distributed == null) return equation;
+        const resolution = expressions.distribute(
+            parent, source, target, source_index, target_index);
+        if (resolution.status === 'ambiguous') return null;
+        if (resolution.status !== 'resolved') return equation;
 
         return paths.replace(equation, parent_path, 
-                grouplikes.collapse(parent, source_index, target_index, distributed));
+                grouplikes.collapse(parent, source_index, target_index, resolution.expression));
     }
 
     function simplify(equation) {

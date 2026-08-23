@@ -16,10 +16,6 @@ class PowerTriangle extends Array {
         Object.freeze(this);
     }
 
-    base(){return this[0];}
-    exponent(){return this[0];}
-    result(){return this[0];}
-
     with(vertex, value) {
         const values = [...this];
         values[vertex] = value;
