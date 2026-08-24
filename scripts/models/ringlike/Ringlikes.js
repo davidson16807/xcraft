@@ -1,4 +1,6 @@
 'use strict';
+// HUMAN VETTED
+
 /*
 Operates on grouplikes through the group associated with a ringlikes operation.
 */
@@ -41,4 +43,5 @@ const Ringlikes = ringlike_for_tag => {
         left_distribute,
         right_distribute,
     });
+
 };

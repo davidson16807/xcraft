@@ -26,26 +26,28 @@ const Expressions = (dependencies) => {
             grouplikes.combine(parent.type, left, right),
             ringlikes.combine(parent.type, left, right),
             ...laws.map(law =>
-                law.combine == null? null : law.combine(parent.type, left, right)
+                law.combine && law.combine(parent.type, left, right)
             ),
         ]);
     }
 
     function distribute(parent, source, target, source_index, target_index) {
-        const legacy = source_index < target_index?
-            ringlikes.left_distribute(target.type, parent, source, target)
-          : ringlikes.right_distribute(target.type, parent, target, source);
+        const left = source_index < target_index? source : target;
+        const right = source_index < target_index? target : source;
+        const operation = source_index < target_index?
+            'left_distribute' : 'right_distribute';
 
         return distinct([
-            legacy,
-            ...laws.map(law => law.distribute == null? null : law.distribute(parent, source, target)),
+            ringlikes[operation](target.type, parent, left, right),
+            ...laws.map(law =>
+                law[operation] && law[operation](parent, left, right)
+            ),
         ]);
     }
 
-    function cancel(outer, inner, outer_fixed, inner_fixed) {
+    function strip(outer, inner, outer_fixed, inner_fixed) {
         return distinct(laws.map(law =>
-            law.strip == null? null :
-                law.strip(outer, inner, outer_fixed, inner_fixed)
+            law.strip && law.strip(outer, inner, outer_fixed, inner_fixed)
         ));
     }
 
@@ -72,7 +74,7 @@ const Expressions = (dependencies) => {
     return Object.freeze({
         combine,
         distribute,
-        cancel,
+        strip,
         balance,
     });
 };

@@ -153,7 +153,7 @@ function Equations(dependencies) {
             const inner = paths.resolve(equation, inner_path);
             if (outer == null || inner == null) return freeze([]);
 
-            return freeze(expressions.cancel(
+            return freeze(expressions.strip(
                 outer, inner, outer_fixed, inner_fixed
             ).map(replacement => freeze({
                 expression: replacement,
