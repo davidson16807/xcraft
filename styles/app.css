@@ -280,12 +280,20 @@ main {
     min-width: 0;
     position: relative;
     display: flex;
-    justify-content: center;
     align-items: center;
 }
 
+.equation-column-left {
+    justify-content: flex-end;
+}
+
+.equation-column-right {
+    justify-content: flex-start;
+}
+
 .equation-side {
-    width: 100%;
+    flex: 0 0 auto;
+    width: max-content;
     min-width: 0;
     min-height: 140px;
     padding: 22px 18px;
