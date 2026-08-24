@@ -2,7 +2,13 @@
 // HUMAN VETTED
 
 /*
-Operates on grouplikes through the group associated with a ringlikes operation.
+`Ringlikes` manages operations for a set of ringlike structures.
+
+Operations here are unambiguously defined by the structure. 
+Unsupported operations are represented by returning the original expression 
+(if the operation is unary) or null (if the operation is binary).
+Return types are deeply immutable expressions. 
+All functions are pure. 
 */
 const Ringlikes = ringlike_for_tag => {
 

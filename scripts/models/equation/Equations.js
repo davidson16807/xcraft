@@ -1,13 +1,19 @@
 'use strict';
 
 /*
-Every returned rewrite is equivalence-preserving under the nonzero-divisor
-assumptions supplied by the active level. Unsupported operations return an
-empty list.
+`Equations` manages user-facing operations at the scale of an entire equation,
+This is done in terms of the paths used to identity expressions in the equation. 
+It separates the concern of managing paths so that other components 
+(such as `Expressions`, `Grouplikes`, and `Ringlikes`) can focus on raw expressions.
+
+Every operation is equivalence-preserving under nonzero-divisor assumptions. 
+User-facing operations can be ambiguous, so each operation returns 
+lists of valid interpretations. Unsupported operations return an empty list.
 */
 function Equations(dependencies) {
-    const grouplikes = dependencies.grouplikes;
     const paths = dependencies.expression_paths;
+
+    const grouplikes = dependencies.grouplikes;
     const ringlikes = dependencies.ringlikes;
     const expressions = dependencies.expressions;
 

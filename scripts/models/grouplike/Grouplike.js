@@ -2,10 +2,14 @@
 // HUMAN VETTED
 
 /*
-`Grouplike` describes one binary operation on Expressions together with the
-properties needed by `Grouplikes` to construct, append, combine, commute, and
-cancel expressions.  Laws involving relationships between multiple operations
-belong to the ringlike layer instead.
+`Grouplike` manages operations for a single grouplike structure.
+Each operation is enabled by properties of that structure, specified in `properties`.
+
+Operations here are unambiguously defined by the structure. 
+Unsupported operations are represented by returning the original expression 
+(if the operation is unary) or null (if the operation is binary).
+Return types are deeply immutable expressions. 
+All functions are pure. 
 
 label           String
 identity        Expression|undefined
@@ -53,12 +57,44 @@ const Grouplike = (label, identity, properties, evaluator) => {
         );
     }
 
-    function _is_identity(expression) {
-        return (
-            identity != null &&
-            expression.type === identity.type &&
-            expression.contents === identity.contents
-        );
+    function simplify(expression, simplify, evaluate, constant_result) {
+        const simplified_constant = constant_result(expression);
+        if (simplified_constant != null) return simplified_constant;
+        if (!Array.isArray(expression.contents)) return expression;
+
+        let contents = expression.contents.map(simplify);
+
+        /*
+        associativity allows constant-valued
+        siblings to be folded even when the entire expression still
+        depends on a variable: e.g. x + 7 - 1 -> x + 6.
+        */
+        if (is_associative) {
+            const constants = contents
+                .map((item, index) => ({ item:item, index:index, value:evaluate(item, {}) }))
+                .filter(item => Number.isFinite(item.value));
+
+            if (constants.length > 1) {
+                const constant_expression = expression.with({
+                    contents: Object.freeze(constants.map(item => item.item)),
+                });
+                const combined = constant_result(constant_expression);
+                if (combined != null) {
+                    const first = constants[0].index;
+                    const constant_indexes = new Set(constants.map(item => item.index));
+                    contents = contents.flatMap((item, index) =>
+                        index === first? [combined] :
+                        constant_indexes.has(index)? [] : [item]
+                    );
+                }
+            }
+        }
+
+        if (
+            contents.length === expression.contents.length &&
+            contents.every((item, i) => item === expression.contents[i])
+        ) return expression;
+        return expression.with({ contents: Object.freeze(contents) });
     }
 
     function append(left, right) {
@@ -94,6 +130,7 @@ const Grouplike = (label, identity, properties, evaluator) => {
         combine,
         commute,
         cancel,
+        simplify,
         evaluator,
     });
 

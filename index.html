@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- HUMAN VETTED -->
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -150,6 +151,7 @@
     ];
     document.getElementById('subtitle').replaceChildren(subtitles[Math.floor(Math.random()*subtitles.length)]);
 
+
     const grouplikes = Grouplikes({
         'add': Grouplike('add', new Expression('constant', 0), 
             {
@@ -206,10 +208,11 @@
         mul: PowerExpressions(grouplikes, Powers(grouplikes, expression_shape)),
     });
     const power_triangles = PowerTriangles(grouplikes, expression_shape);
+
     const expressions = Expressions({
+        expression_shape: expression_shape,
         grouplikes: grouplikes,
         ringlikes: ringlikes,
-        expression_shape: expression_shape,
         laws: Object.freeze([
             PowerTriangleSameness(power_triangles, grouplikes),
             PowerTriangleComposition(power_triangles, grouplikes),
@@ -223,8 +226,8 @@
         expression_paths: expression_paths,
         equation_shape: equation_shape,
         equations: Equations({
-            grouplikes: grouplikes,
             expression_paths: expression_paths,
+            grouplikes: grouplikes,
             ringlikes: ringlikes,
             expressions: expressions,
         })
@@ -245,8 +248,8 @@
     const expression_view = ExpressionView({
         html: html,
         render: katex.render,
-        grouplikes: grouplikes,
         expression_paths: expression_paths,
+        grouplikes: grouplikes,
         ringlikes: ringlikes,
         precedence_for_tag: tag => {
             switch (tag) {

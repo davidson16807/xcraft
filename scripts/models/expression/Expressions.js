@@ -1,17 +1,21 @@
 'use strict';
 
 /*
-Programmatic resolver for user-facing expression operations. Mathematical
-implementations may overlap, so every operation returns all structurally
-distinct results instead of suppressing ambiguity.
+`Expressions` aggregates user-facing operations that result from 
+mathematical laws and structures. 
+
+User-facing operations can be ambiguous, so each operation returns 
+lists of valid interpretations. 
+Invalid operations are represented by an empty list
 */
 const Expressions = (dependencies) => {
+    const shape = dependencies.expression_shape;
+
     const grouplikes = dependencies.grouplikes;
     const ringlikes = dependencies.ringlikes;
-    const shape = dependencies.expression_shape;
     const laws = Object.freeze(dependencies.laws || []);
 
-    function distinct(expressions) {
+    function _distinct(expressions) {
         const results = new Map();
         expressions.flatMap(expression =>
             Array.isArray(expression)? expression : [expression]
@@ -22,7 +26,7 @@ const Expressions = (dependencies) => {
     }
 
     function combine(parent, left, right) {
-        return distinct([
+        return _distinct([
             grouplikes.combine(parent.type, left, right),
             ringlikes.combine(parent.type, left, right),
             ...laws.map(law =>
@@ -37,7 +41,7 @@ const Expressions = (dependencies) => {
         const operation = source_index < target_index?
             'left_distribute' : 'right_distribute';
 
-        return distinct([
+        return _distinct([
             ringlikes[operation](target.type, parent, left, right),
             ...laws.map(law =>
                 law[operation] && law[operation](parent, left, right)
@@ -46,7 +50,7 @@ const Expressions = (dependencies) => {
     }
 
     function strip(outer, inner, outer_fixed, inner_fixed) {
-        return distinct(laws.map(law =>
+        return _distinct(laws.map(law =>
             law.strip && law.strip(outer, inner, outer_fixed, inner_fixed)
         ));
     }
