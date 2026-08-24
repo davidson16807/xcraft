@@ -1,15 +1,8 @@
 'use strict';
-// HUMAN VETTED
-
 /*
 Operates on grouplikes through the group associated with a ringlikes operation.
 */
 const Ringlikes = ringlike_for_tag => {
-
-    const laws = Object.freeze(
-        Object.values(ringlike_for_tag)
-            .flatMap(expressions => expressions.laws || [])
-    );
 
     function inverse(type, expression) {
         const ringlike = ringlike_for_tag[type];
@@ -47,6 +40,5 @@ const Ringlikes = ringlike_for_tag => {
         combine,
         left_distribute,
         right_distribute,
-        laws,
     });
 };

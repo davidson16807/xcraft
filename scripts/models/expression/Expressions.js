@@ -9,10 +9,7 @@ const Expressions = (dependencies) => {
     const grouplikes = dependencies.grouplikes;
     const ringlikes = dependencies.ringlikes;
     const shape = dependencies.expression_shape;
-    const laws = Object.freeze([
-        ...ringlikes.laws,
-        ...(dependencies.laws || []),
-    ]);
+    const laws = Object.freeze(dependencies.laws || []);
 
     function distinct(expressions) {
         const results = new Map();
