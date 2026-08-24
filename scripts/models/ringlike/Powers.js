@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 Decomposes grouplikes into a numeric power and algebraic base.

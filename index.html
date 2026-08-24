@@ -202,10 +202,8 @@
 
     const expression_shape = ExpressionShape();
     const ringlikes = Ringlikes({
-        add: ScaleExpressions(grouplikes, 
-                Scales(grouplikes, expression_shape)),
-        mul: PowerExpressions(grouplikes, 
-                Powers(grouplikes, expression_shape)),
+        add: ScaleExpressions(grouplikes, Scales(grouplikes, expression_shape)),
+        mul: PowerExpressions(grouplikes, Powers(grouplikes, expression_shape)),
     });
     const power_triangles = PowerTriangles(grouplikes, expression_shape);
     const expressions = Expressions({
