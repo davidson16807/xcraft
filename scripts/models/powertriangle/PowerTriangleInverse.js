@@ -9,6 +9,7 @@ The fixed and computed vertices are derived from the actual parent projection,
 so one instance handles all six inverse/co-inverse orientations.
 */
 const PowerTriangleInverse = (triangles, expression_shape) => {
+    const shape = expression_shape;
 
     function cancel(parent, source) {
         const triangle = triangles.from_expression(parent, false);
@@ -49,7 +50,7 @@ const PowerTriangleInverse = (triangles, expression_shape) => {
         if (outer_computed == null || inner_computed == null) return null;
         if (outer_computed === inner_computed) return null;
         if (outer_fixed !== inner_fixed) return null;
-        if (expression_shape.encode(outer_fixed_expression) !== expression_shape.encode(inner_fixed_expression)) 
+        if (shape.encode(outer_fixed_expression) !== shape.encode(inner_fixed_expression)) 
             return null;
 
         const outer_other = triangles.other(outer_fixed, outer_computed);
