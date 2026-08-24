@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 Decomposes grouplikes into a numeric power and algebraic base.
@@ -39,19 +38,21 @@ const Powers = (grouplikes, expression_shape) => {
         return new Power(power.base, -power.power, power.key);
     }
 
-    function combine(power1, power2) {
-        if (power1.key !== power2.key) return null;
-        return new Power(
-            power1.base,
-            power1.power + power2.power,
-            power1.key
-        );
+    function inverse(expression) {
+        if (expression.type === 'constant' && expression.contents === 0) return null;
+        if (expression.type === 'constant' && expression.contents === 1) return expression;
+        return to_expression(invert(from_expression(expression)));
+    }
+
+    function is_inverse(expression) {
+        return from_expression(expression).power === -1;
     }
 
     return Object.freeze({
         from_expression,
         to_expression,
         invert,
-        combine,
+        inverse,
+        is_inverse,
     });
 };
