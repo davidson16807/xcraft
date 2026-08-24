@@ -262,7 +262,7 @@ main {
     user-select: none;
     -webkit-user-select: none;
     position: relative;
-    padding: 42px 12px 90px;
+    padding: 42px 12px 170px;
 }
 
 .equation-row {
@@ -275,8 +275,17 @@ main {
     font-size: clamp(2rem, 6vw, 4.8rem);
 }
 
-.equation-side {
+.equation-column {
     flex: 1 1 0;
+    min-width: 0;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.equation-side {
+    width: 100%;
     min-width: 0;
     min-height: 140px;
     padding: 22px 18px;
@@ -410,28 +419,97 @@ main {
     outline: none;
 }
 
+.drag-ghosts-row {
+    position: absolute;
+    top: calc(100% + 14px);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    width: max-content;
+    max-width: min(46vw, 560px);
+    z-index: 20;
+}
+
+.drag-ghosts-left {
+    right: 0;
+    justify-content: flex-end;
+}
+
+.drag-ghosts-right {
+    left: 0;
+    justify-content: flex-start;
+}
+
 .drag-ghost {
-    position: fixed;
-    z-index: 1000;
-    pointer-events: none;
-    transform: translate(-50%, -58%) scale(1.03);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.08em;
+    min-height: 52px;
     padding: 8px 12px;
     border: 1px solid var(--hairline);
     border-radius: 8px;
     background: var(--paper);
     color: var(--ink);
     box-shadow: 0 6px 24px rgba(0,0,0,0.12);
-    font-size: clamp(1.8rem, 5vw, 3.7rem);
-    opacity: 0.93;
+    font-size: clamp(1.35rem, 3.6vw, 2.7rem);
+    opacity: 0.94;
+    white-space: nowrap;
 }
 
-.drag-ghost-origin {
+button.drag-ghost {
+    cursor: pointer;
+    font: inherit;
+}
+
+button.drag-ghost:hover,
+button.drag-ghost:focus-visible {
+    background: var(--offpaper);
+    outline: 2px solid var(--hairline);
+    outline-offset: 2px;
+}
+
+.drag-choices-live .drag-choice {
+    pointer-events: none;
+}
+
+.drag-choice-mirror {
+    display: none;
     opacity: 0.72;
-    transform: translate(-50%, 50%) scale(0.94);
 }
 
-.drag-ghost-current {
-    opacity: 0.93;
+.drag-choice-mirror.visible {
+    display: inline-flex;
+}
+
+.drag-choices-cancel {
+    position: absolute;
+    top: -24px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid var(--hairline);
+    border-radius: 50%;
+    background: var(--paper);
+    color: var(--quiet);
+    font-size: 1.7rem;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.drag-ghosts-left .drag-choices-cancel {
+    left: -22px;
+}
+
+.drag-ghosts-right .drag-choices-cancel {
+    right: -22px;
+}
+
+.drag-choices-cancel:hover,
+.drag-choices-cancel:focus-visible {
+    color: var(--ink);
+    background: var(--offpaper);
 }
 
 #app[data-theme="night"] .drag-ghost {

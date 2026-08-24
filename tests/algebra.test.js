@@ -22,8 +22,12 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/powertriangle/PowerTriangleInverse.js',
     'scripts/models/ringlike/Ringlike.js',
     'scripts/models/equation/Equation.js',
+    'scripts/models/equation/EquationOperation.js',
+    'scripts/models/equation/EquationDragPreview.js',
+    'scripts/models/equation/EquationDragChoice.js',
     'scripts/models/equation/EquationShape.js',
     'scripts/models/expression/ExpressionPaths.js',
+    'scripts/models/expression/ExpressionBalance.js',
     'scripts/models/expression/Expressions.js',
     'scripts/models/equation/Equations.js',
     'scripts/models/equation/EquationDragOperations.js',
@@ -144,6 +148,7 @@ const equations = Equations({
 });
 const algebra = EquationDragOperations({
     expression_paths: paths,
+    equation_shape: equation_shape,
     equations: equations,
 });
 const levels = Levels(grouplikes);
@@ -156,22 +161,8 @@ const app_updater = AppUpdater({
     equation_shape: equation_shape,
 });
 
-const manual_drag_options = Object.freeze({
-    enabled: new Set(['add', 'mul', 'pow', 'log', 'root', 'harmonic']),
-    auto_simplify: false,
-});
-const auto_simplify_drag_options = Object.freeze({
-    enabled: new Set(['add', 'mul', 'pow', 'log', 'root', 'harmonic']),
-    auto_simplify: true,
-});
-const add_only_drag_options = Object.freeze({
-    enabled: new Set(['add', 'pow', 'log', 'root', 'harmonic']),
-    auto_simplify: false,
-});
-const multiply_only_drag_options = Object.freeze({
-    enabled: new Set(['mul', 'pow', 'log', 'root', 'harmonic']),
-    auto_simplify: false,
-});
+const manual_drag_options = Object.freeze({ auto_simplify:false });
+const auto_simplify_drag_options = Object.freeze({ auto_simplify:true });
 
 function assert(condition, message) {
     if (!condition) throw new Error(message);
@@ -187,9 +178,9 @@ function assertShape(actual, expected, message) {
 }
 
 function move(equation, source, target, drag_options) {
-    const updated = algebra.move(equation, source, target, drag_options);
-    assert(updated !== equation, `move should be valid: ${source} -> ${target}`);
-    return updated;
+    const choices = algebra.choices(equation, source, target, drag_options);
+    assert(choices.length > 0, `move should be valid: ${source} -> ${target}`);
+    return choices[0].equation;
 }
 
 // -----------------------------------------------------------------------------
@@ -506,20 +497,32 @@ function assertMoveTransforms(before, source, target, expected, property, contex
 
     assert(
         advertised.includes(target),
-        `${property}: expected move was not advertised\n`+
-        `${context}\nsource: ${source}\ntarget: ${target}\n`+
+        `${property}: expected move was not advertised
+`+
+        `${context}
+source: ${source}
+target: ${target}
+`+
         `advertised: ${advertised.join(', ')}`
     );
 
-    const updated = algebra.move(equation, source, target, drag_options);
+    const choices = algebra.choices(equation, source, target, drag_options);
+    const updated_choice = choices.find(choice =>
+        orderedExpressionKey(choice.equation.left) === orderedExpressionKey(expected) &&
+        orderedExpressionKey(choice.equation.right) === orderedExpressionKey(sentinel)
+    );
     assert(
-        updated !== equation,
-        `${property}: advertised move returned the original equation\n${context}`
+        updated_choice != null,
+        `${property}: expected expression was not among drag choices
+${context}`
     );
 
+    const updated = updated_choice.equation;
     assertSameExpression(updated.left, expected, property, context);
-    assertSameExpression(updated.right, sentinel, property, `${context}\nright side changed`);
-    assertExpressionsEquivalent(before, updated.left, property, `${context}\nmove semantics`, where);
+    assertSameExpression(updated.right, sentinel, property, `${context}
+right side changed`);
+    assertExpressionsEquivalent(before, updated.left, property, `${context}
+move semantics`, where);
     stats.moves++;
 }
 
@@ -570,20 +573,31 @@ function assertEquationMoveTransforms(before, source, target, expected, property
     const advertised = algebra.moves_for_source(before, source, drag_options);
     assert(
         advertised.includes(target),
-        `${property}: expected balance move was not advertised\n`+
-        `${context}\nsource: ${source}\ntarget: ${target}\n`+
+        `${property}: expected balance move was not advertised
+`+
+        `${context}
+source: ${source}
+target: ${target}
+`+
         `advertised: ${advertised.join(', ')}`
     );
 
-    const updated = algebra.move(before, source, target, drag_options);
+    const expected_key = equation_shape.encode(expected);
+    const updated_choice = algebra.choices(before, source, target, drag_options)
+        .find(choice => equation_shape.encode(choice.equation) === expected_key);
     assert(
-        updated !== before,
-        `${property}: advertised balance move returned the original equation\n${context}`
+        updated_choice != null,
+        `${property}: expected equation was not among drag choices
+${context}`
     );
 
-    assertSameExpression(updated.left, expected.left, property, `${context}\nleft side`);
-    assertSameExpression(updated.right, expected.right, property, `${context}\nright side`);
-    assertEquationsEquivalent(before, updated, property, `${context}\nmove semantics`, where);
+    const updated = updated_choice.equation;
+    assertSameExpression(updated.left, expected.left, property, `${context}
+left side`);
+    assertSameExpression(updated.right, expected.right, property, `${context}
+right side`);
+    assertEquationsEquivalent(before, updated, property, `${context}
+move semantics`, where);
     stats.moves++;
 }
 
@@ -601,179 +615,127 @@ function forEachTriple(callback) {
 }
 
 // -----------------------------------------------------------------------------
-// Enabled drag operations
-// Only enabled operations are draggable. A lone root is draggable only when
-// exactly one enabled operation admits a valid inverse/identity rewrite, which
-// supplies its otherwise-ambiguous additive or multiplicative meaning.
+// Drag choices
+// Ambiguous drags remain draggable and expose every distinct valid operation.
+// Lone-side drags enumerate ordinary inverse-capable grouplike operations.
 // -----------------------------------------------------------------------------
 
-function enabledDragOperations() {
+function dragChoices() {
     const rhs = grouplikes.constant(2);
 
     for (const a of [x, grouplikes.constant(2)]) {
         const equation = new Equation(a, rhs);
         const context = `lone expression a = ${describeCase(a)}`;
+        const choices = algebra.choices(equation, 'L', 'side:R', manual_drag_options);
 
         assert(
-            algebra.moves_for_source(equation, 'L', manual_drag_options).length === 0,
-            `enabled drag operations: lone expression should be ambiguous when add and mul are enabled\n${context}`
+            choices.length === 2,
+            `drag choices: lone expression should offer additive and multiplicative balance
+${context}`
         );
         assert(
-            !algebra.draggable_paths(equation, manual_drag_options).includes('L'),
-            `enabled drag operations: ambiguous lone expression should not be draggable\n${context}`
+            algebra.moves_for_source(equation, 'L', manual_drag_options).includes('side:R') &&
+            algebra.draggable_paths(equation, manual_drag_options).includes('L'),
+            `drag choices: ambiguous lone expression should remain draggable
+${context}`
         );
 
-        assertEquationMoveTransforms(
-            equation,
-            'L',
-            'side:R',
-            new Equation(
+        const keys = new Set(choices.map(choice => equation_shape.encode(choice.equation)));
+        assert(
+            keys.has(equation_shape.encode(new Equation(
                 zero,
                 grouplikes.add([rhs, ringlikes.inverse('add', a)])
-            ),
-            'enabled drag operations',
-            `${context}\nadd only`,
-            variables => isDefined(a, variables),
-            add_only_drag_options
+            ))),
+            `drag choices: lone expression should include additive balance
+${context}`
         );
-
-        assertEquationMoveTransforms(
-            equation,
-            'L',
-            'side:R',
-            new Equation(
+        assert(
+            keys.has(equation_shape.encode(new Equation(
                 one,
                 grouplikes.mul([rhs, ringlikes.inverse('mul', a)])
-            ),
-            'enabled drag operations',
-            `${context}\nmultiply only`,
-            variables => isDefinedNonzero(a, variables),
-            multiply_only_drag_options
+            ))),
+            `drag choices: lone expression should include multiplicative balance
+${context}`
         );
+        assert(choices.every(choice => choice instanceof EquationDragChoice),
+            'drag choices: public choices should be EquationDragChoice values');
+        assert(choices.every(choice =>
+            choice.preview instanceof EquationDragPreview &&
+            choice.side === 'R' &&
+            choice.type === 'balance'
+        ), 'drag choices: choices should carry preview, target side, and drag type');
     }
 
-    const sum = new Equation(grouplikes.add([x, grouplikes.constant(3)]), rhs);
-    assert(
-        algebra.move(sum, 'L/0', 'side:R', multiply_only_drag_options) === sum,
-        'enabled drag operations: additive drag should be a no-op when add is disabled'
-    );
-    assert(
-        !algebra.moves_for_source(sum, 'L/0', multiply_only_drag_options).includes('side:R'),
-        'enabled drag operations: disabled additive drag should not be advertised'
-    );
-
-    const product = new Equation(grouplikes.mul([grouplikes.constant(3), x]), rhs);
-    assert(
-        algebra.move(product, 'L/1', 'side:R', add_only_drag_options) === product,
-        'enabled drag operations: multiplicative drag should be a no-op when mul is disabled'
-    );
-    assert(
-        !algebra.moves_for_source(product, 'L/1', add_only_drag_options).includes('side:R'),
-        'enabled drag operations: disabled multiplicative drag should not be advertised'
-    );
-
     const zero_equation = new Equation(zero, rhs);
-    assertEquationMoveTransforms(
-        zero_equation,
+    assert(
+        algebra.choices(zero_equation, 'L', 'side:R', manual_drag_options).length === 1,
+        'drag choices: zero should only admit additive lone-side balance'
+    );
+
+    // A lone reciprocal must expose multiplication so denominators can move
+    // across the equality even when no Add/Multiply mode has been selected.
+    const reciprocal_x = ringlikes.inverse('mul', x);
+    const denominator_equation = new Equation(reciprocal_x, rhs);
+    const denominator_choices = algebra.choices(
+        denominator_equation,
         'L',
         'side:R',
-        new Equation(zero, grouplikes.add([rhs, zero])),
-        'enabled drag operations',
-        'only the additive interpretation of zero is valid even when add and mul are enabled',
-        () => true,
         manual_drag_options
     );
     assert(
-        algebra.move(zero_equation, 'L', 'side:R', multiply_only_drag_options) === zero_equation,
-        'enabled drag operations: zero must not be draggable multiplicatively'
+        denominator_choices.some(choice =>
+            orderedExpressionKey(choice.equation.left) === orderedExpressionKey(one) &&
+            orderedExpressionKey(choice.equation.right) ===
+                orderedExpressionKey(grouplikes.mul([rhs, x]))
+        ),
+        'drag choices: a lone denominator should be movable multiplicatively across equality'
     );
 
-    // Verify the same options make it through AppUpdater -> AppDragOperations
-    // -> EquationDrags rather than only working through direct algebra calls.
+    // App state keeps multiple choices after drop, commits only when one is
+    // chosen, and does not put the pending-choice state in history.
     const released = equation_drags.release();
-    const make_app = drag_options => new AppState(
+    const original = new Equation(x, rhs);
+    let app = new AppState(
         levels,
         0,
-        new Equation(x, rhs),
+        original,
         released,
         released.initialize(),
         [],
         [],
-        'day',
-        drag_options
-    );
-
-    const ambiguous_app = make_app(manual_drag_options);
-    assert(
-        app_updater.drag_start(ambiguous_app, 'L', 0, 0) === ambiguous_app,
-        'enabled drag operations: AppUpdater should not start an ambiguous root drag'
-    );
-
-    const additive_app = make_app(add_only_drag_options);
-    const additive_drag = app_updater.drag_start(additive_app, 'L', 0, 0);
-    assert(additive_drag !== additive_app,
-        'enabled drag operations: AppUpdater should start an Add-only root drag');
-    const additive_drop = app_updater.drag_drop(additive_drag, 'side:R');
-    assertSameExpression(additive_drop.equation.left, zero,
-        'enabled drag operations', 'AppUpdater Add-only root drag');
-
-    const multiplicative_app = make_app(multiply_only_drag_options);
-    const multiplicative_drag = app_updater.drag_start(multiplicative_app, 'L', 0, 0);
-    assert(multiplicative_drag !== multiplicative_app,
-        'enabled drag operations: AppUpdater should start a Multiply-only root drag');
-    const multiplicative_drop = app_updater.drag_drop(multiplicative_drag, 'side:R');
-    assertSameExpression(multiplicative_drop.equation.left, one,
-        'enabled drag operations', 'AppUpdater Multiply-only root drag');
-}
-
-// -----------------------------------------------------------------------------
-// Operation toggle invariant
-// At least one of add/mul is always enabled, and unrelated drag options survive.
-// -----------------------------------------------------------------------------
-
-function operationToggleInvariant() {
-    const released = equation_drags.release();
-    const make_app = enabled => new AppState(
-        levels,
-        0,
-        levels[0].equation,
-        released,
-        released.initialize(),
-        [],
         [],
         'day',
-        { enabled:enabled, auto_simplify:false }
+        manual_drag_options
     );
 
-    let app = make_app(new Set(['add', 'mul', 'pow', 'log', 'root', 'harmonic']));
-    app = app_updater.toggle_add(app);
-    assert(!app.drag_options.enabled.has('add') && app.drag_options.enabled.has('mul'),
-        'operation toggle invariant: disabling Add from both should leave Multiply enabled');
-    assert(app.drag_options.auto_simplify === false,
-        'operation toggle invariant: toggling operations should preserve auto_simplify');
+    app = app_updater.drag_start(app, 'L', 0, 0);
+    assert(app.drag_type.id === DragState.symbol,
+        'drag choices: ambiguous lone drag should start normally');
+    app = app_updater.drag_move(app, 10, 10, 'side:R');
+    assert(app.drag_choices.length === 2,
+        'drag choices: movement should populate all current choices');
+    const pending = app_updater.drag_drop(app, 'side:R');
+    assert(pending.drag_type.id === DragState.released && pending.drag_choices.length === 2,
+        'drag choices: ambiguous drop should release the pointer and preserve choices');
+    assert(pending.equation === original && pending.undo_history.length === 0,
+        'drag choices: pending ambiguity must not modify equation history');
 
-    app = app_updater.toggle_multiply(app);
-    assert(app.drag_options.enabled.has('add') && !app.drag_options.enabled.has('mul'),
-        'operation toggle invariant: disabling the last enabled operation should switch to the other operation');
+    const chosen = app_updater.drag_choose(pending, 0);
+    assert(chosen.drag_choices.length === 0 && chosen.undo_history.length === 1,
+        'drag choices: choosing should commit once and clear choices');
 
-    app = app_updater.toggle_multiply(app);
-    assert(app.drag_options.enabled.has('add') && app.drag_options.enabled.has('mul'),
-        'operation toggle invariant: enabling an inactive operation should enable both');
-
-    app = app_updater.toggle_multiply(app);
-    assert(app.drag_options.enabled.has('add') && !app.drag_options.enabled.has('mul'),
-        'operation toggle invariant: disabling Multiply from both should leave Add enabled');
-
-    app = app_updater.toggle_add(app);
-    assert(!app.drag_options.enabled.has('add') && app.drag_options.enabled.has('mul'),
-        'operation toggle invariant: disabling the last Add should switch to Multiply');
-    assert(
-        app.drag_options.enabled.has('pow') &&
-        app.drag_options.enabled.has('log') &&
-        app.drag_options.enabled.has('root') &&
-        app.drag_options.enabled.has('harmonic'),
-        'operation toggle invariant: toggling Add/Multiply should preserve unrelated enabled operations'
+    const pending_again = app_updater.drag_drop(
+        app_updater.drag_move(
+            app_updater.drag_start(chosen.with({ equation:original, undo_history:[] }), 'L', 0, 0),
+            10,
+            10,
+            'side:R'
+        ),
+        'side:R'
     );
+    const cancelled = app_updater.drag_cancel(pending_again);
+    assert(cancelled.equation === original && cancelled.drag_choices.length === 0,
+        'drag choices: cancel should clear pending choices without changing the equation');
 }
 
 // -----------------------------------------------------------------------------
@@ -786,7 +748,7 @@ function automaticSimplification() {
     const minus_one = grouplikes.constant(-1);
     const unsimplified = grouplikes.add([seven, minus_one]);
 
-    const manual = algebra.move(
+    const manual = move(
         new Equation(grouplikes.add([x, one]), seven),
         'L/1',
         'side:R',
@@ -799,7 +761,7 @@ function automaticSimplification() {
         'disabled should preserve the arithmetic expression'
     );
 
-    const automatic = algebra.move(
+    const automatic = move(
         new Equation(grouplikes.add([x, one]), seven),
         'L/1',
         'side:R',
@@ -845,7 +807,7 @@ function automaticSimplification() {
 
     const invalid = new Equation(unsimplified, x);
     assert(
-        algebra.move(invalid, 'R', 'path:R', auto_simplify_drag_options) === invalid,
+        algebra.choices(invalid, 'R', 'path:R', auto_simplify_drag_options).length === 0,
         'automatic simplification: an invalid drag must not simplify unrelated arithmetic'
     );
 
@@ -859,6 +821,7 @@ function automaticSimplification() {
         original_equation,
         released,
         released.initialize(),
+        [],
         [],
         [],
         'day',
@@ -890,8 +853,6 @@ function automaticSimplification() {
     app = app_updater.toggle_auto_simplify(app);
     assert(app.drag_options.auto_simplify === false,
         'automatic simplification: toolbar toggle should disable auto-simplify');
-    assert(app.drag_options.enabled === before_toggle.drag_options.enabled,
-        'automatic simplification: toolbar toggle should preserve enabled operations');
     assert(app.equation === before_toggle.equation,
         'automatic simplification: toggling should not modify the equation');
 }
@@ -1080,11 +1041,11 @@ function ringExpressionInterface() {
     const power_distribution = expressions.distribute(
         square, two, product, 1, 0);
     assert(
-        power_distribution.status === 'resolved',
+        power_distribution.length === 1,
         'power triangle: power distribution should resolve uniquely'
     );
     assertSameExpression(
-        power_distribution.expression,
+        power_distribution[0],
         grouplikes.mul([
             grouplikes.pow(x, two),
             grouplikes.pow(three, two),
@@ -1252,7 +1213,7 @@ function additiveIdentity() {
         'additive identity',
         'a lone additive identity remains draggable across equality',
         variables => isDefined(x, variables),
-        add_only_drag_options
+        manual_drag_options
     );
 }
 
@@ -1321,7 +1282,7 @@ function multiplicativeCommutativity() {
             a !== b &&
             a.type !== 'mul' &&
             b.type !== 'mul' &&
-            expressions.combine(left, a, b).status === 'none' &&
+            expressions.combine(left, a, b).length === 0 &&
             a.type !== 'add' &&
             b.type !== 'add'
         ) {
@@ -1430,7 +1391,7 @@ function multiplicativeIdentity() {
         'multiplicative identity',
         'a lone multiplicative identity remains draggable across equality',
         variables => isDefined(x, variables),
-        multiply_only_drag_options
+        manual_drag_options
     );
 }
 
@@ -1653,24 +1614,30 @@ function powerTriangleSameness() {
 
     const duplicate_log_sum = grouplikes.add([log_two_x, log_two_x]);
     const duplicate_log_equation = new Equation(duplicate_log_sum, zero);
+    const duplicate_log_choices = algebra.choices(
+        duplicate_log_equation,
+        'L/0',
+        'path:L/1',
+        manual_drag_options
+    );
     assert(
-        algebra.move(
-            duplicate_log_equation,
-            'L/0',
-            'path:L/1',
-            manual_drag_options
-        ) === duplicate_log_equation,
-        'log_a(x)+log_a(x) should be a no-op when ScaleExpressions and triangle sameness disagree'
+        duplicate_log_choices.length > 1,
+        'log_a(x)+log_a(x) should expose both valid interpretations when laws disagree'
     );
 
     const squared = grouplikes.pow(x, grouplikes.constant(2));
     const ambiguous_product = grouplikes.mul([squared, squared]);
     const ambiguous_equation = new Equation(ambiguous_product, zero);
+    const ambiguous_choices = algebra.choices(
+        ambiguous_equation, 'L/0', 'path:L/1', manual_drag_options
+    );
     assert(
-        algebra.move(
-            ambiguous_equation, 'L/0', 'path:L/1', manual_drag_options
-        ) === ambiguous_equation,
-        'a^c * a^c should be a no-op when same-base and same-exponent combination disagree'
+        ambiguous_choices.length > 1,
+        'a^c * a^c should expose same-base and same-exponent combinations as choices'
+    );
+    assert(
+        ambiguous_choices.every(choice => choice.side === 'L' && choice.type === 'combine'),
+        'ambiguous power choices should retain their target side and combine type'
     );
 }
 
@@ -1743,11 +1710,11 @@ function powerTriangleComposition() {
     );
 
     const inverse_equation = new Equation(inverse_composed, grouplikes.constant(17));
-    const reduced = algebra.move(
+    const reduced = move(
         inverse_equation,
         'L/1/0',
         'path:L/1/1',
-        Object.freeze({ enabled:manual_drag_options.enabled, auto_simplify:true })
+        auto_simplify_drag_options
     );
     assert(
         reduced !== inverse_equation &&
@@ -1785,7 +1752,7 @@ function powerTriangleComposition() {
     const log_two_x = grouplikes.log(two, x);
     const scaled_log = grouplikes.mul([three, log_two_x]);
     assert(
-        expressions.combine(scaled_log, three, log_two_x).status === 'none',
+        expressions.combine(scaled_log, three, log_two_x).length === 0,
         '3*log_2(x) should no longer combine through PowerTriangleComposition'
     );
 
@@ -1797,7 +1764,7 @@ function powerTriangleComposition() {
             powered_log.contents[1],
             0,
             1
-        ).status === 'none',
+        ).length === 0,
         'log_2(x^3) should no longer distribute through PowerTriangleComposition'
     );
 }
@@ -1821,7 +1788,7 @@ function powerTriangleRootBalance() {
         'x^2 = 9 should advertise dragging the exponent across the equality'
     );
 
-    const solved = algebra.move(equation, 'L/1', 'side:R', manual_drag_options);
+    const solved = move(equation, 'L/1', 'side:R', manual_drag_options);
     assert(
         solved !== equation,
         'x^2 = 9 should be changed by the root balance drag'
@@ -1846,11 +1813,11 @@ function powerTriangleRootBalance() {
     );
     stats.moves++;
 
-    const solved_auto = algebra.move(
+    const solved_auto = move(
         equation,
         'L/1',
         'side:R',
-        Object.freeze({ enabled:manual_drag_options.enabled, auto_simplify:true })
+        auto_simplify_drag_options
     );
     assertSameExpression(
         solved_auto.right,
@@ -1899,11 +1866,10 @@ function powerTriangleRootProjection() {
     );
 
     const square_root_x = grouplikes.root(two, x);
-    const square_computed = power_triangles.computed(root_view);
     assert(
-        square_computed === 0 &&
-        power_triangles.inputs(square_computed)[0] === 1 &&
-        power_triangles.inputs(square_computed)[1] === 2,
+        power_triangles.computed(root_view) === 0 &&
+        power_triangles.inputs(root_view)[0] === 1 &&
+        power_triangles.inputs(root_view)[1] === 2,
         'root should be the base projection with exponent/result children'
     );
     assertSameExpression(
@@ -2086,7 +2052,7 @@ function powerTriangleLogInverse() {
         manual_drag_options
     );
 
-    const auto_solved = algebra.move(
+    const auto_solved = move(
         exponential_equation,
         'L/0',
         'side:R',
@@ -2136,7 +2102,7 @@ function powerTriangleLogInverse() {
 
     const variable_base_log = new Equation(grouplikes.log(x, eight), three);
     const expected_base = grouplikes.root(three, eight);
-    const solved_base = algebra.move(
+    const solved_base = move(
         variable_base_log, 'L/1', 'side:R', manual_drag_options
     );
     assert(
@@ -2159,12 +2125,12 @@ function powerTriangleLogInverse() {
     const mismatched = grouplikes.pow(two, grouplikes.log(three, x));
     const mismatched_equation = new Equation(mismatched, grouplikes.constant(17));
     assert(
-        algebra.move(
+        algebra.choices(
             mismatched_equation,
             'L/0',
             'path:L/1/0',
             manual_drag_options
-        ) === mismatched_equation,
+        ).length === 0,
         'nested inverse cancellation should require the fixed bases to match'
     );
 }
@@ -2196,8 +2162,7 @@ function multiplicativeInverse() {
         // resolver identifies their product uniquely as one.
         const combination = expressions.combine(product, a, reciprocal_a);
         if (
-            combination.status === 'resolved' &&
-            orderedExpressionKey(combination.expression) === orderedExpressionKey(one) &&
+            combination.some(expression => orderedExpressionKey(expression) === orderedExpressionKey(one)) &&
             product.type === 'mul' &&
             product.contents.length === 2 &&
             product.contents[0] === a &&
@@ -2516,8 +2481,7 @@ function distributivity() {
 ].forEach(test => test());
 
 [
-    enabledDragOperations,
-    operationToggleInvariant,
+    dragChoices,
     automaticSimplification,
     fractionPreservation,
     ringExpressionInterface,

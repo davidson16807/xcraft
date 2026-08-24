@@ -1,5 +1,3 @@
-<!-- HUMAN VETTED -->
-
 # xcraft
 
 A small browser game for building algebraic intuition. Symbols can be dragged and dropped to apply them to each side of an equation.
@@ -48,13 +46,13 @@ The page loads KaTeX and Bootstrap from jsDelivr, so those two assets require ne
 
 ## Architecture
 
-If software is implemented correctly, every drag in this application will produce an equation that logically follows from the starting equation. Invalid drops return the original equation reference and therefore do nothing. This pattern is used throughout model logic.
+If software is implemented correctly, every drag choice in this application produces an equation that logically follows from the starting equation. `EquationDragOperations.choices()` is the single model entry point for drag behavior: invalid drops return no choices, unique drops commit immediately, and ambiguous drops remain as explicit `EquationDragChoice` values until the user chooses or cancels.
 
 ```text
 scripts/
   models/
     expression/  immutable expression trees + operations, paths, and shapes
-    equation/    immutable equations + shapes and rewrite rules
+    equation/    immutable equations + drag choices, shapes, and rewrite rules
     app/         immutable AppState, history, drag-state transitions
   updaters/   messages -> new AppState
     drags/    drag interfaces

@@ -16,6 +16,7 @@
     <script src="./scripts/models/expression/Expression.js"></script>
     <script src="./scripts/models/expression/ExpressionShape.js"></script>
     <script src="./scripts/models/expression/ExpressionPaths.js"></script>
+    <script src="./scripts/models/expression/ExpressionBalance.js"></script>
     <script src="./scripts/models/expression/Expressions.js"></script>
     <script src="./scripts/models/grouplike/Grouplike.js"></script>
     <script src="./scripts/models/grouplike/Grouplikes.js"></script>
@@ -31,6 +32,9 @@
     <script src="./scripts/models/powertriangle/PowerTriangleInverse.js"></script>
     <script src="./scripts/models/ringlike/Ringlike.js"></script>
     <script src="./scripts/models/equation/Equation.js"></script>
+    <script src="./scripts/models/equation/EquationOperation.js"></script>
+    <script src="./scripts/models/equation/EquationDragPreview.js"></script>
+    <script src="./scripts/models/equation/EquationDragChoice.js"></script>
     <script src="./scripts/models/equation/Equations.js"></script>
     <script src="./scripts/models/equation/EquationDragOperations.js"></script>
     <script src="./scripts/models/equation/EquationShape.js"></script>
@@ -75,19 +79,6 @@
                 <div>Restart</div>
                 <img src="icons/rotate-ccw.svg"/>
             </button>
-
-            <button id="drag-add" type="button" class="btn operation-toggle" aria-pressed="true">
-                <div>Add</div>
-                <img src="icons/add.svg"/>
-                <div id="drag-add-indicator">On</div>
-            </button>
-
-            <button id="drag-multiply" type="button" class="btn operation-toggle" aria-pressed="true">
-                <div>Multiply</div>
-                <img src="icons/multiply.svg"/>
-                <div id="drag-multiply-indicator">On</div>
-            </button>
-
             <button id="auto-simplify" type="button" class="btn operation-toggle" aria-pressed="true">
                 <div>Simplify</div>
                 <img src="icons/equal.svg"/>
@@ -233,8 +224,10 @@
             triangle_inverse,
         ]),
     });
+    const equation_shape = EquationShape(expression_shape);
     const equation_drag_ops = EquationDragOperations({
         expression_paths: expression_paths,
+        equation_shape: equation_shape,
         equations: Equations({
             grouplikes: grouplikes,
             expression_paths: expression_paths,
@@ -242,7 +235,6 @@
             expressions: expressions,
         })
     });
-    const equation_shape = EquationShape(expression_shape);
 
     const history = AppHistoryTraversal(Infinity);
 
@@ -279,9 +271,6 @@
         html: html,
         render: katex.render,
         equation_drag_operations: equation_drag_ops,
-        expression_paths: expression_paths,
-        ringlikes: ringlikes,
-        power_triangles: power_triangles,
         expression_view: expression_view,
     });
 
@@ -299,10 +288,11 @@
             levels, 0, // levels
             levels[0].equation, // equation
             released, released.initialize(), // drag
+            [], // drag choices
             [], [], // history
             window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches?
                 'night' : 'day',
-            { enabled: new Set(['add', 'mul', 'pow', 'log', 'root', 'harmonic']), auto_simplify:true }
+            { auto_simplify:true }
         ), document
     );
 

@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 `PowerTriangleInverse` handles nested inverse relationships and balancing one

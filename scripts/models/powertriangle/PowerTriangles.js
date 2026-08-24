@@ -13,7 +13,7 @@ const PowerTriangles = (grouplikes, expression_shape) => {
     corresponding Expression projection. The null entry is the computed
     triangle vertex and therefore is absent from the Expression's contents.
     */
-    const arguments_for_tag = freeze({
+    const indices_for_tag = freeze({
         pow: freeze([0, 1, null]),
         log: freeze([0, null, 1]),
         root: freeze([null, 0, 1]),
@@ -23,19 +23,19 @@ const PowerTriangles = (grouplikes, expression_shape) => {
     const tag_for_id = freeze('root log pow'.split(' '));
 
     function from_expression(expression, promote) {
-        const args = arguments_for_tag[expression.type];
-        if (args == null) {
+        const indices = indices_for_tag[expression.type];
+        if (indices == null) {
             return promote?
                 new PowerTriangle(expression, grouplikes.constant(1), null)
               : null;
         }
-        return new PowerTriangle(...args.map(
+        return new PowerTriangle(...indices.map(
             index => index == null? null : expression.contents[index]
         ));
     }
 
     function to_expression(triangle) {
-        const values = vertices.map(vertex => triangle[vertex]);
+        const values = vertices.map(index => triangle[index]);
         const id = values.findIndex(vertex => vertex == null);
         if (id < 0 || values.filter(vertex => vertex == null).length !== 1) return null;
 
@@ -51,14 +51,14 @@ const PowerTriangles = (grouplikes, expression_shape) => {
     }
 
     /* Returns the two vertex indices that form the equivalent Expression's contents. */
-    function inputs(computed) {
-        return freeze(vertices.filter(vertex => vertex !== computed));
+    function inputs(triangle) {
+        return freeze(vertices.filter(index => triangle[index] != null));
     }
 
     /* Returns the remaining PowerTriangle index that is neither `first` nor `second`. */
     function other(first, second) {
-        const vertex = vertices.find(vertex => vertex !== first && vertex !== second);
-        return vertex == null? null : vertex;
+        const index = vertices.find(index => index !== first && index !== second);
+        return index == null? null : index;
     }
 
     /* Returns the matching uncomputed vertices between left and right, or null if no such vertex exists.*/
