@@ -19,14 +19,16 @@ function Equations(dependencies) {
 
     const freeze = Object.freeze;
 
-    function balance_operation(equation, target_side, new_source, new_target, preview_expression, operator_tag) {
+    function balance_choice(equation, target_side, new_source, new_target, expression, operator) {
         const left_right = target_side === 'L'?
             [new_target, new_source] : [new_source, new_target];
-        return freeze({
-            expression: preview_expression,
-            equation: equation.with({ left:left_right[0], right:left_right[1] }),
-            operator: operator_tag || null,
-        });
+        return new EquationDragChoice(
+            expression,
+            operator,
+            equation.with({ left:left_right[0], right:left_right[1] }),
+            target_side,
+            'balance'
+        );
     }
 
     function balance(equation, source_path, target_side) {
@@ -48,7 +50,7 @@ function Equations(dependencies) {
         if (!is_alone) {
             const source = paths.resolve(equation, source_path);
             expressions.balance(source_root, source, target_root).forEach(result =>
-                choices.push(balance_operation(
+                choices.push(balance_choice(
                     equation,
                     target_side,
                     result.source,
@@ -68,7 +70,7 @@ function Equations(dependencies) {
                 if (new_source != null && new_source !== source_root) {
                     const new_target = grouplikes.append(operation, target_root, inverse);
                     const operator = ringlikes.is_inverse(operation, inverse)? null : operation;
-                    choices.push(balance_operation(
+                    choices.push(balance_choice(
                         equation,
                         target_side,
                         new_source,
@@ -93,7 +95,7 @@ function Equations(dependencies) {
 
             const new_target = grouplikes.append(operation, target_root, inverse);
             const operator = ringlikes.is_inverse(operation, inverse)? null : operation;
-            choices.push(balance_operation(
+            choices.push(balance_choice(
                 equation,
                 target_side,
                 identity,
@@ -127,11 +129,13 @@ function Equations(dependencies) {
         const commuted = grouplikes.commute(parent, index1, index2);
         if (commuted === parent) return freeze([]);
 
-        return freeze([freeze({
-            expression: commuted,
-            equation: paths.replace(equation, parent_path, commuted),
-            operator: null,
-        })]);
+        return freeze([new EquationDragChoice(
+            commuted,
+            null,
+            paths.replace(equation, parent_path, commuted),
+            paths.split(path2).side,
+            'commute'
+        )]);
     }
 
     function combine(equation, source_path, target_path) {
@@ -161,11 +165,13 @@ function Equations(dependencies) {
 
             return freeze(expressions.strip(
                 outer, inner, outer_fixed, inner_fixed
-            ).map(replacement => freeze({
-                expression: replacement,
-                equation: paths.replace(equation, outer_path, replacement),
-                operator: null,
-            })));
+            ).map(replacement => new EquationDragChoice(
+                replacement,
+                null,
+                paths.replace(equation, outer_path, replacement),
+                paths.split(target_path).side,
+                'combine'
+            )));
         }
 
         const parent = paths.resolve(equation, source_parent_path);
@@ -177,15 +183,17 @@ function Equations(dependencies) {
         const right = source_index < target_index? target : source;
 
         return freeze(expressions.combine(parent, left, right).map(replacement =>
-            freeze({
-                expression: replacement,
-                equation: paths.replace(
+            new EquationDragChoice(
+                replacement,
+                null,
+                paths.replace(
                     equation,
                     source_parent_path,
                     grouplikes.collapse(parent, source_index, target_index, replacement)
                 ),
-                operator: null,
-            })
+                paths.split(target_path).side,
+                'combine'
+            )
         ));
     }
 
@@ -204,15 +212,17 @@ function Equations(dependencies) {
 
         return freeze(expressions.distribute(
             parent, source, target, source_index, target_index
-        ).map(replacement => freeze({
-            expression: replacement,
-            equation: paths.replace(
+        ).map(replacement => new EquationDragChoice(
+            replacement,
+            null,
+            paths.replace(
                 equation,
                 parent_path,
                 grouplikes.collapse(parent, source_index, target_index, replacement)
             ),
-            operator: null,
-        })));
+            paths.split(target_path).side,
+            'distribute'
+        )));
     }
 
     function simplify(equation) {

@@ -10,16 +10,6 @@ function EquationDragOperations(dependencies) {
     const equations = dependencies.equations;
     const equation_shape = dependencies.equation_shape;
 
-    function drag_choice(operation, side, type) {
-        return new EquationDragChoice(
-            operation.expression,
-            operation.operator,
-            operation.equation,
-            side,
-            type
-        );
-    }
-
     function distinct(choices, drag_options) {
         const results = new Map();
         choices.forEach(choice => {
@@ -46,8 +36,7 @@ function EquationDragOperations(dependencies) {
         case 'side': {
             const side = target_key.slice(5);
             return distinct(
-                equations.balance(equation, source_path, side)
-                    .map(operation => drag_choice(operation, side, 'balance')),
+                equations.balance(equation, source_path, side),
                 drag_options
             );
         }
@@ -61,18 +50,14 @@ function EquationDragOperations(dependencies) {
                 paths.is_ancestor(target_path, source_path)
             ) return Object.freeze([]);
 
-            const side = paths.split(target_path).side;
             const substantive = [
-                ...equations.combine(equation, source_path, target_path)
-                    .map(operation => drag_choice(operation, side, 'combine')),
-                ...equations.distribute(equation, source_path, target_path)
-                    .map(operation => drag_choice(operation, side, 'distribute')),
+                ...equations.combine(equation, source_path, target_path),
+                ...equations.distribute(equation, source_path, target_path),
             ];
             if (substantive.length > 0) return distinct(substantive, drag_options);
 
             return distinct(
-                equations.commute(equation, source_path, target_path)
-                    .map(operation => drag_choice(operation, side, 'commute')),
+                equations.commute(equation, source_path, target_path),
                 drag_options
             );
         }
