@@ -32,7 +32,7 @@ function EquationView(dependencies) {
     }
 
     function draw_choice(choice, index, clickable, mirror, visible) {
-        const operator = preview_operator(choice.preview.operator);
+        const operator = preview_operator(choice.operator);
         const attrs = {
             class: `drag-ghost drag-choice${mirror? ' drag-choice-mirror' : ''}${visible? ' visible' : ''}`,
         };
@@ -42,7 +42,7 @@ function EquationView(dependencies) {
             attrs['aria-hidden'] = 'true';
             return html.div(attrs, [
                 ...(operator == null? [] : [math(operator, 'math-operator')]),
-                expression_view.draw(choice.preview.expression),
+                expression_view.draw(choice.expression),
             ]);
         }
 
@@ -53,13 +53,13 @@ function EquationView(dependencies) {
             attrs['aria-label'] = `Apply ${choice.type} operation`;
             return html.button(attrs, [
                 ...(operator == null? [] : [math(operator, 'math-operator')]),
-                expression_view.draw(choice.preview.expression),
+                expression_view.draw(choice.expression),
             ]);
         }
 
         return html.div(attrs, [
             ...(operator == null? [] : [math(operator, 'math-operator')]),
-            expression_view.draw(choice.preview.expression),
+            expression_view.draw(choice.expression),
         ]);
     }
 

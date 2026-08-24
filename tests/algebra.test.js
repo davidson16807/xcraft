@@ -22,7 +22,6 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/powertriangle/PowerTriangleInverse.js',
     'scripts/models/ringlike/Ringlike.js',
     'scripts/models/equation/Equation.js',
-    'scripts/models/equation/EquationDragPreview.js',
     'scripts/models/equation/EquationDragChoice.js',
     'scripts/models/equation/EquationShape.js',
     'scripts/models/expression/ExpressionPaths.js',
@@ -658,10 +657,11 @@ ${context}`
         assert(choices.every(choice => choice instanceof EquationDragChoice),
             'drag choices: public choices should be EquationDragChoice values');
         assert(choices.every(choice =>
-            choice.preview instanceof EquationDragPreview &&
+            choice.expression != null &&
+            Object.prototype.hasOwnProperty.call(choice, 'operator') &&
             choice.side === 'R' &&
             choice.type === 'balance'
-        ), 'drag choices: choices should carry preview, target side, and drag type');
+        ), 'drag choices: choices should carry expression, operator, target side, and drag type');
     }
 
     const zero_equation = new Equation(zero, rhs);

@@ -12,7 +12,8 @@ function EquationDragOperations(dependencies) {
 
     function drag_choice(operation, side, type) {
         return new EquationDragChoice(
-            new EquationDragPreview(operation.expression, operation.operator),
+            operation.expression,
+            operation.operator,
             operation.equation,
             side,
             type
@@ -25,7 +26,13 @@ function EquationDragOperations(dependencies) {
             const equation = drag_options.auto_simplify?
                 equations.simplify(choice.equation) : choice.equation;
             const normalized = equation === choice.equation? choice :
-                new EquationDragChoice(choice.preview, equation, choice.side, choice.type);
+                new EquationDragChoice(
+                    choice.expression,
+                    choice.operator,
+                    equation,
+                    choice.side,
+                    choice.type
+                );
             const key = equation_shape.encode(normalized.equation);
             if (!results.has(key)) results.set(key, normalized);
         });

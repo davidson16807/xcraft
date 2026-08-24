@@ -1,8 +1,9 @@
 'use strict';
 
 class EquationDragChoice {
-    constructor(preview, equation, side, type) {
-        this.preview = preview;
+    constructor(expression, operator, equation, side, type) {
+        this.expression = expression;
+        this.operator = operator || null;
         this.equation = equation;
         this.side = side;
         this.type = type;
