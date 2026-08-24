@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 `EquationDragOperations.choices` is the single entry point for user drag
@@ -10,60 +11,59 @@ function EquationDragOperations(dependencies) {
     const equations = dependencies.equations;
     const equation_shape = dependencies.equation_shape;
 
-    function distinct(choices, drag_options) {
-        const results = new Map();
-        choices.forEach(choice => {
-            const equation = drag_options.auto_simplify?
-                equations.simplify(choice.equation) : choice.equation;
-            const normalized = equation === choice.equation? choice :
-                new EquationDragChoice(
-                    choice.expression,
-                    choice.operator,
-                    equation,
-                    choice.side,
-                    choice.type
-                );
-            const key = equation_shape.encode(normalized.equation);
-            if (!results.has(key)) results.set(key, normalized);
-        });
-        return Object.freeze([...results.values()]);
+    const freeze = Object.freeze;
+
+    /*
+    `format` filters out redundant choices 
+    and simplifies choices if auto_simplify is activated
+    */
+    function format(choices, drag_options) {
+        return freeze([
+            ...new Map(choices.map(choice => {
+                    const equation = drag_options.auto_simplify?
+                        equations.simplify(choice.equation) : choice.equation;
+                    const normalized = equation === choice.equation? choice :
+                        new EquationDragChoice(
+                            choice.expression,
+                            choice.operator,
+                            equation,
+                            choice.side,
+                            choice.type
+                        );
+                    return [equation_shape.encode(normalized.equation), normalized];
+                }
+            )).values()
+        ]);
     }
 
     function choices(equation, source_path, target_key, drag_options) {
-        if (source_path == null || target_key == null) return Object.freeze([]);
+        if (source_path == null || target_key == null) return freeze([]);
 
         switch(paths.domain(target_key)) {
-        case 'side': {
+        case 'side': 
             const side = target_key.slice(5);
-            return distinct(
-                equations.balance(equation, source_path, side),
-                drag_options
-            );
-        }
+            return format(equations.balance(equation, source_path, side), drag_options);
 
-        case 'path': {
+        case 'path': 
             const target_path = paths.path(target_key);
-            if (paths.resolve(equation, target_path) == null) return Object.freeze([]);
-            if (
-                source_path === target_path ||
+            // non-existant target? no-op
+            if (paths.resolve(equation, target_path) == null) return freeze([]);
+            // source and target are the same or direct descendants? no-op
+            if (source_path === target_path ||
                 paths.is_ancestor(source_path, target_path) ||
                 paths.is_ancestor(target_path, source_path)
-            ) return Object.freeze([]);
+            ) return freeze([]);
 
             const substantive = [
                 ...equations.combine(equation, source_path, target_path),
                 ...equations.distribute(equation, source_path, target_path),
             ];
-            if (substantive.length > 0) return distinct(substantive, drag_options);
-
-            return distinct(
-                equations.commute(equation, source_path, target_path),
-                drag_options
-            );
-        }
+            return substantive.length > 0? 
+                format(substantive, drag_options)
+              : format(equations.commute(equation, source_path, target_path), drag_options);
 
         default:
-            return Object.freeze([]);
+            return freeze([]);
         }
     }
 
@@ -74,18 +74,18 @@ function EquationDragOperations(dependencies) {
             `side:${other_side}`,
             ...paths.all(equation).map(path => `path:${path}`),
         ];
-        return Object.freeze(candidates.filter(target_key =>
+        return freeze(candidates.filter(target_key =>
             choices(equation, source_path, target_key, drag_options).length > 0
         ));
     }
 
     function draggable_paths(equation, drag_options) {
-        return Object.freeze(paths.all(equation).filter(path =>
+        return freeze(paths.all(equation).filter(path =>
             moves_for_source(equation, path, drag_options).length > 0
         ));
     }
 
-    return Object.freeze({
+    return freeze({
         choices,
         moves_for_source,
         draggable_paths,
