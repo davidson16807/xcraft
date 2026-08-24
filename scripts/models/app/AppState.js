@@ -1,8 +1,7 @@
 'use strict';
-// HUMAN VETTED
 
 /*
-`AppState` contains all application state.  Model values are immutable so the
+`AppState` contains all application state. Model values are immutable so the
 undo/redo stacks can store references to old states cheaply and safely.
 */
 class AppState {
@@ -15,7 +14,8 @@ class AppState {
         undo_history,
         redo_history,
         theme,
-        drag_options
+        drag_options,
+        drag_choices
     ) {
         this.levels = Object.freeze([...(levels || [])]);
         this.level_index = level_index;
@@ -25,9 +25,8 @@ class AppState {
         this.undo_history = Object.freeze([...(undo_history || [])]);
         this.redo_history = Object.freeze([...(redo_history || [])]);
         this.theme = theme || 'day';
-        this.drag_options = Object.freeze(
-            drag_options || { enabled: new Set(['add', 'mul', 'pow', 'log', 'root', 'harmonic']), auto_simplify:true }
-        );
+        this.drag_options = Object.freeze(drag_options || { auto_simplify:true });
+        this.drag_choices = Object.freeze([...(drag_choices || [])]);
         Object.freeze(this);
     }
 
@@ -42,6 +41,7 @@ class AppState {
             attributes.redo_history  != null? attributes.redo_history     : this.redo_history,
             attributes.theme         != null? attributes.theme            : this.theme,
             attributes.drag_options  != null? attributes.drag_options     : this.drag_options,
+            attributes.drag_choices  != null? attributes.drag_choices     : this.drag_choices,
         );
     }
 }

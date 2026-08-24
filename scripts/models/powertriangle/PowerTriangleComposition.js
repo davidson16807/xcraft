@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 Composition of a power-triangle projection with itself.
@@ -10,14 +9,10 @@ Computed result (power):
 Computed base (root):
     root_c(root_b(a))  <->  root_(bc)(a)
 
-or, in triangle of power notation:
-
-
     c     (bc)
  b △  =  △
   △     a
  a
-
 
    c          (bc)
    △  b   =  △
@@ -28,12 +23,6 @@ or, in triangle of power notation:
 In both cases exponent is the composition parameter. The projection's computed
 value is fed back into its remaining input, so nested projections compose by
 multiplying their exponents.
-
-Using drags, each power law is implemented by two operations:
-* a "combine" operation that combines triangles belonging to the same operation
-* a "distribute" operation that distributes the matching vertex
-  across elements of the other known vertex
-
 */
 const PowerTriangleComposition = (triangles, grouplikes) => {
     const exponent = 1;
@@ -44,10 +33,10 @@ const PowerTriangleComposition = (triangles, grouplikes) => {
         if (computed == null) return null;
 
         const recursive = triangles.other(computed, exponent);
-        const vertices = [0, 1, 2].filter(vertex => vertex !== computed);
+        const coordinates = [0, 1, 2].filter(vertex => vertex !== computed);
         const values = [null, null, null];
-        values[vertices[0]] = left;
-        values[vertices[1]] = right;
+        values[coordinates[0]] = left;
+        values[coordinates[1]] = right;
         const outer = new PowerTriangle(...values);
         const inner = triangles.from_expression(outer[recursive], false);
         if (inner == null || inner[computed] != null) return null;
@@ -68,7 +57,9 @@ const PowerTriangleComposition = (triangles, grouplikes) => {
         if (triangle[recursive] !== source || triangle[exponent] !== target) return null;
         if (target.type !== 'mul' || target.contents.length < 2) return null;
 
-        const inner = triangles.to_expression(triangle.with(exponent, target.contents[0]));
+        const inner = triangles.to_expression(triangle.with(
+            exponent, target.contents[0]
+        ));
         const outer_exponent = grouplikes.mul(target.contents.slice(1));
 
         return triangles.to_expression(

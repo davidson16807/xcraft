@@ -34,7 +34,7 @@ Here, "⊕" indicates harmonic addition such that a⊕b = 1 / (1/a + 1/b).
 Using drags, each power law is implemented by two operations:
 * a "combine" operation that combines triangles belonging to the same operation
 * a "distribute" operation that distributes the matching vertex
-  across elements of the other known vertex
+  across the operation of the other known vertex
 
 Names for drags are chosen by analogy to drags for arithmetic.
 */

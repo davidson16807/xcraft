@@ -2,10 +2,8 @@
 
 /*
 Programmatic resolver for user-facing expression operations. Mathematical
-implementations may overlap. Within one operation, interpretations are
-deduplicated structurally and resolve as none, one result, or ambiguous.
-Top-level drag priority (combine -> distribute -> commute) remains outside this
-object, but an ambiguous higher-priority operation blocks fallback.
+implementations may overlap. Every structurally distinct valid interpretation
+is preserved so the equation drag layer can present ambiguity to the user.
 */
 const Expressions = (dependencies) => {
     const grouplikes = dependencies.grouplikes;
@@ -16,23 +14,19 @@ const Expressions = (dependencies) => {
         ...(dependencies.laws || []),
     ]);
 
-    function resolve(expressions) {
+    function distinct(expressions) {
         const results = new Map();
         expressions.flatMap(expression =>
             Array.isArray(expression)? expression : [expression]
         ).filter(expression => expression != null).forEach(expression =>
             results.set(shape.encode(expression), expression)
         );
-        if (results.size === 0) return Object.freeze({ status:'none', expression:null });
-        if (results.size > 1) return Object.freeze({ status:'ambiguous', expression:null });
-        return Object.freeze({ status:'resolved', expression:[...results.values()][0] });
+        return Object.freeze([...results.values()]);
     }
 
     function combine(parent, left, right) {
-        const local = grouplikes.combine(parent.type, left, right);
-        if (local != null) return Object.freeze({ status:'resolved', expression:local });
-
-        return resolve([
+        return distinct([
+            grouplikes.combine(parent.type, left, right),
             ringlikes.combine(parent.type, left, right),
             ...laws.map(law =>
                 law.combine == null? null : law.combine(parent.type, left, right)
@@ -45,14 +39,14 @@ const Expressions = (dependencies) => {
             ringlikes.left_distribute(target.type, parent, source, target)
           : ringlikes.right_distribute(target.type, parent, target, source);
 
-        return resolve([
+        return distinct([
             legacy,
             ...laws.map(law => law.distribute == null? null : law.distribute(parent, source, target)),
         ]);
     }
 
     function cancel(outer, inner, outer_fixed, inner_fixed) {
-        return resolve(laws.map(law =>
+        return distinct(laws.map(law =>
             law.strip == null? null :
                 law.strip(outer, inner, outer_fixed, inner_fixed)
         ));
@@ -66,13 +60,16 @@ const Expressions = (dependencies) => {
             if (new_source == null) return;
             const new_target = law.append(parent, source, target);
             if (new_target == null) return;
+            const preview = law.append(parent, source, new Expression('slot'));
+            if (preview == null) return;
             const key = `${shape.encode(new_source)}=${shape.encode(new_target)}`;
-            results.set(key, Object.freeze({ source:new_source, target:new_target }));
+            results.set(key, Object.freeze({
+                source:new_source,
+                target:new_target,
+                preview:preview,
+            }));
         });
-        if (results.size === 0) return Object.freeze({ status:'none', source:null, target:null });
-        if (results.size > 1) return Object.freeze({ status:'ambiguous', source:null, target:null });
-        const result = [...results.values()][0];
-        return Object.freeze({ status:'resolved', source:result.source, target:result.target });
+        return Object.freeze([...results.values()]);
     }
 
     return Object.freeze({

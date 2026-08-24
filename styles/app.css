@@ -268,15 +268,33 @@ main {
 .equation-row {
     width: min(980px, 100%);
     min-height: 190px;
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
     align-items: center;
     justify-content: center;
-    gap: clamp(18px, 4vw, 48px);
+    column-gap: clamp(18px, 4vw, 48px);
+    row-gap: 16px;
     font-size: clamp(2rem, 6vw, 4.8rem);
 }
 
+.equation-side-left {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.equals-sign {
+    grid-column: 2;
+    grid-row: 1;
+    flex: 0 0 auto;
+}
+
+.equation-side-right {
+    grid-column: 3;
+    grid-row: 1;
+}
+
 .equation-side {
-    flex: 1 1 0;
     min-width: 0;
     min-height: 140px;
     padding: 22px 18px;
@@ -288,8 +306,31 @@ main {
     transition: background 80ms linear, border-color 80ms linear;
 }
 
-.equals-sign {
-    flex: 0 0 auto;
+.drag-ghosts-row {
+    grid-row: 2;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    width: max-content;
+    max-width: min(82vw, 720px);
+    min-height: 0;
+    align-items: center;
+}
+
+.drag-ghosts-left {
+    grid-column: 1;
+    justify-self: end;
+    justify-content: flex-end;
+}
+
+.drag-ghosts-right {
+    grid-column: 3;
+    justify-self: start;
+    justify-content: flex-start;
+}
+
+.drag-ghosts-active {
+    pointer-events: none;
 }
 
 .expression-node,
@@ -411,27 +452,57 @@ main {
 }
 
 .drag-ghost {
-    position: fixed;
-    z-index: 1000;
-    pointer-events: none;
-    transform: translate(-50%, -58%) scale(1.03);
+    position: relative;
+    z-index: 5;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: max-content;
+    min-height: 44px;
     padding: 8px 12px;
     border: 1px solid var(--hairline);
     border-radius: 8px;
     background: var(--paper);
     color: var(--ink);
     box-shadow: 0 6px 24px rgba(0,0,0,0.12);
-    font-size: clamp(1.8rem, 5vw, 3.7rem);
+    font: inherit;
+    font-size: clamp(1.35rem, 3.5vw, 2.8rem);
     opacity: 0.93;
 }
 
-.drag-ghost-origin {
+button.drag-ghost {
+    cursor: pointer;
+}
+
+button.drag-ghost:hover,
+button.drag-ghost:focus-visible {
+    outline: 2px solid var(--hairline);
+    outline-offset: 2px;
+}
+
+.drag-choice-mirror {
+    display: none;
+    pointer-events: none;
+    opacity: 0;
+}
+
+.drag-choice-mirror.visible {
+    display: inline-flex;
     opacity: 0.72;
-    transform: translate(-50%, 50%) scale(0.94);
 }
 
-.drag-ghost-current {
-    opacity: 0.93;
+.drag-choices-cancel {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid var(--hairline);
+    border-radius: 50%;
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 1.8rem;
+    line-height: 1;
+    cursor: pointer;
 }
 
 #app[data-theme="night"] .drag-ghost {

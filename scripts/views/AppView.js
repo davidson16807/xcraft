@@ -23,11 +23,7 @@ function AppView(dependencies, app_updater) {
         const theme_button = dom_io.getElementById('theme');
         const light_button = dom_io.getElementById('light');
         const dark_button = dom_io.getElementById('dark');
-        const add_button = dom_io.getElementById('drag-add');
-        const multiply_button = dom_io.getElementById('drag-multiply');
         const auto_simplify_button = dom_io.getElementById('auto-simplify');
-        const add_indicator = dom_io.getElementById('drag-add-indicator');
-        const multiply_indicator = dom_io.getElementById('drag-multiply-indicator');
         const auto_simplify_indicator = dom_io.getElementById('auto-simplify-indicator');
         const level_menu = dom_io.getElementById('level-menu');
         const solved_mark = dom_io.getElementById('solved-mark');
@@ -48,11 +44,7 @@ function AppView(dependencies, app_updater) {
         next_button.disabled = app.level_index === app.levels.length-1;
         light_button.style.display = app.theme !== 'day'? 'none' : '';
         dark_button.style.display = app.theme !== 'night'? 'none' : '';
-        add_button.setAttribute('aria-pressed', String(app.drag_options.enabled.has('add')));
-        multiply_button.setAttribute('aria-pressed', String(app.drag_options.enabled.has('mul')));
         auto_simplify_button.setAttribute('aria-pressed', String(!!app.drag_options.auto_simplify));
-        add_indicator.textContent = app.drag_options.enabled.has('add')? 'On' : 'Off';
-        multiply_indicator.textContent = app.drag_options.enabled.has('mul')? 'On' : 'Off';
         auto_simplify_indicator.textContent = app.drag_options.auto_simplify? 'On' : 'Off';
         solved_mark.classList.toggle('visible', solved);
 
@@ -70,6 +62,7 @@ function AppView(dependencies, app_updater) {
         equation_view.draw(
             app.equation,
             app.drag_type.id === DragState.symbol? app.drag_state : null,
+            app.drag_choices,
             app.drag_options,
             equation_element,
         );
@@ -85,8 +78,6 @@ function AppView(dependencies, app_updater) {
         const previous_button = dom_io.getElementById('previous-level');
         const next_button = dom_io.getElementById('next-level');
         const theme_button = dom_io.getElementById('theme');
-        const add_button = dom_io.getElementById('drag-add');
-        const multiply_button = dom_io.getElementById('drag-multiply');
         const auto_simplify_button = dom_io.getElementById('auto-simplify');
         const level_menu = dom_io.getElementById('level-menu');
 
@@ -97,68 +88,119 @@ function AppView(dependencies, app_updater) {
             }
         }
 
+        function mirror(index, visible) {
+            const ghost = equation_element.querySelector(`[data-drag-choice-mirror="${index}"]`);
+            if (ghost != null) ghost.classList.toggle('visible', visible);
+        }
+
         equation_element.addEventListener('pointerdown', event => {
             if (event.pointerType === 'mouse' && event.button !== 0) return;
             const source = event.target.closest('[data-draggable="1"]');
             if (!source || !equation_element.contains(source)) return;
             event.preventDefault();
-            dispatch(app_updater.drag_start(app, source.getAttribute('data-path'), event.clientX, event.clientY ), dom_io);
+            dispatch(app_updater.drag_start(
+                app,
+                source.getAttribute('data-path'),
+                event.clientX,
+                event.clientY
+            ));
+        });
+
+        equation_element.addEventListener('click', event => {
+            const choice = event.target.closest('[data-drag-choice]');
+            if (choice && equation_element.contains(choice)) {
+                dispatch(app_updater.drag_choose(
+                    app,
+                    Number(choice.getAttribute('data-drag-choice'))
+                ));
+                return;
+            }
+            const cancel = event.target.closest('[data-drag-choices-cancel="1"]');
+            if (cancel && equation_element.contains(cancel)) {
+                dispatch(app_updater.drag_cancel(app));
+            }
+        });
+
+        equation_element.addEventListener('pointerover', event => {
+            const choice = event.target.closest('[data-drag-choice]');
+            if (choice) mirror(choice.getAttribute('data-drag-choice'), true);
+        });
+
+        equation_element.addEventListener('pointerout', event => {
+            const choice = event.target.closest('[data-drag-choice]');
+            if (choice && !choice.contains(event.relatedTarget)) {
+                mirror(choice.getAttribute('data-drag-choice'), false);
+            }
+        });
+
+        equation_element.addEventListener('focusin', event => {
+            const choice = event.target.closest('[data-drag-choice]');
+            if (choice) mirror(choice.getAttribute('data-drag-choice'), true);
+        });
+
+        equation_element.addEventListener('focusout', event => {
+            const choice = event.target.closest('[data-drag-choice]');
+            if (choice) mirror(choice.getAttribute('data-drag-choice'), false);
         });
 
         dom_io.addEventListener('pointermove', event => {
+            if (app.drag_type.id === DragState.released) return;
             const under_pointer = dom_io.elementFromPoint(event.clientX, event.clientY);
             const target = under_pointer && under_pointer.closest('[data-valid-drop="1"]');
-            dispatch(
-                app_updater.drag_move(
-                    app,
-                    event.clientX,
-                    event.clientY,
-                    target? target.getAttribute('data-drop-key') : null
-                ),
-                dom_io
-            );
+            dispatch(app_updater.drag_move(
+                app,
+                event.clientX,
+                event.clientY,
+                target? target.getAttribute('data-drop-key') : null
+            ));
         }, { passive:true });
 
         dom_io.addEventListener('pointerup', event => {
+            if (app.drag_type.id === DragState.released) return;
             const under_pointer = dom_io.elementFromPoint(event.clientX, event.clientY);
             const target = under_pointer && under_pointer.closest('[data-valid-drop="1"]');
             dispatch(target?
-                    app_updater.drag_drop(app, target.getAttribute('data-drop-key')) :
-                    app_updater.drag_cancel(app), 
-                dom_io);
+                app_updater.drag_drop(app, target.getAttribute('data-drop-key')) :
+                app_updater.drag_cancel(app)
+            );
         });
 
-        dom_io.addEventListener('pointercancel', () => dispatch(app_updater.drag_cancel(app), dom_io));
+        dom_io.addEventListener('pointercancel', () => {
+            if (app.drag_type.id !== DragState.released) dispatch(app_updater.drag_cancel(app));
+        });
 
-        undo_button.addEventListener('click', () => dispatch(app_updater.undo(app), dom_io));
-        redo_button.addEventListener('click', () => dispatch(app_updater.redo(app), dom_io));
-        restart_button.addEventListener('click', () => dispatch(app_updater.restart(app), dom_io));
-        previous_button.addEventListener('click', () => dispatch(app_updater.last_level(app), dom_io));
-        next_button.addEventListener('click', () => dispatch(app_updater.next_level(app), dom_io));
-        theme_button.addEventListener('click', () => dispatch(app_updater.toggle_theme(app), dom_io));
-        add_button.addEventListener('click', () => dispatch(app_updater.toggle_add(app), dom_io));
-        multiply_button.addEventListener('click', () => dispatch(app_updater.toggle_multiply(app), dom_io));
-        auto_simplify_button.addEventListener('click', () => dispatch(app_updater.toggle_auto_simplify(app), dom_io));
+        undo_button.addEventListener('click', () => dispatch(app_updater.undo(app)));
+        redo_button.addEventListener('click', () => dispatch(app_updater.redo(app)));
+        restart_button.addEventListener('click', () => dispatch(app_updater.restart(app)));
+        previous_button.addEventListener('click', () => dispatch(app_updater.last_level(app)));
+        next_button.addEventListener('click', () => dispatch(app_updater.next_level(app)));
+        theme_button.addEventListener('click', () => dispatch(app_updater.toggle_theme(app)));
+        auto_simplify_button.addEventListener('click', () =>
+            dispatch(app_updater.toggle_auto_simplify(app))
+        );
 
         level_menu.addEventListener('click', event => {
             const button = event.target.closest('[data-level-index]');
             if (!button) return;
-            dispatch(app_updater.select_level(app, Number(button.getAttribute('data-level-index'))), dom_io);
+            dispatch(app_updater.select_level(
+                app,
+                Number(button.getAttribute('data-level-index'))
+            ));
         });
 
         dom_io.addEventListener('keydown', event => {
             const key = event.key.toLowerCase();
             if ((event.ctrlKey || event.metaKey) && key === 'z' && !event.shiftKey) {
                 event.preventDefault();
-                dispatch(app_updater.undo(app), dom_io);
+                dispatch(app_updater.undo(app));
             } else if (
                 (event.ctrlKey || event.metaKey) &&
                 (key === 'y' || (key === 'z' && event.shiftKey))
             ) {
                 event.preventDefault();
-                dispatch(app_updater.redo(app), dom_io);
+                dispatch(app_updater.redo(app));
             } else if (key === 'escape') {
-                dispatch(app_updater.drag_cancel(app), dom_io);
+                dispatch(app_updater.drag_cancel(app));
             }
         });
 

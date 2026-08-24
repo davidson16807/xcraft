@@ -31,6 +31,7 @@
     <script src="./scripts/models/powertriangle/PowerTriangleInverse.js"></script>
     <script src="./scripts/models/ringlike/Ringlike.js"></script>
     <script src="./scripts/models/equation/Equation.js"></script>
+    <script src="./scripts/models/equation/EquationDragChoice.js"></script>
     <script src="./scripts/models/equation/Equations.js"></script>
     <script src="./scripts/models/equation/EquationDragOperations.js"></script>
     <script src="./scripts/models/equation/EquationShape.js"></script>
@@ -74,18 +75,6 @@
             <button id="restart" type="button" class="btn">
                 <div>Restart</div>
                 <img src="icons/rotate-ccw.svg"/>
-            </button>
-
-            <button id="drag-add" type="button" class="btn operation-toggle" aria-pressed="true">
-                <div>Add</div>
-                <img src="icons/add.svg"/>
-                <div id="drag-add-indicator">On</div>
-            </button>
-
-            <button id="drag-multiply" type="button" class="btn operation-toggle" aria-pressed="true">
-                <div>Multiply</div>
-                <img src="icons/multiply.svg"/>
-                <div id="drag-multiply-indicator">On</div>
             </button>
 
             <button id="auto-simplify" type="button" class="btn operation-toggle" aria-pressed="true">
@@ -162,7 +151,7 @@
     document.getElementById('subtitle').replaceChildren(subtitles[Math.floor(Math.random()*subtitles.length)]);
 
     const expression_shape = ExpressionShape();
-    const grouplikes = Grouplikes({
+    const grouplike_structures = {
         'add': Grouplike('add', new Expression('constant', 0), 
             {
                 is_commutative: true, 
@@ -210,7 +199,9 @@
                 0
             )
         ),
-    });
+    };
+    const grouplike_operations = Object.freeze(Object.keys(grouplike_structures));
+    const grouplikes = Grouplikes(grouplike_structures);
     const scales = Scales(grouplikes, expression_shape);
     const scale_expressions = ScaleExpressions(grouplikes, scales);
     const powers = Powers(grouplikes, expression_shape);
@@ -233,16 +224,18 @@
             triangle_inverse,
         ]),
     });
+    const equation_shape = EquationShape(expression_shape);
     const equation_drag_ops = EquationDragOperations({
         expression_paths: expression_paths,
+        equation_shape: equation_shape,
         equations: Equations({
             grouplikes: grouplikes,
             expression_paths: expression_paths,
             ringlikes: ringlikes,
             expressions: expressions,
+            balance_operations: grouplike_operations,
         })
     });
-    const equation_shape = EquationShape(expression_shape);
 
     const history = AppHistoryTraversal(Infinity);
 
@@ -280,8 +273,6 @@
         render: katex.render,
         equation_drag_operations: equation_drag_ops,
         expression_paths: expression_paths,
-        ringlikes: ringlikes,
-        power_triangles: power_triangles,
         expression_view: expression_view,
     });
 
@@ -302,7 +293,7 @@
             [], [], // history
             window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches?
                 'night' : 'day',
-            { enabled: new Set(['add', 'mul', 'pow', 'log', 'root', 'harmonic']), auto_simplify:true }
+            { auto_simplify:true }
         ), document
     );
 
