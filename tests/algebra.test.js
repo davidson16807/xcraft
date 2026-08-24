@@ -15,6 +15,7 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/ringlike/ScaleExpressions.js',
     'scripts/models/ringlike/Power.js',
     'scripts/models/ringlike/Powers.js',
+    'scripts/models/ringlike/PowerExpressions.js',
     'scripts/models/powertriangle/PowerTriangle.js',
     'scripts/models/powertriangle/PowerTriangles.js',
     'scripts/models/powertriangle/PowerTriangleSameness.js',
@@ -123,7 +124,7 @@ const triangle_composition = PowerTriangleComposition(power_triangles, grouplike
 const triangle_inverse = PowerTriangleInverse(power_triangles, expression_shape);
 const ringlikes = Ringlikes({
     add: scale_expressions,
-    mul: powers,
+    mul: PowerExpressions(grouplikes, powers),
 });
 const equation_shape = EquationShape(expression_shape);
 const paths = ExpressionPaths(grouplikes);

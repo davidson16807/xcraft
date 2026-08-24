@@ -38,6 +38,11 @@ const Powers = (grouplikes, expression_shape) => {
         return new Power(power.base, -power.power, power.key);
     }
 
+    function combine(left, right) {
+        if (left.key !== right.key) return null;
+        return new Power(left.base, left.power + right.power, left.key);
+    }
+
     function inverse(expression) {
         if (expression.type === 'constant' && expression.contents === 0) return null;
         if (expression.type === 'constant' && expression.contents === 1) return expression;
@@ -52,6 +57,7 @@ const Powers = (grouplikes, expression_shape) => {
         from_expression,
         to_expression,
         invert,
+        combine,
         inverse,
         is_inverse,
     });

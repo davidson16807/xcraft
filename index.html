@@ -24,6 +24,7 @@
     <script src="./scripts/models/ringlike/ScaleExpressions.js"></script>
     <script src="./scripts/models/ringlike/Power.js"></script>
     <script src="./scripts/models/ringlike/Powers.js"></script>
+    <script src="./scripts/models/ringlike/PowerExpressions.js"></script>
     <script src="./scripts/models/powertriangle/PowerTriangle.js"></script>
     <script src="./scripts/models/powertriangle/PowerTriangles.js"></script>
     <script src="./scripts/models/powertriangle/PowerTriangleSameness.js"></script>
@@ -149,7 +150,6 @@
     ];
     document.getElementById('subtitle').replaceChildren(subtitles[Math.floor(Math.random()*subtitles.length)]);
 
-    const expression_shape = ExpressionShape();
     const grouplikes = Grouplikes({
         'add': Grouplike('add', new Expression('constant', 0), 
             {
@@ -199,14 +199,15 @@
             )
         ),
     });
-    const powers = Powers(grouplikes, expression_shape);
-    const power_triangles = PowerTriangles(grouplikes, expression_shape);
+
+    const expression_shape = ExpressionShape();
     const ringlikes = Ringlikes({
         add: ScaleExpressions(grouplikes, 
                 Scales(grouplikes, expression_shape)),
-        mul: powers,
+        mul: PowerExpressions(grouplikes, 
+                Powers(grouplikes, expression_shape)),
     });
-    const expression_paths = ExpressionPaths(grouplikes);
+    const power_triangles = PowerTriangles(grouplikes, expression_shape);
     const expressions = Expressions({
         grouplikes: grouplikes,
         ringlikes: ringlikes,
@@ -217,6 +218,8 @@
             PowerTriangleInverse(power_triangles, expression_shape),
         ]),
     });
+
+    const expression_paths = ExpressionPaths(grouplikes);
     const equation_shape = EquationShape(expression_shape);
     const equation_drag_ops = EquationDragOperations({
         expression_paths: expression_paths,
