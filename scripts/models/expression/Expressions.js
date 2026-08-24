@@ -13,7 +13,8 @@ const Expressions = (dependencies) => {
 
     const grouplikes = dependencies.grouplikes;
     const ringlikes = dependencies.ringlikes;
-    const laws = Object.freeze(dependencies.laws || []);
+    const invertibles = Object.freeze(dependencies.invertibles || []);
+    const equivalences = Object.freeze(dependencies.equivalences || []);
 
     function _distinct(expressions) {
         const results = new Map();
@@ -29,8 +30,8 @@ const Expressions = (dependencies) => {
         return _distinct([
             grouplikes.combine(parent.type, left, right),
             ringlikes.combine(parent.type, left, right),
-            ...laws.map(law =>
-                law.combine && law.combine(parent.type, left, right)
+            ...equivalences.map(equivalence =>
+                equivalence.combine(parent.type, left, right)
             ),
         ]);
     }
@@ -43,27 +44,26 @@ const Expressions = (dependencies) => {
 
         return _distinct([
             ringlikes[operation](target.type, parent, left, right),
-            ...laws.map(law =>
-                law[operation] && law[operation](parent, left, right)
+            ...equivalences.map(equivalence =>
+                equivalence[operation](parent, left, right)
             ),
         ]);
     }
 
     function strip(outer, inner, outer_fixed, inner_fixed) {
-        return _distinct(laws.map(law =>
-            law.strip && law.strip(outer, inner, outer_fixed, inner_fixed)
+        return _distinct(invertibles.map(invertible =>
+            invertible.strip(outer, inner, outer_fixed, inner_fixed)
         ));
     }
 
     function balance(parent, source, target) {
         const results = new Map();
-        laws.forEach(law => {
-            if (law.cancel == null || law.append == null) return;
-            const new_source = law.cancel(parent, source);
+        invertibles.forEach(invertible => {
+            const new_source = invertible.cancel(parent, source);
             if (new_source == null) return;
-            const new_target = law.append(parent, source, target);
+            const new_target = invertible.append(parent, source, target);
             if (new_target == null) return;
-            const preview = law.append(parent, source, new Expression('slot'));
+            const preview = invertible.append(parent, source, new Expression('slot'));
             if (preview == null) return;
             const key = `${shape.encode(new_source)}=${shape.encode(new_target)}`;
             results.set(key, Object.freeze({

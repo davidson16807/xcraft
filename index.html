@@ -213,10 +213,12 @@
         expression_shape: expression_shape,
         grouplikes: grouplikes,
         ringlikes: ringlikes,
-        laws: Object.freeze([
+        invertibles: Object.freeze([
+            PowerTriangleInverse(power_triangles, expression_shape),
+        ]),
+        equivalences: Object.freeze([
             PowerTriangleSameness(power_triangles, grouplikes),
             PowerTriangleComposition(power_triangles, grouplikes),
-            PowerTriangleInverse(power_triangles, expression_shape),
         ]),
     });
 

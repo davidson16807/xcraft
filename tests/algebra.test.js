@@ -132,10 +132,12 @@ const expressions = Expressions({
     grouplikes: grouplikes,
     ringlikes: ringlikes,
     expression_shape: expression_shape,
-    laws: Object.freeze([
+    invertibles: Object.freeze([
+        triangle_inverse,
+    ]),
+    equivalences: Object.freeze([
         triangle_sameness,
         triangle_composition,
-        triangle_inverse,
     ]),
 });
 const equations = Equations({
