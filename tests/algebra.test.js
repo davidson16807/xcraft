@@ -15,11 +15,17 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/ringlike/ScaleExpressions.js',
     'scripts/models/ringlike/Power.js',
     'scripts/models/ringlike/Powers.js',
-    'scripts/models/ringlike/PowerExpressions.js',
-    'scripts/models/ringlike/Ringlike.js',
+    'scripts/models/powertriangle/PowerTriangle.js',
+    'scripts/models/powertriangle/PowerTriangles.js',
+    'scripts/models/powertriangle/PowerTriangleSameness.js',
+    'scripts/models/powertriangle/PowerTriangleComposition.js',
+    'scripts/models/powertriangle/PowerTriangleInverse.js',
+    'scripts/models/ringlike/Ringlikes.js',
     'scripts/models/equation/Equation.js',
+    'scripts/models/equation/EquationDragChoice.js',
     'scripts/models/equation/EquationShape.js',
     'scripts/models/expression/ExpressionPaths.js',
+    'scripts/models/expression/Expressions.js',
     'scripts/models/equation/Equations.js',
     'scripts/models/equation/EquationDragOperations.js',
     'scripts/models/app/AppState.js',
@@ -41,10 +47,13 @@ const grouplikes = Grouplikes({
     'add': Grouplike(
         'add',
         new Expression('constant', 0),
-        new Expression('constant', 0),
-        true,
-        true,
-        true,
+        {
+            is_commutative: true,
+            is_associative: true,
+            is_invertible: true,
+            is_left_cancellative: true,
+            is_right_cancellative: true,
+        },
         evaluate => expression => expression.contents.reduce(
             (accumulator, item) => accumulator + evaluate(item),
             0
@@ -53,10 +62,13 @@ const grouplikes = Grouplikes({
     'mul': Grouplike(
         'mul',
         new Expression('constant', 1),
-        new Expression('constant', 1),
-        true,
-        true,
-        true,
+        {
+            is_commutative: true,
+            is_associative: true,
+            is_invertible: true,
+            is_left_cancellative: true,
+            is_right_cancellative: true,
+        },
         evaluate => expression => expression.contents.reduce(
             (accumulator, item) => accumulator * evaluate(item),
             1
@@ -64,34 +76,76 @@ const grouplikes = Grouplikes({
     ),
     'pow': Grouplike(
         'pow',
-        undefined,
         new Expression('constant', 1),
-        false,
-        false,
-        false,
+        {
+            is_right_cancellative: true,
+        },
         evaluate => expression => Math.pow(
             evaluate(expression.contents[0]),
             evaluate(expression.contents[1])
+        )
+    ),
+    'log': Grouplike(
+        'log',
+        undefined,
+        {},
+        evaluate => expression => Math.log(evaluate(expression.contents[1])) /
+            Math.log(evaluate(expression.contents[0]))
+    ),
+    'root': Grouplike(
+        'root',
+        undefined,
+        {},
+        evaluate => expression => Math.pow(
+            evaluate(expression.contents[1]),
+            1 / evaluate(expression.contents[0])
+        )
+    ),
+    'harmonic': Grouplike(
+        'harmonic',
+        undefined,
+        {
+            is_commutative: true,
+            is_associative: true,
+        },
+        evaluate => expression => 1 / expression.contents.reduce(
+            (sum, item) => sum + 1 / evaluate(item),
+            0
         )
     ),
 });
 const scales = Scales(grouplikes, expression_shape);
 const scale_expressions = ScaleExpressions(grouplikes, scales);
 const powers = Powers(grouplikes, expression_shape);
-const power_expressions = PowerExpressions(grouplikes, powers);
-const ringlikes = Ringlike({
+const power_triangles = PowerTriangles(grouplikes, expression_shape);
+const triangle_sameness = PowerTriangleSameness(power_triangles, grouplikes);
+const triangle_composition = PowerTriangleComposition(power_triangles, grouplikes);
+const triangle_inverse = PowerTriangleInverse(power_triangles, expression_shape);
+const ringlikes = Ringlikes({
     add: scale_expressions,
-    mul: power_expressions,
+    mul: powers,
 });
 const equation_shape = EquationShape(expression_shape);
 const paths = ExpressionPaths(grouplikes);
+const expressions = Expressions({
+    grouplikes: grouplikes,
+    ringlikes: ringlikes,
+    expression_shape: expression_shape,
+    laws: Object.freeze([
+        triangle_sameness,
+        triangle_composition,
+        triangle_inverse,
+    ]),
+});
 const equations = Equations({
     grouplikes: grouplikes,
     ringlikes: ringlikes,
     expression_paths: paths,
+    expressions: expressions,
 });
 const algebra = EquationDragOperations({
     expression_paths: paths,
+    equation_shape: equation_shape,
     equations: equations,
 });
 const levels = Levels(grouplikes);
@@ -104,22 +158,8 @@ const app_updater = AppUpdater({
     equation_shape: equation_shape,
 });
 
-const manual_drag_options = Object.freeze({
-    enabled: new Set(['add', 'mul', 'pow']),
-    auto_simplify: false,
-});
-const auto_simplify_drag_options = Object.freeze({
-    enabled: new Set(['add', 'mul', 'pow']),
-    auto_simplify: true,
-});
-const add_only_drag_options = Object.freeze({
-    enabled: new Set(['add', 'pow']),
-    auto_simplify: false,
-});
-const multiply_only_drag_options = Object.freeze({
-    enabled: new Set(['mul', 'pow']),
-    auto_simplify: false,
-});
+const manual_drag_options = Object.freeze({ auto_simplify:false });
+const auto_simplify_drag_options = Object.freeze({ auto_simplify:true });
 
 function assert(condition, message) {
     if (!condition) throw new Error(message);
@@ -135,9 +175,9 @@ function assertShape(actual, expected, message) {
 }
 
 function move(equation, source, target, drag_options) {
-    const updated = algebra.move(equation, source, target, drag_options);
-    assert(updated !== equation, `move should be valid: ${source} -> ${target}`);
-    return updated;
+    const choices = algebra.choices(equation, source, target, drag_options);
+    assert(choices.length > 0, `move should be valid: ${source} -> ${target}`);
+    return choices[0].equation;
 }
 
 // -----------------------------------------------------------------------------
@@ -232,6 +272,31 @@ function solveLevel10() {
     assertShape(q, levels[9].goal, 'level 10');
 }
 
+
+function solvePowerTriangleLevels() {
+    const cases = [
+        [26, 'L/0', 'side:R'],                 // 2^x = 8 -> x = log_2(8)
+        [27, 'L/0', 'side:R'],                 // log_2(x) = 3 -> x = 2^3
+        [28, 'L/0', 'path:L/1/0'],             // 2^log_2(x) -> x
+        [29, 'L/0', 'path:L/1/0'],             // log_2(2^x) -> x
+        [30, 'L/0', 'path:L/1'],               // sqrt(x)sqrt(y) -> sqrt(xy)
+        [31, 'L/0', 'path:L/1'],               // a^(1/x)a^(1/y) -> a^(1/x+1/y)
+        [32, 'L/0', 'path:L/1'],               // log_2(x)+log_2(y) -> log_2(xy)
+        [33, 'L/0', 'path:L/1'],               // log_2(xy) -> log_2(x)+log_2(y)
+        [34, 'L/1', 'side:R'],                  // log_x(8)=3 -> x=8^(1/3)
+        [35, 'L/0', 'path:L/1'],               // log_x(a)||log_y(a) -> log_(xy)(a)
+        [36, 'L/1', 'path:L/0'],               // log_(xy)(a) -> log_x(a)||log_y(a)
+        [37, 'L/0', 'path:L/1'],               // root_3(root_2(x)) -> root_6(x)
+        [38, 'L/1', 'path:L/0'],               // root_6(x) -> root_3(root_2(x))
+        [39, 'L/1', 'path:L/0'],               // root_(2*3*a)(x) -> root_(3*a)(root_2(x))
+    ];
+
+    cases.forEach(([index, source, target]) => {
+        const q = move(levels[index].equation, source, target, manual_drag_options);
+        assertShape(q, levels[index].goal, `level ${index+1}: ${levels[index].title}`);
+    });
+}
+
 // -----------------------------------------------------------------------------
 // Property-test vocabulary and cases
 // -----------------------------------------------------------------------------
@@ -312,8 +377,11 @@ function orderedExpressionKey(expression) {
         case 'constant': return `C(${expression.contents})`;
         case 'variable': return `V(${expression.contents})`;
         case 'pow': return `P(${orderedExpressionKey(expression.contents[0])},${orderedExpressionKey(expression.contents[1])})`;
+        case 'log': return `L(${orderedExpressionKey(expression.contents[0])},${orderedExpressionKey(expression.contents[1])})`;
+        case 'root': return `R(${orderedExpressionKey(expression.contents[0])},${orderedExpressionKey(expression.contents[1])})`;
         case 'add': return `A(${expression.contents.map(orderedExpressionKey).join(',')})`;
         case 'mul': return `M(${expression.contents.map(orderedExpressionKey).join(',')})`;
+        case 'harmonic': return `H(${expression.contents.map(orderedExpressionKey).join(',')})`;
         default: return `${expression.type}(?)`;
     }
 }
@@ -426,20 +494,32 @@ function assertMoveTransforms(before, source, target, expected, property, contex
 
     assert(
         advertised.includes(target),
-        `${property}: expected move was not advertised\n`+
-        `${context}\nsource: ${source}\ntarget: ${target}\n`+
+        `${property}: expected move was not advertised
+`+
+        `${context}
+source: ${source}
+target: ${target}
+`+
         `advertised: ${advertised.join(', ')}`
     );
 
-    const updated = algebra.move(equation, source, target, drag_options);
+    const choices = algebra.choices(equation, source, target, drag_options);
+    const updated_choice = choices.find(choice =>
+        orderedExpressionKey(choice.equation.left) === orderedExpressionKey(expected) &&
+        orderedExpressionKey(choice.equation.right) === orderedExpressionKey(sentinel)
+    );
     assert(
-        updated !== equation,
-        `${property}: advertised move returned the original equation\n${context}`
+        updated_choice != null,
+        `${property}: expected expression was not among drag choices
+${context}`
     );
 
+    const updated = updated_choice.equation;
     assertSameExpression(updated.left, expected, property, context);
-    assertSameExpression(updated.right, sentinel, property, `${context}\nright side changed`);
-    assertExpressionsEquivalent(before, updated.left, property, `${context}\nmove semantics`, where);
+    assertSameExpression(updated.right, sentinel, property, `${context}
+right side changed`);
+    assertExpressionsEquivalent(before, updated.left, property, `${context}
+move semantics`, where);
     stats.moves++;
 }
 
@@ -490,20 +570,31 @@ function assertEquationMoveTransforms(before, source, target, expected, property
     const advertised = algebra.moves_for_source(before, source, drag_options);
     assert(
         advertised.includes(target),
-        `${property}: expected balance move was not advertised\n`+
-        `${context}\nsource: ${source}\ntarget: ${target}\n`+
+        `${property}: expected balance move was not advertised
+`+
+        `${context}
+source: ${source}
+target: ${target}
+`+
         `advertised: ${advertised.join(', ')}`
     );
 
-    const updated = algebra.move(before, source, target, drag_options);
+    const expected_key = equation_shape.encode(expected);
+    const updated_choice = algebra.choices(before, source, target, drag_options)
+        .find(choice => equation_shape.encode(choice.equation) === expected_key);
     assert(
-        updated !== before,
-        `${property}: advertised balance move returned the original equation\n${context}`
+        updated_choice != null,
+        `${property}: expected equation was not among drag choices
+${context}`
     );
 
-    assertSameExpression(updated.left, expected.left, property, `${context}\nleft side`);
-    assertSameExpression(updated.right, expected.right, property, `${context}\nright side`);
-    assertEquationsEquivalent(before, updated, property, `${context}\nmove semantics`, where);
+    const updated = updated_choice.equation;
+    assertSameExpression(updated.left, expected.left, property, `${context}
+left side`);
+    assertSameExpression(updated.right, expected.right, property, `${context}
+right side`);
+    assertEquationsEquivalent(before, updated, property, `${context}
+move semantics`, where);
     stats.moves++;
 }
 
@@ -521,174 +612,170 @@ function forEachTriple(callback) {
 }
 
 // -----------------------------------------------------------------------------
-// Enabled drag operations
-// Only enabled operations are draggable. A lone root is draggable only when
-// exactly one enabled operation admits a valid inverse/identity rewrite, which
-// supplies its otherwise-ambiguous additive or multiplicative meaning.
+// Drag choices
+// Ambiguous drags remain draggable and expose every distinct valid operation.
+// Lone-side drags enumerate ordinary inverse-capable grouplike operations.
 // -----------------------------------------------------------------------------
 
-function enabledDragOperations() {
+function dragChoices() {
     const rhs = grouplikes.constant(2);
 
     for (const a of [x, grouplikes.constant(2)]) {
         const equation = new Equation(a, rhs);
         const context = `lone expression a = ${describeCase(a)}`;
+        const choices = algebra.choices(equation, 'L', 'side:R', manual_drag_options);
 
         assert(
-            algebra.moves_for_source(equation, 'L', manual_drag_options).length === 0,
-            `enabled drag operations: lone expression should be ambiguous when add and mul are enabled\n${context}`
+            choices.length === 2,
+            `drag choices: lone expression should offer additive and multiplicative balance
+${context}`
         );
         assert(
-            !algebra.draggable_paths(equation, manual_drag_options).includes('L'),
-            `enabled drag operations: ambiguous lone expression should not be draggable\n${context}`
+            algebra.moves_for_source(equation, 'L', manual_drag_options).includes('side:R') &&
+            algebra.draggable_paths(equation, manual_drag_options).includes('L'),
+            `drag choices: ambiguous lone expression should remain draggable
+${context}`
         );
 
-        assertEquationMoveTransforms(
-            equation,
-            'L',
-            'side:R',
-            new Equation(
+        const keys = new Set(choices.map(choice => equation_shape.encode(choice.equation)));
+        assert(
+            keys.has(equation_shape.encode(new Equation(
                 zero,
                 grouplikes.add([rhs, ringlikes.inverse('add', a)])
-            ),
-            'enabled drag operations',
-            `${context}\nadd only`,
-            variables => isDefined(a, variables),
-            add_only_drag_options
+            ))),
+            `drag choices: lone expression should include additive balance
+${context}`
         );
-
-        assertEquationMoveTransforms(
-            equation,
-            'L',
-            'side:R',
-            new Equation(
+        assert(
+            keys.has(equation_shape.encode(new Equation(
                 one,
                 grouplikes.mul([rhs, ringlikes.inverse('mul', a)])
-            ),
-            'enabled drag operations',
-            `${context}\nmultiply only`,
-            variables => isDefinedNonzero(a, variables),
-            multiply_only_drag_options
+            ))),
+            `drag choices: lone expression should include multiplicative balance
+${context}`
         );
+        assert(choices.every(choice => choice instanceof EquationDragChoice),
+            'drag choices: public choices should be EquationDragChoice values');
+        assert(choices.every(choice =>
+            choice.expression != null &&
+            Object.prototype.hasOwnProperty.call(choice, 'operator') &&
+            choice.side === 'R' &&
+            choice.type === 'balance'
+        ), 'drag choices: choices should carry expression, operator, target side, and drag type');
     }
 
-    const sum = new Equation(grouplikes.add([x, grouplikes.constant(3)]), rhs);
-    assert(
-        algebra.move(sum, 'L/0', 'side:R', multiply_only_drag_options) === sum,
-        'enabled drag operations: additive drag should be a no-op when add is disabled'
-    );
-    assert(
-        !algebra.moves_for_source(sum, 'L/0', multiply_only_drag_options).includes('side:R'),
-        'enabled drag operations: disabled additive drag should not be advertised'
-    );
-
-    const product = new Equation(grouplikes.mul([grouplikes.constant(3), x]), rhs);
-    assert(
-        algebra.move(product, 'L/1', 'side:R', add_only_drag_options) === product,
-        'enabled drag operations: multiplicative drag should be a no-op when mul is disabled'
-    );
-    assert(
-        !algebra.moves_for_source(product, 'L/1', add_only_drag_options).includes('side:R'),
-        'enabled drag operations: disabled multiplicative drag should not be advertised'
-    );
-
     const zero_equation = new Equation(zero, rhs);
-    assertEquationMoveTransforms(
-        zero_equation,
+    assert(
+        algebra.choices(zero_equation, 'L', 'side:R', manual_drag_options).length === 1,
+        'drag choices: zero should only admit additive lone-side balance'
+    );
+
+    // A lone reciprocal must expose multiplication so denominators can move
+    // across the equality even when no Add/Multiply mode has been selected.
+    const reciprocal_x = ringlikes.inverse('mul', x);
+    const denominator_equation = new Equation(reciprocal_x, rhs);
+    const denominator_choices = algebra.choices(
+        denominator_equation,
         'L',
         'side:R',
-        new Equation(zero, grouplikes.add([rhs, zero])),
-        'enabled drag operations',
-        'only the additive interpretation of zero is valid even when add and mul are enabled',
-        () => true,
         manual_drag_options
     );
     assert(
-        algebra.move(zero_equation, 'L', 'side:R', multiply_only_drag_options) === zero_equation,
-        'enabled drag operations: zero must not be draggable multiplicatively'
+        denominator_choices.some(choice =>
+            orderedExpressionKey(choice.equation.left) === orderedExpressionKey(one) &&
+            orderedExpressionKey(choice.equation.right) ===
+                orderedExpressionKey(grouplikes.mul([rhs, x]))
+        ),
+        'drag choices: a lone denominator should be movable multiplicatively across equality'
     );
 
-    // Verify the same options make it through AppUpdater -> AppDragOperations
-    // -> EquationDrags rather than only working through direct algebra calls.
-    const released = equation_drags.release();
-    const make_app = drag_options => new AppState(
-        levels,
-        0,
-        new Equation(x, rhs),
-        released,
-        released.initialize(),
-        [],
-        [],
-        'day',
-        drag_options
+    // Substantive algebraic operations take precedence over commutation. In
+    // particular, distributing a reciprocal across a sum must not also offer
+    // a visually unchanged commuted fraction.
+    const two = grouplikes.constant(2);
+    const three = grouplikes.constant(3);
+    const fraction_equation = new Equation(
+        grouplikes.div(grouplikes.add([x, two]), three),
+        rhs
     );
-
-    const ambiguous_app = make_app(manual_drag_options);
+    const fraction_choices = algebra.choices(
+        fraction_equation,
+        'L/1',
+        'path:L/0',
+        manual_drag_options
+    );
     assert(
-        app_updater.drag_start(ambiguous_app, 'L', 0, 0) === ambiguous_app,
-        'enabled drag operations: AppUpdater should not start an ambiguous root drag'
+        fraction_choices.length === 1 && fraction_choices[0].type === 'distribute',
+        'drag choices: distribution should suppress an otherwise valid commute choice'
+    );
+    assertShape(
+        fraction_choices[0].equation,
+        new Equation(grouplikes.add([
+            grouplikes.div(x, three),
+            grouplikes.div(two, three),
+        ]), rhs),
+        'drag choices: reciprocal distribution should produce x/3 + 2/3'
     );
 
-    const additive_app = make_app(add_only_drag_options);
-    const additive_drag = app_updater.drag_start(additive_app, 'L', 0, 0);
-    assert(additive_drag !== additive_app,
-        'enabled drag operations: AppUpdater should start an Add-only root drag');
-    const additive_drop = app_updater.drag_drop(additive_drag, 'side:R');
-    assertSameExpression(additive_drop.equation.left, zero,
-        'enabled drag operations', 'AppUpdater Add-only root drag');
+    // Commutation remains available for aesthetic rearrangement when no
+    // substantive combine or distribute operation applies.
+    const y = grouplikes.variable('y');
+    const commute_only = algebra.choices(
+        new Equation(grouplikes.add([x, y]), rhs),
+        'L/0',
+        'path:L/1',
+        manual_drag_options
+    );
+    assert(
+        commute_only.length === 1 && commute_only[0].type === 'commute',
+        'drag choices: commute should remain available when it is the only operation'
+    );
 
-    const multiplicative_app = make_app(multiply_only_drag_options);
-    const multiplicative_drag = app_updater.drag_start(multiplicative_app, 'L', 0, 0);
-    assert(multiplicative_drag !== multiplicative_app,
-        'enabled drag operations: AppUpdater should start a Multiply-only root drag');
-    const multiplicative_drop = app_updater.drag_drop(multiplicative_drag, 'side:R');
-    assertSameExpression(multiplicative_drop.equation.left, one,
-        'enabled drag operations', 'AppUpdater Multiply-only root drag');
-}
-
-// -----------------------------------------------------------------------------
-// Operation toggle invariant
-// At least one of add/mul is always enabled, and unrelated drag options survive.
-// -----------------------------------------------------------------------------
-
-function operationToggleInvariant() {
+    // App state keeps multiple choices after drop, commits only when one is
+    // chosen, and does not put the pending-choice state in history.
     const released = equation_drags.release();
-    const make_app = enabled => new AppState(
+    const original = new Equation(x, rhs);
+    let app = new AppState(
         levels,
         0,
-        levels[0].equation,
+        original,
         released,
         released.initialize(),
         [],
         [],
+        [],
         'day',
-        { enabled:enabled, auto_simplify:false }
+        manual_drag_options
     );
 
-    let app = make_app(new Set(['add', 'mul', 'pow']));
-    app = app_updater.toggle_add(app);
-    assert(!app.drag_options.enabled.has('add') && app.drag_options.enabled.has('mul'),
-        'operation toggle invariant: disabling Add from both should leave Multiply enabled');
-    assert(app.drag_options.auto_simplify === false,
-        'operation toggle invariant: toggling operations should preserve auto_simplify');
+    app = app_updater.drag_start(app, 'L', 0, 0);
+    assert(app.drag_type.id === DragState.symbol,
+        'drag choices: ambiguous lone drag should start normally');
+    app = app_updater.drag_move(app, 10, 10, 'side:R');
+    assert(app.drag_choices.length === 2,
+        'drag choices: movement should populate all current choices');
+    const pending = app_updater.drag_drop(app, 'side:R');
+    assert(pending.drag_type.id === DragState.released && pending.drag_choices.length === 2,
+        'drag choices: ambiguous drop should release the pointer and preserve choices');
+    assert(pending.equation === original && pending.undo_history.length === 0,
+        'drag choices: pending ambiguity must not modify equation history');
 
-    app = app_updater.toggle_multiply(app);
-    assert(app.drag_options.enabled.has('add') && !app.drag_options.enabled.has('mul'),
-        'operation toggle invariant: disabling the last enabled operation should switch to the other operation');
+    const chosen = app_updater.drag_choose(pending, 0);
+    assert(chosen.drag_choices.length === 0 && chosen.undo_history.length === 1,
+        'drag choices: choosing should commit once and clear choices');
 
-    app = app_updater.toggle_multiply(app);
-    assert(app.drag_options.enabled.has('add') && app.drag_options.enabled.has('mul'),
-        'operation toggle invariant: enabling an inactive operation should enable both');
-
-    app = app_updater.toggle_multiply(app);
-    assert(app.drag_options.enabled.has('add') && !app.drag_options.enabled.has('mul'),
-        'operation toggle invariant: disabling Multiply from both should leave Add enabled');
-
-    app = app_updater.toggle_add(app);
-    assert(!app.drag_options.enabled.has('add') && app.drag_options.enabled.has('mul'),
-        'operation toggle invariant: disabling the last Add should switch to Multiply');
-    assert(app.drag_options.enabled.has('pow'),
-        'operation toggle invariant: toggling Add/Multiply should preserve unrelated enabled operations');
+    const pending_again = app_updater.drag_drop(
+        app_updater.drag_move(
+            app_updater.drag_start(chosen.with({ equation:original, undo_history:[] }), 'L', 0, 0),
+            10,
+            10,
+            'side:R'
+        ),
+        'side:R'
+    );
+    const cancelled = app_updater.drag_cancel(pending_again);
+    assert(cancelled.equation === original && cancelled.drag_choices.length === 0,
+        'drag choices: cancel should clear pending choices without changing the equation');
 }
 
 // -----------------------------------------------------------------------------
@@ -701,7 +788,7 @@ function automaticSimplification() {
     const minus_one = grouplikes.constant(-1);
     const unsimplified = grouplikes.add([seven, minus_one]);
 
-    const manual = algebra.move(
+    const manual = move(
         new Equation(grouplikes.add([x, one]), seven),
         'L/1',
         'side:R',
@@ -714,7 +801,7 @@ function automaticSimplification() {
         'disabled should preserve the arithmetic expression'
     );
 
-    const automatic = algebra.move(
+    const automatic = move(
         new Equation(grouplikes.add([x, one]), seven),
         'L/1',
         'side:R',
@@ -760,7 +847,7 @@ function automaticSimplification() {
 
     const invalid = new Equation(unsimplified, x);
     assert(
-        algebra.move(invalid, 'R', 'path:R', auto_simplify_drag_options) === invalid,
+        algebra.choices(invalid, 'R', 'path:R', auto_simplify_drag_options).length === 0,
         'automatic simplification: an invalid drag must not simplify unrelated arithmetic'
     );
 
@@ -774,6 +861,7 @@ function automaticSimplification() {
         original_equation,
         released,
         released.initialize(),
+        [],
         [],
         [],
         'day',
@@ -805,8 +893,6 @@ function automaticSimplification() {
     app = app_updater.toggle_auto_simplify(app);
     assert(app.drag_options.auto_simplify === false,
         'automatic simplification: toolbar toggle should disable auto-simplify');
-    assert(app.drag_options.enabled === before_toggle.drag_options.enabled,
-        'automatic simplification: toolbar toggle should preserve enabled operations');
     assert(app.equation === before_toggle.equation,
         'automatic simplification: toggling should not modify the equation');
 }
@@ -849,8 +935,8 @@ function fractionPreservation() {
         'combine should collapse 6/3 to 2'
     );
     assert(
-        power_expressions.combine(six, third) == null,
-        'fraction preservation: PowerExpressions.combine should remain limited to power laws'
+        triangle_sameness.combine('mul', six, third) == null,
+        'fraction preservation: power-triangle same-base combination should remain limited to matching bases'
     );
 
     const thirds = grouplikes.add([
@@ -885,42 +971,42 @@ function ringExpressionInterface() {
     const negative_x = ringlikes.inverse('add', x);
     assert(
         ringlikes.is_inverse('add', negative_x),
-        'Ringlike: additive inverse should be recognized'
+        'Ringlikes: additive inverse should be recognized'
     );
     assert(
         !ringlikes.is_inverse('add', x),
-        'Ringlike: ordinary additive expression should not be inverse'
+        'Ringlikes: ordinary additive expression should not be inverse'
     );
     assertSameExpression(
         ringlikes.inverse('add', negative_x),
         x,
-        'Ringlike',
+        'Ringlikes',
         'additive inverse should be involutive'
     );
 
     const reciprocal_x = ringlikes.inverse('mul', x);
     assert(
         ringlikes.is_inverse('mul', reciprocal_x),
-        'Ringlike: multiplicative inverse should be recognized'
+        'Ringlikes: multiplicative inverse should be recognized'
     );
     assert(
         !ringlikes.is_inverse('mul', x),
-        'Ringlike: ordinary multiplicative expression should not be inverse'
+        'Ringlikes: ordinary multiplicative expression should not be inverse'
     );
     assertSameExpression(
         ringlikes.inverse('mul', reciprocal_x),
         x,
-        'Ringlike',
+        'Ringlikes',
         'multiplicative inverse should be involutive'
     );
     assert(
         ringlikes.inverse('mul', zero) == null,
-        'Ringlike: zero should not have a multiplicative inverse'
+        'Ringlikes: zero should not have a multiplicative inverse'
     );
     assertSameExpression(
         ringlikes.inverse('mul', one),
         one,
-        'Ringlike',
+        'Ringlikes',
         'multiplicative identity should be its own inverse'
     );
 
@@ -928,25 +1014,25 @@ function ringExpressionInterface() {
     assertSameExpression(
         ringlikes.absolute('add', negative_x),
         x,
-        'Ringlike',
+        'Ringlikes',
         'absolute should invert an additive inverse'
     );
     assertSameExpression(
         ringlikes.absolute('add', x),
         x,
-        'Ringlike',
+        'Ringlikes',
         'absolute should preserve a non-inverse expression'
     );
     assertSameExpression(
         ringlikes.absolute('mul', reciprocal_x),
         x,
-        'Ringlike',
+        'Ringlikes',
         'absolute should invert a multiplicative inverse'
     );
     assertSameExpression(
         ringlikes.absolute('mul', x),
         x,
-        'Ringlike',
+        'Ringlikes',
         'absolute should preserve an ordinary multiplicative expression'
     );
 
@@ -964,7 +1050,7 @@ function ringExpressionInterface() {
             grouplikes.mul([two, x]),
             grouplikes.mul([two, three]),
         ]),
-        'Ringlike',
+        'Ringlikes',
         'left distribution should delegate through the additive group expression'
     );
     assertSameExpression(
@@ -978,28 +1064,34 @@ function ringExpressionInterface() {
             grouplikes.mul([x, two]),
             grouplikes.mul([three, two]),
         ]),
-        'Ringlike',
+        'Ringlikes',
         'right distribution should delegate through the additive group expression'
     );
     assert(
         ringlikes.left_distribute('mul', grouplikes.mul([two, x_plus_three]), two, x_plus_three) == null,
-        'Ringlike: unsupported left distribution should return null'
+        'Ringlikes: unsupported left distribution should return null'
     );
     assert(
         ringlikes.right_distribute('mul', grouplikes.mul([x_plus_three, two]), x_plus_three, two) == null,
-        'Ringlike: unsupported right distribution should return null'
+        'Ringlikes: unsupported right distribution should return null'
     );
 
     const product = grouplikes.mul([x, three]);
     const square = grouplikes.pow(product, two);
+    const power_distribution = expressions.distribute(
+        square, two, product, 1, 0);
+    assert(
+        power_distribution.length === 1,
+        'power triangle: power distribution should resolve uniquely'
+    );
     assertSameExpression(
-        ringlikes.right_distribute('mul', square, product, two),
+        power_distribution[0],
         grouplikes.mul([
             grouplikes.pow(x, two),
             grouplikes.pow(three, two),
         ]),
-        'Ringlike',
-        'right distribution should distribute powers over multiplication'
+        'power triangle',
+        'same-exponent distribution should distribute powers over multiplication'
     );
 
     assertMoveTransforms(
@@ -1161,7 +1253,7 @@ function additiveIdentity() {
         'additive identity',
         'a lone additive identity remains draggable across equality',
         variables => isDefined(x, variables),
-        add_only_drag_options
+        manual_drag_options
     );
 }
 
@@ -1230,8 +1322,7 @@ function multiplicativeCommutativity() {
             a !== b &&
             a.type !== 'mul' &&
             b.type !== 'mul' &&
-            grouplikes.combine('mul', a, b) == null &&
-            ringlikes.combine('mul', a, b) == null &&
+            expressions.combine(left, a, b).length === 0 &&
             a.type !== 'add' &&
             b.type !== 'add'
         ) {
@@ -1340,7 +1431,7 @@ function multiplicativeIdentity() {
         'multiplicative identity',
         'a lone multiplicative identity remains draggable across equality',
         variables => isDefined(x, variables),
-        multiply_only_drag_options
+        manual_drag_options
     );
 }
 
@@ -1399,6 +1490,692 @@ function powerIdentity() {
 }
 
 // -----------------------------------------------------------------------------
+// Power-triangle sameness: fixed base, computed result
+// a^b * a^c = a^(b+c)
+// -----------------------------------------------------------------------------
+
+function powerTriangleSameness() {
+    const two = grouplikes.constant(2);
+    const three = grouplikes.constant(3);
+    const two_to_x = grouplikes.pow(two, x);
+    const two_cubed = grouplikes.pow(two, three);
+    const combined = grouplikes.pow(two, grouplikes.add([x, three]));
+
+    assertMoveTransforms(
+        grouplikes.mul([two_to_x, two_cubed]),
+        'L/0',
+        'path:L/1',
+        combined,
+        'power triangle same-base combination',
+        '2^x * 2^3 -> 2^(x+3)',
+        variables => isDefined(x, variables),
+        manual_drag_options
+    );
+
+    assertMoveTransforms(
+        combined,
+        'L/0',
+        'path:L/1',
+        grouplikes.mul([two_to_x, two_cubed]),
+        'power triangle same-base distribution',
+        'drag the fixed base across x+3',
+        variables => isDefined(x, variables),
+        manual_drag_options
+    );
+
+    // Numeric exponents use the same power-triangle law as symbolic exponents.
+    assertMoveTransforms(
+        grouplikes.mul([
+            grouplikes.pow(x, grouplikes.constant(2)),
+            grouplikes.pow(x, three),
+        ]),
+        'L/0',
+        'path:L/1',
+        grouplikes.pow(x, grouplikes.add([
+            grouplikes.constant(2),
+            three,
+        ])),
+        'power triangle numeric exponent combination',
+        'numeric exponents use the same-base triangle law',
+        variables => isDefined(x, variables),
+        manual_drag_options
+    );
+
+    const three_to_x = grouplikes.pow(three, x);
+    const product_base = grouplikes.mul([two, three]);
+    const product_to_x = grouplikes.pow(product_base, x);
+
+    assertMoveTransforms(
+        grouplikes.mul([two_to_x, three_to_x]),
+        'L/0',
+        'path:L/1',
+        product_to_x,
+        'power triangle same-exponent combination',
+        '2^x * 3^x -> (2*3)^x',
+        variables => isDefined(x, variables),
+        manual_drag_options
+    );
+
+    assertMoveTransforms(
+        product_to_x,
+        'L/1',
+        'path:L/0',
+        grouplikes.mul([two_to_x, three_to_x]),
+        'power triangle same-exponent distribution',
+        'drag the fixed exponent across 2*3',
+        variables => isDefined(x, variables),
+        manual_drag_options
+    );
+
+    assert(
+        triangle_sameness.combine('mul', x, grouplikes.variable('y')) == null,
+        'same-exponent combination should not manufacture a power-of-one interpretation for ordinary factors'
+    );
+
+    const log_two_x = grouplikes.log(two, x);
+    const log_two_three = grouplikes.log(two, three);
+    const log_two_product = grouplikes.log(two, grouplikes.mul([x, three]));
+
+    assertMoveTransforms(
+        grouplikes.add([log_two_x, log_two_three]),
+        'L/0',
+        'path:L/1',
+        log_two_product,
+        'power triangle mirrored same-base combination',
+        'log_2(x) + log_2(3) -> log_2(3x)',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+
+    assertMoveTransforms(
+        log_two_product,
+        'L/0',
+        'path:L/1',
+        grouplikes.add([log_two_x, log_two_three]),
+        'power triangle mirrored same-base distribution',
+        'drag fixed base 2 across x*3',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+
+    const log_three_x = grouplikes.log(three, x);
+    const harmonic_logs = grouplikes.harmonic([log_two_x, log_three_x]);
+    const log_six_x = grouplikes.log(grouplikes.mul([two, three]), x);
+
+    assertMoveTransforms(
+        harmonic_logs,
+        'L/0',
+        'path:L/1',
+        log_six_x,
+        'power triangle same-result logarithm combination',
+        'log_2(x) || log_3(x) -> log_6(x)',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+
+    assertMoveTransforms(
+        log_six_x,
+        'L/1',
+        'path:L/0',
+        harmonic_logs,
+        'power triangle same-result logarithm distribution',
+        'drag fixed result x across base 2*3',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+
+    const harmonic_desugared = ringlikes.inverse('mul', grouplikes.add([
+        ringlikes.inverse('mul', log_two_x),
+        ringlikes.inverse('mul', log_three_x),
+    ]));
+    assertExpressionsEquivalent(
+        harmonic_logs,
+        harmonic_desugared,
+        'harmonic addition representation',
+        'first-class harmonic addition must equal (1/u + 1/v)^-1',
+        variables => variables.x > 0
+    );
+
+    const h2 = grouplikes.constant(2);
+    const h3 = grouplikes.constant(3);
+    const h5 = grouplikes.constant(5);
+    assertExpressionsEquivalent(
+        grouplikes.harmonic([h2, grouplikes.harmonic([h3, h5])]),
+        grouplikes.harmonic([grouplikes.harmonic([h2, h3]), h5]),
+        'harmonic associativity',
+        'harmonic addition is associative'
+    );
+    assertExpressionsEquivalent(
+        grouplikes.harmonic([h2, h3]),
+        grouplikes.harmonic([h3, h2]),
+        'harmonic commutativity',
+        'harmonic addition is commutative'
+    );
+
+    const duplicate_log_sum = grouplikes.add([log_two_x, log_two_x]);
+    const duplicate_log_equation = new Equation(duplicate_log_sum, zero);
+    const duplicate_log_choices = algebra.choices(
+        duplicate_log_equation,
+        'L/0',
+        'path:L/1',
+        manual_drag_options
+    );
+    assert(
+        duplicate_log_choices.length > 1,
+        'log_a(x)+log_a(x) should expose both valid interpretations when laws disagree'
+    );
+
+    const squared = grouplikes.pow(x, grouplikes.constant(2));
+    const ambiguous_product = grouplikes.mul([squared, squared]);
+    const ambiguous_equation = new Equation(ambiguous_product, zero);
+    const ambiguous_choices = algebra.choices(
+        ambiguous_equation, 'L/0', 'path:L/1', manual_drag_options
+    );
+    assert(
+        ambiguous_choices.length > 1,
+        'a^c * a^c should expose same-base and same-exponent combinations as choices'
+    );
+    assert(
+        ambiguous_choices.every(choice => choice.side === 'L' && choice.type === 'combine'),
+        'ambiguous power choices should retain their target side and combine type'
+    );
+}
+
+// -----------------------------------------------------------------------------
+// Power-triangle composition: fixed base, computed result
+// (a^b)^c = a^(bc)
+// -----------------------------------------------------------------------------
+
+function powerTriangleComposition() {
+    const two = grouplikes.constant(2);
+    const three = grouplikes.constant(3);
+    const reciprocal_x = ringlikes.inverse('mul', x);
+
+    const nested = grouplikes.pow(grouplikes.pow(x, two), three);
+    const combined = grouplikes.pow(x, grouplikes.mul([two, three]));
+
+    assertMoveTransforms(
+        nested,
+        'L/0',
+        'path:L/1',
+        combined,
+        'power triangle composition combination',
+        '(x^2)^3 -> x^(2*3)',
+        variables => isDefined(x, variables),
+        manual_drag_options
+    );
+
+    assertMoveTransforms(
+        combined,
+        'L/0',
+        'path:L/1',
+        nested,
+        'power triangle composition distribution',
+        'drag x across 2*3 -> (x^2)^3',
+        variables => isDefined(x, variables),
+        manual_drag_options
+    );
+
+    const three_factor_exponent = grouplikes.mul([two, three, x]);
+    const three_factor_power = grouplikes.pow(grouplikes.constant(5), three_factor_exponent);
+    const three_factor_nested = grouplikes.pow(
+        grouplikes.pow(grouplikes.constant(5), two),
+        grouplikes.mul([three, x])
+    );
+
+    assertMoveTransforms(
+        three_factor_power,
+        'L/0',
+        'path:L/1',
+        three_factor_nested,
+        'power triangle n-ary composition distribution',
+        '5^(2*3*x) -> (5^2)^(3*x)',
+        variables => isDefined(x, variables),
+        manual_drag_options
+    );
+
+    // Composition exposes the exponent product; a subsequent inverse-factor
+    // combination can then reduce b*(1/b).
+    const inverse_nested = grouplikes.pow(grouplikes.pow(two, x), reciprocal_x);
+    const inverse_composed = grouplikes.pow(two, grouplikes.mul([x, reciprocal_x]));
+    assertMoveTransforms(
+        inverse_nested,
+        'L/0',
+        'path:L/1',
+        inverse_composed,
+        'power triangle inverse-exponent composition',
+        '(2^x)^(1/x) -> 2^(x*(1/x))',
+        variables => isDefinedNonzero(x, variables),
+        manual_drag_options
+    );
+
+    const inverse_equation = new Equation(inverse_composed, grouplikes.constant(17));
+    const reduced = move(
+        inverse_equation,
+        'L/1/0',
+        'path:L/1/1',
+        auto_simplify_drag_options
+    );
+    assert(
+        reduced !== inverse_equation &&
+        orderedExpressionKey(reduced.left) === orderedExpressionKey(two),
+        '(2^x)^(1/x) should reduce to 2 after composition and inverse-factor combination'
+    );
+
+    const nested_root = grouplikes.root(three, grouplikes.root(two, x));
+    const combined_root = grouplikes.root(grouplikes.mul([two, three]), x);
+
+    assertMoveTransforms(
+        nested_root,
+        'L/0',
+        'path:L/1',
+        combined_root,
+        'power triangle root composition combination',
+        'root_3(root_2(x)) -> root_(2*3)(x)',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+
+    assertMoveTransforms(
+        combined_root,
+        'L/1',
+        'path:L/0',
+        nested_root,
+        'power triangle root composition distribution',
+        'root_(2*3)(x) -> root_3(root_2(x))',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+
+    // Logarithm scalar identities are not projection self-composition and no
+    // longer belong to this family.
+    const log_two_x = grouplikes.log(two, x);
+    const scaled_log = grouplikes.mul([three, log_two_x]);
+    assert(
+        expressions.combine(scaled_log, three, log_two_x).length === 0,
+        '3*log_2(x) should no longer combine through PowerTriangleComposition'
+    );
+
+    const powered_log = grouplikes.log(two, grouplikes.pow(x, three));
+    assert(
+        expressions.distribute(
+            powered_log,
+            powered_log.contents[0],
+            powered_log.contents[1],
+            0,
+            1
+        ).length === 0,
+        'log_2(x^3) should no longer distribute through PowerTriangleComposition'
+    );
+}
+
+// -----------------------------------------------------------------------------
+// Power-triangle inverse: fixed exponent, computed result
+// x^a = b  <->  x = b^(1/a)
+// -----------------------------------------------------------------------------
+
+
+function powerTriangleRootBalance() {
+    const two = grouplikes.constant(2);
+    const nine = grouplikes.constant(9);
+    const squared = grouplikes.pow(x, two);
+    const equation = new Equation(squared, nine);
+    const expected_root = grouplikes.root(two, nine);
+
+    const advertised = algebra.moves_for_source(equation, 'L/1', manual_drag_options);
+    assert(
+        advertised.includes('side:R'),
+        'x^2 = 9 should advertise dragging the exponent across the equality'
+    );
+
+    const solved = move(equation, 'L/1', 'side:R', manual_drag_options);
+    assert(
+        solved !== equation,
+        'x^2 = 9 should be changed by the root balance drag'
+    );
+    assertSameExpression(
+        solved.left,
+        x,
+        'power triangle root balance',
+        'cancel the fixed exponent from x^2'
+    );
+    assertSameExpression(
+        solved.right,
+        expected_root,
+        'power triangle root balance',
+        'append the inverse exponent to the result'
+    );
+    assertExpressionsEquivalent(
+        solved.right,
+        grouplikes.constant(3),
+        'power triangle root balance',
+        '9^(1/2) = 3'
+    );
+    stats.moves++;
+
+    const solved_auto = move(
+        equation,
+        'L/1',
+        'side:R',
+        auto_simplify_drag_options
+    );
+    assertSameExpression(
+        solved_auto.right,
+        grouplikes.constant(3),
+        'power triangle root balance auto simplify',
+        'x^2 = 9 -> x = 3'
+    );
+}
+
+
+// -----------------------------------------------------------------------------
+// First-class root projection completes the power triangle.
+// The existing sameness and inverse implementations should work unchanged for
+// computed=base once root(exponent, result) can be mapped to triangle vertices.
+// -----------------------------------------------------------------------------
+
+function powerTriangleRootProjection() {
+    const two = grouplikes.constant(2);
+    const three = grouplikes.constant(3);
+    const eight = grouplikes.constant(8);
+    const nine = grouplikes.constant(9);
+
+    const power_view = power_triangles.from_expression(grouplikes.pow(two, x), false);
+    const log_view = power_triangles.from_expression(grouplikes.log(two, x), false);
+    const root_view = power_triangles.from_expression(grouplikes.root(two, x), false);
+    assert(
+        power_view[0] === two && power_view[1] === x && power_view[2] == null,
+        'pow triangle view should leave only the result coordinate nullish'
+    );
+    assert(
+        log_view[0] === two && log_view[1] == null && log_view[2] === x,
+        'log triangle view should leave only the exponent coordinate nullish'
+    );
+    assert(
+        root_view[0] == null && root_view[1] === two && root_view[2] === x,
+        'root triangle view should leave only the base coordinate nullish'
+    );
+    assert(
+        !('computed' in power_view) && !('computed' in log_view) && !('computed' in root_view),
+        'PowerTriangle should not store a redundant computed attribute'
+    );
+    assert(
+        power_triangles.from_expression(x, true)[2] == null &&
+        power_triangles.from_expression(x, true)[0] === x,
+        'promotion should interpret an ordinary expression as a result projection x=x^1'
+    );
+
+    const square_root_x = grouplikes.root(two, x);
+    assert(
+        power_triangles.computed(root_view) === 0 &&
+        power_triangles.inputs(root_view)[0] === 1 &&
+        power_triangles.inputs(root_view)[1] === 2,
+        'root should be the base projection with exponent/result children'
+    );
+    assertSameExpression(
+        power_triangles.to_expression(new PowerTriangle(null, two, x)),
+        square_root_x,
+        'power triangle base projection conversion',
+        'to_expression(PowerTriangle(null, exponent, result)) should construct a root expression'
+    );
+    assert(
+        approximatelyEqual(grouplikes.evaluate(grouplikes.root(two, nine), {}), 3),
+        'root_2(9) should evaluate to 3'
+    );
+
+    // Same exponent: root_n(x) root_n(y) <-> root_n(xy).
+    const square_root_nine = grouplikes.root(two, nine);
+    const root_product = grouplikes.root(two, grouplikes.mul([x, nine]));
+    assertMoveTransforms(
+        grouplikes.mul([square_root_x, square_root_nine]),
+        'L/0',
+        'path:L/1',
+        root_product,
+        'power triangle root same-exponent combination',
+        'root_2(x) root_2(9) -> root_2(9x)',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+    assertMoveTransforms(
+        root_product,
+        'L/0',
+        'path:L/1',
+        grouplikes.mul([square_root_x, square_root_nine]),
+        'power triangle root same-exponent distribution',
+        'drag fixed exponent 2 across 9x',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+
+    // Same result: root_x(a) root_y(a) <-> root_(x||y)(a).
+    const square_root_x_result = grouplikes.root(two, x);
+    const cube_root_x_result = grouplikes.root(three, x);
+    const harmonic_index = grouplikes.harmonic([two, three]);
+    const combined_same_result_root = grouplikes.root(harmonic_index, x);
+    assertMoveTransforms(
+        grouplikes.mul([square_root_x_result, cube_root_x_result]),
+        'L/0',
+        'path:L/1',
+        combined_same_result_root,
+        'power triangle root same-result combination',
+        'root_2(x) root_3(x) -> root_(2||3)(x)',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+    assertMoveTransforms(
+        combined_same_result_root,
+        'L/1',
+        'path:L/0',
+        grouplikes.mul([square_root_x_result, cube_root_x_result]),
+        'power triangle root same-result distribution',
+        'drag fixed result x across harmonic root index',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+
+    // The two root-side inverse laws also become ordinary registrations.
+
+    const root_equation = new Equation(grouplikes.root(two, x), three);
+    assertEquationMoveTransforms(
+        root_equation,
+        'L/0',
+        'side:R',
+        new Equation(x, grouplikes.pow(three, two)),
+        'power triangle root fixed-exponent inverse balance',
+        'root_2(x) = 3 -> x = 3^2',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+
+    const variable_index_root = new Equation(grouplikes.root(x, eight), two);
+    assertEquationMoveTransforms(
+        variable_index_root,
+        'L/1',
+        'side:R',
+        new Equation(x, grouplikes.log(two, eight)),
+        'power triangle root fixed-result inverse balance',
+        'root_x(8) = 2 -> x = log_2(8)',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+
+    // Fixed exponent inverse/co-inverse.
+    assertMoveTransforms(
+        grouplikes.pow(grouplikes.root(two, x), two),
+        'L/1',
+        'path:L/0/0',
+        x,
+        'power triangle power-root cancellation',
+        '(root_2(x))^2 -> x',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+    assertMoveTransforms(
+        grouplikes.root(two, grouplikes.pow(x, two)),
+        'L/0',
+        'path:L/1/1',
+        x,
+        'power triangle root-power cancellation',
+        'root_2(x^2) -> x under positive-real assumptions',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+
+    // Fixed result inverse/co-inverse.
+    assertMoveTransforms(
+        grouplikes.log(grouplikes.root(x, eight), eight),
+        'L/1',
+        'path:L/0/1',
+        x,
+        'power triangle log-root cancellation',
+        'log_(root_x(8))(8) -> x',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+    assertMoveTransforms(
+        grouplikes.root(grouplikes.log(x, eight), eight),
+        'L/1',
+        'path:L/0/1',
+        x,
+        'power triangle root-log cancellation',
+        'root_(log_x(8))(8) -> x',
+        variables => variables.x > 0 && variables.x !== 1,
+        manual_drag_options
+    );
+}
+
+
+// -----------------------------------------------------------------------------
+// Power-triangle inverse: fixed base, result/exponent projections
+// a^log_a(b) = b and log_a(a^b) = b
+// -----------------------------------------------------------------------------
+
+function powerTriangleLogInverse() {
+    const two = grouplikes.constant(2);
+    const three = grouplikes.constant(3);
+    const eight = grouplikes.constant(8);
+
+    assert(
+        power_triangles.computed(
+            power_triangles.from_expression(grouplikes.log(two, x), false)
+        ) === 1,
+        'log should be the exponent projection of a power triangle'
+    );
+    assert(
+        approximatelyEqual(grouplikes.evaluate(grouplikes.log(two, eight), {}), 3),
+        'log_2(8) should evaluate to 3'
+    );
+
+    const exponential_equation = new Equation(grouplikes.pow(two, x), eight);
+    const logarithmic_solution = new Equation(x, grouplikes.log(two, eight));
+    assertEquationMoveTransforms(
+        exponential_equation,
+        'L/0',
+        'side:R',
+        logarithmic_solution,
+        'power triangle fixed-base inverse balance',
+        '2^x = 8 -> x = log_2(8)',
+        () => true,
+        manual_drag_options
+    );
+
+    const logarithmic_equation = new Equation(grouplikes.log(two, eight), x);
+    const exponential_solution = new Equation(eight, grouplikes.pow(two, x));
+    assertEquationMoveTransforms(
+        logarithmic_equation,
+        'L/0',
+        'side:R',
+        exponential_solution,
+        'power triangle mirrored fixed-base inverse balance',
+        'log_2(8) = x -> 8 = 2^x',
+        () => true,
+        manual_drag_options
+    );
+
+    const auto_solved = move(
+        exponential_equation,
+        'L/0',
+        'side:R',
+        auto_simplify_drag_options
+    );
+    assertSameExpression(
+        auto_solved.right,
+        three,
+        'power triangle log balance auto simplify',
+        '2^x = 8 -> x = 3'
+    );
+
+    const power_of_log = grouplikes.pow(two, grouplikes.log(two, x));
+    assertMoveTransforms(
+        power_of_log,
+        'L/0',
+        'path:L/1/0',
+        x,
+        'power triangle nested inverse cancellation',
+        '2^log_2(x) -> x',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+
+    assertMoveTransforms(
+        power_of_log,
+        'L/1/0',
+        'path:L/0',
+        x,
+        'power triangle nested inverse cancellation',
+        '2^log_2(x) -> x with the inner fixed base dragged outward',
+        variables => variables.x > 0,
+        manual_drag_options
+    );
+
+    const log_of_power = grouplikes.log(two, grouplikes.pow(two, x));
+    assertMoveTransforms(
+        log_of_power,
+        'L/0',
+        'path:L/1/0',
+        x,
+        'power triangle mirrored nested inverse cancellation',
+        'log_2(2^x) -> x',
+        () => true,
+        manual_drag_options
+    );
+
+    const variable_base_log = new Equation(grouplikes.log(x, eight), three);
+    const expected_base = grouplikes.root(three, eight);
+    const solved_base = move(
+        variable_base_log, 'L/1', 'side:R', manual_drag_options
+    );
+    assert(
+        solved_base !== variable_base_log,
+        'log_x(8) = 3 should solve for the base by dragging the fixed result'
+    );
+    assertSameExpression(
+        solved_base.left,
+        x,
+        'power triangle fixed-result inverse balance',
+        'cancel the fixed result from log_x(8)'
+    );
+    assertSameExpression(
+        solved_base.right,
+        expected_base,
+        'power triangle fixed-result inverse balance',
+        'append the base projection 8^(1/3)'
+    );
+
+    const mismatched = grouplikes.pow(two, grouplikes.log(three, x));
+    const mismatched_equation = new Equation(mismatched, grouplikes.constant(17));
+    assert(
+        algebra.choices(
+            mismatched_equation,
+            'L/0',
+            'path:L/1/0',
+            manual_drag_options
+        ).length === 0,
+        'nested inverse cancellation should require the fixed bases to match'
+    );
+}
+
+// -----------------------------------------------------------------------------
 // Multiplicative inverse
 // a * a^-1 = 1, for a != 0
 // -----------------------------------------------------------------------------
@@ -1421,14 +2198,11 @@ function multiplicativeInverse() {
         );
 
         // Test cancellation through the public move API when a and a^-1 are
-        // represented as two direct sibling factors *and* PowerExpressions
-        // currently recognizes them as a combinable pair.  For example x*x^-1
-        // is supported, while (x^2)*(x^2)^-1 would require power-of-a-power
-        // normalization that the game does not yet implement.
-        const combined = power_expressions.combine(a, reciprocal_a);
+        // represented as two direct sibling factors and the complete combine
+        // resolver identifies their product uniquely as one.
+        const combination = expressions.combine(product, a, reciprocal_a);
         if (
-            combined != null &&
-            orderedExpressionKey(combined) === orderedExpressionKey(one) &&
+            combination.some(expression => orderedExpressionKey(expression) === orderedExpressionKey(one)) &&
             product.type === 'mul' &&
             product.contents.length === 2 &&
             product.contents[0] === a &&
@@ -1743,11 +2517,11 @@ function distributivity() {
     solveLevel8,
     solveLevel9,
     solveLevel10,
+    solvePowerTriangleLevels,
 ].forEach(test => test());
 
 [
-    enabledDragOperations,
-    operationToggleInvariant,
+    dragChoices,
     automaticSimplification,
     fractionPreservation,
     ringExpressionInterface,
@@ -1761,6 +2535,11 @@ function distributivity() {
     multiplicativeAssociativity,
     multiplicativeIdentity,
     powerIdentity,
+    powerTriangleSameness,
+    powerTriangleComposition,
+    powerTriangleRootBalance,
+    powerTriangleRootProjection,
+    powerTriangleLogInverse,
     multiplicativeInverse,
     doubleReciprocal,
     inverseOfProduct,
@@ -1771,7 +2550,7 @@ function distributivity() {
 ].forEach(test => test());
 
 console.log(
-    `ok - 10 level solutions; `+
+    `ok - 24 level solutions; `+
     `${stats.semantic_cases} property cases; `+
     `${stats.evaluations} evaluations; `+
     `${stats.domain_skips} domain exclusions; `+
