@@ -63,7 +63,11 @@ const Expressions = (dependencies) => {
             const preview = law.append(parent, source, new Expression('slot'));
             if (preview == null) return;
             const key = `${shape.encode(new_source)}=${shape.encode(new_target)}`;
-            results.set(key, new ExpressionBalance(new_source, new_target, preview));
+            results.set(key, Object.freeze({
+                source: new_source,
+                target: new_target,
+                preview: preview,
+            }));
         });
         return Object.freeze([...results.values()]);
     }

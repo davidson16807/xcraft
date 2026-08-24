@@ -419,15 +419,23 @@ main {
     outline: none;
 }
 
-.drag-ghosts-row {
+.drag-ghosts-shell {
     position: absolute;
     top: calc(100% + 14px);
     display: flex;
-    flex-wrap: wrap;
+    align-items: flex-start;
     gap: 10px;
     width: max-content;
     max-width: min(46vw, 560px);
     z-index: 20;
+}
+
+.drag-ghosts-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    width: max-content;
+    max-width: calc(min(46vw, 560px) - 54px);
 }
 
 .drag-ghosts-left {
@@ -435,8 +443,16 @@ main {
     justify-content: flex-end;
 }
 
+.drag-ghosts-left .drag-ghosts-row {
+    justify-content: flex-end;
+}
+
 .drag-ghosts-right {
     left: 0;
+    justify-content: flex-start;
+}
+
+.drag-ghosts-right .drag-ghosts-row {
     justify-content: flex-start;
 }
 
@@ -483,10 +499,10 @@ button.drag-ghost:focus-visible {
 }
 
 .drag-choices-cancel {
-    position: absolute;
-    top: -24px;
+    flex: 0 0 44px;
     width: 44px;
     height: 44px;
+    margin-top: 4px;
     padding: 0;
     border: 1px solid var(--hairline);
     border-radius: 50%;
@@ -495,15 +511,6 @@ button.drag-ghost:focus-visible {
     font-size: 1.7rem;
     line-height: 1;
     cursor: pointer;
-    z-index: 2;
-}
-
-.drag-ghosts-left .drag-choices-cancel {
-    left: -22px;
-}
-
-.drag-ghosts-right .drag-choices-cancel {
-    right: -22px;
 }
 
 .drag-choices-cancel:hover,

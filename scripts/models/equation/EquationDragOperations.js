@@ -55,14 +55,19 @@ function EquationDragOperations(dependencies) {
             ) return Object.freeze([]);
 
             const side = paths.split(target_path).side;
-            return distinct([
+            const substantive = [
                 ...equations.combine(equation, source_path, target_path)
                     .map(operation => drag_choice(operation, side, 'combine')),
                 ...equations.distribute(equation, source_path, target_path)
                     .map(operation => drag_choice(operation, side, 'distribute')),
-                ...equations.commute(equation, source_path, target_path)
+            ];
+            if (substantive.length > 0) return distinct(substantive, drag_options);
+
+            return distinct(
+                equations.commute(equation, source_path, target_path)
                     .map(operation => drag_choice(operation, side, 'commute')),
-            ], drag_options);
+                drag_options
+            );
         }
 
         default:

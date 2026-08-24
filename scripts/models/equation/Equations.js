@@ -1,9 +1,9 @@
 'use strict';
 
 /*
-Every returned equation operation is an equivalence-preserving rewrite under the
-nonzero-divisor assumptions supplied by the active level. Unsupported
-operations return an empty list.
+Every returned rewrite is equivalence-preserving under the nonzero-divisor
+assumptions supplied by the active level. Unsupported operations return an
+empty list.
 */
 function Equations(dependencies) {
     const grouplikes = dependencies.grouplikes;
@@ -11,18 +11,14 @@ function Equations(dependencies) {
     const ringlikes = dependencies.ringlikes;
     const expressions = dependencies.expressions;
 
-    function operation(expression, equation, operator) {
-        return new EquationOperation(expression, equation, operator);
-    }
-
     function balance_operation(equation, target_side, new_source, new_target, preview_expression, operator_tag) {
         const left_right = target_side === 'L'?
             [new_target, new_source] : [new_source, new_target];
-        return operation(
-            preview_expression,
-            equation.with({ left:left_right[0], right:left_right[1] }),
-            operator_tag
-        );
+        return Object.freeze({
+            expression: preview_expression,
+            equation: equation.with({ left:left_right[0], right:left_right[1] }),
+            operator: operator_tag || null,
+        });
     }
 
     function balance(equation, source_path, target_side) {
@@ -123,12 +119,11 @@ function Equations(dependencies) {
         const commuted = grouplikes.commute(parent, index1, index2);
         if (commuted === parent) return Object.freeze([]);
 
-        return Object.freeze([
-            operation(
-                commuted,
-                paths.replace(equation, parent_path, commuted)
-            )
-        ]);
+        return Object.freeze([Object.freeze({
+            expression: commuted,
+            equation: paths.replace(equation, parent_path, commuted),
+            operator: null,
+        })]);
     }
 
     function combine(equation, source_path, target_path) {
@@ -158,10 +153,11 @@ function Equations(dependencies) {
 
             return Object.freeze(expressions.cancel(
                 outer, inner, outer_fixed, inner_fixed
-            ).map(replacement => operation(
-                replacement,
-                paths.replace(equation, outer_path, replacement)
-            )));
+            ).map(replacement => Object.freeze({
+                expression: replacement,
+                equation: paths.replace(equation, outer_path, replacement),
+                operator: null,
+            })));
         }
 
         const parent = paths.resolve(equation, source_parent_path);
@@ -173,14 +169,15 @@ function Equations(dependencies) {
         const right = source_index < target_index? target : source;
 
         return Object.freeze(expressions.combine(parent, left, right).map(replacement =>
-            operation(
-                replacement,
-                paths.replace(
+            Object.freeze({
+                expression: replacement,
+                equation: paths.replace(
                     equation,
                     source_parent_path,
                     grouplikes.collapse(parent, source_index, target_index, replacement)
-                )
-            )
+                ),
+                operator: null,
+            })
         ));
     }
 
@@ -199,14 +196,15 @@ function Equations(dependencies) {
 
         return Object.freeze(expressions.distribute(
             parent, source, target, source_index, target_index
-        ).map(replacement => operation(
-            replacement,
-            paths.replace(
+        ).map(replacement => Object.freeze({
+            expression: replacement,
+            equation: paths.replace(
                 equation,
                 parent_path,
                 grouplikes.collapse(parent, source_index, target_index, replacement)
-            )
-        )));
+            ),
+            operator: null,
+        })));
     }
 
     function simplify(equation) {

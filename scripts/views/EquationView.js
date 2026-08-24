@@ -31,10 +31,10 @@ function EquationView(dependencies) {
         return ({ add:'+', mul:'\\cdot' })[operator] || null;
     }
 
-    function draw_choice(choice, index, clickable, mirror) {
+    function draw_choice(choice, index, clickable, mirror, visible) {
         const operator = preview_operator(choice.preview.operator);
         const attrs = {
-            class: `drag-ghost drag-choice${mirror? ' drag-choice-mirror' : ''}`,
+            class: `drag-ghost drag-choice${mirror? ' drag-choice-mirror' : ''}${visible? ' visible' : ''}`,
         };
 
         if (mirror) {
@@ -68,24 +68,31 @@ function EquationView(dependencies) {
         const mirrors = [];
 
         drag_choices.forEach((choice, index) => {
-            if (choice.side === side) primary.push(draw_choice(choice, index, pending, false));
+            if (choice.side === side) primary.push(draw_choice(choice, index, pending, false, false));
             if (choice.type === 'balance' && choice.side !== side) {
-                mirrors.push(draw_choice(choice, index, false, true));
+                mirrors.push(draw_choice(
+                    choice, index, false, true, drag_choices.length === 1
+                ));
             }
         });
 
-        const children = [...primary, ...mirrors];
-        if (pending && primary.length > 0) {
-            children.push(html.button({
-                type: 'button',
-                class: 'drag-choices-cancel',
-                'data-drag-choices-cancel': '1',
-                'aria-label': 'Cancel operation choices',
-            }, [], '×'));
-        }
+        const row = html.div({
+            class: `drag-ghosts-row ${pending? 'drag-choices-pending' : 'drag-choices-live'}`,
+        }, [...primary, ...mirrors]);
+
+        const cancel = pending && primary.length > 0? html.button({
+            type: 'button',
+            class: 'drag-choices-cancel',
+            'data-drag-choices-cancel': '1',
+            'aria-label': 'Cancel operation choices',
+        }, [], '×') : null;
+
+        const children = side === 'L'?
+            [...(cancel == null? [] : [cancel]), row] :
+            [row, ...(cancel == null? [] : [cancel])];
 
         return html.div({
-            class: `drag-ghosts-row drag-ghosts-${side === 'L'? 'left' : 'right'} ${pending? 'drag-choices-pending' : 'drag-choices-live'}`,
+            class: `drag-ghosts-shell drag-ghosts-${side === 'L'? 'left' : 'right'}`,
         }, children);
     }
 

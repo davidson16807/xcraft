@@ -22,12 +22,10 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/powertriangle/PowerTriangleInverse.js',
     'scripts/models/ringlike/Ringlike.js',
     'scripts/models/equation/Equation.js',
-    'scripts/models/equation/EquationOperation.js',
     'scripts/models/equation/EquationDragPreview.js',
     'scripts/models/equation/EquationDragChoice.js',
     'scripts/models/equation/EquationShape.js',
     'scripts/models/expression/ExpressionPaths.js',
-    'scripts/models/expression/ExpressionBalance.js',
     'scripts/models/expression/Expressions.js',
     'scripts/models/equation/Equations.js',
     'scripts/models/equation/EquationDragOperations.js',
@@ -689,6 +687,48 @@ ${context}`
                 orderedExpressionKey(grouplikes.mul([rhs, x]))
         ),
         'drag choices: a lone denominator should be movable multiplicatively across equality'
+    );
+
+    // Substantive algebraic operations take precedence over commutation. In
+    // particular, distributing a reciprocal across a sum must not also offer
+    // a visually unchanged commuted fraction.
+    const two = grouplikes.constant(2);
+    const three = grouplikes.constant(3);
+    const fraction_equation = new Equation(
+        grouplikes.div(grouplikes.add([x, two]), three),
+        rhs
+    );
+    const fraction_choices = algebra.choices(
+        fraction_equation,
+        'L/1',
+        'path:L/0',
+        manual_drag_options
+    );
+    assert(
+        fraction_choices.length === 1 && fraction_choices[0].type === 'distribute',
+        'drag choices: distribution should suppress an otherwise valid commute choice'
+    );
+    assertShape(
+        fraction_choices[0].equation,
+        new Equation(grouplikes.add([
+            grouplikes.div(x, three),
+            grouplikes.div(two, three),
+        ]), rhs),
+        'drag choices: reciprocal distribution should produce x/3 + 2/3'
+    );
+
+    // Commutation remains available for aesthetic rearrangement when no
+    // substantive combine or distribute operation applies.
+    const y = grouplikes.variable('y');
+    const commute_only = algebra.choices(
+        new Equation(grouplikes.add([x, y]), rhs),
+        'L/0',
+        'path:L/1',
+        manual_drag_options
+    );
+    assert(
+        commute_only.length === 1 && commute_only[0].type === 'commute',
+        'drag choices: commute should remain available when it is the only operation'
     );
 
     // App state keeps multiple choices after drop, commits only when one is
