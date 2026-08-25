@@ -1,14 +1,16 @@
 'use strict';
-// HUMAN VETTED
 
 /*
-`EquationDragOperations.choices` is the single entry point for user drag
-behavior. It returns every distinct equation that the source/target drag can
+`EquationDragOperations.choices` is the single entry point for user drag behavior. 
+It addresses concerns regarding how user drags correspond to operations on equations.
+
+It returns every distinct equation that the source/target drag can
 legally produce. Ambiguity is preserved for the application layer to resolve.
 */
 function EquationDragOperations(dependencies) {
     const paths = dependencies.expression_paths;
     const equations = dependencies.equations;
+    const path_operations = dependencies.equation_path_operations;
     const equation_shape = dependencies.equation_shape;
 
     const freeze = Object.freeze;
@@ -42,7 +44,7 @@ function EquationDragOperations(dependencies) {
         switch(paths.domain(target_key)) {
         case 'side': 
             const side = target_key.slice(5);
-            return format(equations.balance(equation, source_path, side), drag_options);
+            return format(path_operations.balance(equation, source_path, side), drag_options);
 
         case 'path': 
             const target_path = paths.path(target_key);
@@ -55,12 +57,12 @@ function EquationDragOperations(dependencies) {
             ) return freeze([]);
 
             const substantive = [
-                ...equations.combine(equation, source_path, target_path),
-                ...equations.distribute(equation, source_path, target_path),
+                ...path_operations.combine(equation, source_path, target_path),
+                ...path_operations.distribute(equation, source_path, target_path),
             ];
             return substantive.length > 0? 
                 format(substantive, drag_options)
-              : format(equations.commute(equation, source_path, target_path), drag_options);
+              : format(path_operations.commute(equation, source_path, target_path), drag_options);
 
         default:
             return freeze([]);

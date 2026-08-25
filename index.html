@@ -1,5 +1,4 @@
 <!doctype html>
-<!-- HUMAN VETTED -->
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -17,7 +16,6 @@
     <script src="./scripts/models/expression/Expression.js"></script>
     <script src="./scripts/models/expression/ExpressionShape.js"></script>
     <script src="./scripts/models/expression/ExpressionPaths.js"></script>
-    <script src="./scripts/models/expression/Expressions.js"></script>
     <script src="./scripts/models/grouplike/Grouplike.js"></script>
     <script src="./scripts/models/grouplike/Grouplikes.js"></script>
     <script src="./scripts/models/ringlike/Scale.js"></script>
@@ -35,6 +33,7 @@
     <script src="./scripts/models/equation/Equation.js"></script>
     <script src="./scripts/models/equation/EquationDragChoice.js"></script>
     <script src="./scripts/models/equation/Equations.js"></script>
+    <script src="./scripts/models/equation/EquationPathOperations.js"></script>
     <script src="./scripts/models/equation/EquationDragOperations.js"></script>
     <script src="./scripts/models/equation/EquationShape.js"></script>
     <script src="./scripts/models/app/AppState.js"></script>
@@ -209,7 +208,7 @@
     });
     const power_triangles = PowerTriangles(grouplikes, expression_shape);
 
-    const expressions = Expressions({
+    const equations = Equations({
         expression_shape: expression_shape,
         grouplikes: grouplikes,
         ringlikes: ringlikes,
@@ -227,12 +226,11 @@
     const equation_drag_ops = EquationDragOperations({
         expression_paths: expression_paths,
         equation_shape: equation_shape,
-        equations: Equations({
+        equations: equations,
+        equation_path_operations: EquationPathOperations({
             expression_paths: expression_paths,
-            grouplikes: grouplikes,
-            ringlikes: ringlikes,
-            expressions: expressions,
-        })
+            equations: equations,
+        }),
     });
 
     const history = AppHistoryTraversal(Infinity);

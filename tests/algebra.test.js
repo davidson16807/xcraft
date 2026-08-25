@@ -26,8 +26,8 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/equation/EquationDragChoice.js',
     'scripts/models/equation/EquationShape.js',
     'scripts/models/expression/ExpressionPaths.js',
-    'scripts/models/expression/Expressions.js',
     'scripts/models/equation/Equations.js',
+    'scripts/models/equation/EquationPathOperations.js',
     'scripts/models/equation/EquationDragOperations.js',
     'scripts/models/app/AppState.js',
     'scripts/models/app/AppHistoryTraversal.js',
@@ -128,7 +128,7 @@ const ringlikes = Ringlikes({
 });
 const equation_shape = EquationShape(expression_shape);
 const paths = ExpressionPaths(grouplikes);
-const expressions = Expressions({
+const equations = Equations({
     grouplikes: grouplikes,
     ringlikes: ringlikes,
     expression_shape: expression_shape,
@@ -140,16 +140,15 @@ const expressions = Expressions({
         triangle_composition,
     ]),
 });
-const equations = Equations({
-    grouplikes: grouplikes,
-    ringlikes: ringlikes,
+const equation_path_operations = EquationPathOperations({
     expression_paths: paths,
-    expressions: expressions,
+    equations: equations,
 });
 const algebra = EquationDragOperations({
     expression_paths: paths,
     equation_shape: equation_shape,
     equations: equations,
+    equation_path_operations: equation_path_operations,
 });
 const levels = Levels(grouplikes);
 const history = AppHistoryTraversal(Infinity);
@@ -1081,8 +1080,7 @@ function ringExpressionInterface() {
 
     const product = grouplikes.mul([x, three]);
     const square = grouplikes.pow(product, two);
-    const power_distribution = expressions.distribute(
-        square, two, product, 1, 0);
+    const power_distribution = equations.distribute(square, 1, 0);
     assert(
         power_distribution.length === 1,
         'power triangle: power distribution should resolve uniquely'
@@ -1325,7 +1323,7 @@ function multiplicativeCommutativity() {
             a !== b &&
             a.type !== 'mul' &&
             b.type !== 'mul' &&
-            expressions.combine(left, a, b).length === 0 &&
+            equations.combine(left, 0, 1).length === 0 &&
             a.type !== 'add' &&
             b.type !== 'add'
         ) {
@@ -1795,19 +1793,13 @@ function powerTriangleComposition() {
     const log_two_x = grouplikes.log(two, x);
     const scaled_log = grouplikes.mul([three, log_two_x]);
     assert(
-        expressions.combine(scaled_log, three, log_two_x).length === 0,
+        equations.combine(scaled_log, 0, 1).length === 0,
         '3*log_2(x) should no longer combine through PowerTriangleComposition'
     );
 
     const powered_log = grouplikes.log(two, grouplikes.pow(x, three));
     assert(
-        expressions.distribute(
-            powered_log,
-            powered_log.contents[0],
-            powered_log.contents[1],
-            0,
-            1
-        ).length === 0,
+        equations.distribute(powered_log, 0, 1).length === 0,
         'log_2(x^3) should no longer distribute through PowerTriangleComposition'
     );
 }
@@ -2203,7 +2195,7 @@ function multiplicativeInverse() {
         // Test cancellation through the public move API when a and a^-1 are
         // represented as two direct sibling factors and the complete combine
         // resolver identifies their product uniquely as one.
-        const combination = expressions.combine(product, a, reciprocal_a);
+        const combination = equations.combine(product, 0, 1);
         if (
             combination.some(expression => orderedExpressionKey(expression) === orderedExpressionKey(one)) &&
             product.type === 'mul' &&
