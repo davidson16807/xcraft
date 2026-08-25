@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 function EquationView(dependencies) {
 
@@ -14,20 +13,40 @@ function EquationView(dependencies) {
         return node;
     }
 
-    function draw_side(expression, side, draggable_paths, valid_targets) {
-        return html.span(
-            valid_targets.has(`side:${side}`)? 
-                {
-                    class: 'equation-side valid-drop',
-                    'data-drop-key': `side:${side}`,
-                    'data-valid-drop': '1',
-                }
-              : {
-                    class: 'equation-side',
-                    'data-drop-key': `side:${side}`,
-                },
-            [expression_view.draw(expression, side, draggable_paths, valid_targets)]
-        );
+    function draw_side(expression, side, draggable_paths, valid_targets, side_draggable) {
+        const attributes = {
+            class: 'equation-side',
+            'data-drop-key': `side:${side}`,
+        };
+        if (side_draggable) {
+            attributes.class += ' draggable-symbol';
+            attributes['data-path'] = `side:${side}`;
+            attributes['data-draggable'] = '1';
+            attributes['aria-label'] = `Drag ${side === 'L'? 'left' : 'right'} relation side`;
+        }
+        if (valid_targets.has(`side:${side}`)) {
+            attributes.class += ' valid-drop';
+            attributes['data-valid-drop'] = '1';
+        }
+
+        return html.span(attributes, [
+            expression_view.draw(
+                expression,
+                side,
+                draggable_paths,
+                valid_targets
+            ),
+        ]);
+    }
+
+    function relation_symbol(type) {
+        return ({
+            eq: '=',
+            lt: '<',
+            lte: '\\le',
+            gt: '>',
+            gte: '\\ge',
+        })[type] || '?';
     }
 
     function preview_operator(operator) {
@@ -97,9 +116,17 @@ function EquationView(dependencies) {
         }, children);
     }
 
-    function draw_column(expression, side, draggable_paths, valid_targets, drag_choices, pending) {
+    function draw_column(
+        expression,
+        side,
+        draggable_paths,
+        valid_targets,
+        side_draggable,
+        drag_choices,
+        pending
+    ) {
         return html.div({ class:`equation-column equation-column-${side === 'L'? 'left' : 'right'}` }, [
-            draw_side(expression, side, draggable_paths, valid_targets),
+            draw_side(expression, side, draggable_paths, valid_targets, side_draggable),
             draw_choice_row(side, drag_choices, pending),
         ]);
     }
@@ -107,29 +134,45 @@ function EquationView(dependencies) {
     return Object.freeze({
 
         draw: function(equation, drag_state, drag_choices, drag_options, div_io) {
+            const side_dragging = drag_state != null &&
+                drag_state.source_path.startsWith('side:');
+            const provisional = side_dragging && drag_choices.length === 1?
+                drag_choices[0].equation
+              : equation;
             const valid_targets = new Set(drag_state && drag_state.candidates || []);
             const draggable_paths = new Set(
-                equation_drag_ops.draggable_paths(equation, drag_options)
+                equation_drag_ops.draggable_paths(provisional, drag_options)
             );
-            const choices = drag_choices || [];
+            const draggable_sides = new Set(
+                ['L', 'R'].filter(side =>
+                    equation_drag_ops.moves_for_source(
+                        provisional,
+                        `side:${side}`,
+                        drag_options
+                    ).length > 0
+                )
+            );
+            const choices = side_dragging? [] : drag_choices || [];
             const pending = drag_state == null && choices.length > 1;
 
             div_io.replaceChildren(
                 html.div({ class:'equation-row' }, [
                     draw_column(
-                        equation.left,
+                        provisional.left,
                         'L',
                         draggable_paths,
                         valid_targets,
+                        draggable_sides.has('L'),
                         choices,
                         pending
                     ),
-                    html.span({ class:'equals-sign' }, [math('=', 'math-equals')]),
+                    html.span({ class:'equals-sign' }, [math(relation_symbol(provisional.type), 'math-equals')]),
                     draw_column(
-                        equation.right,
+                        provisional.right,
                         'R',
                         draggable_paths,
                         valid_targets,
+                        draggable_sides.has('R'),
                         choices,
                         pending
                     ),

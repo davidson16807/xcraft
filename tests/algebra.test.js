@@ -8,6 +8,9 @@ const root = path.resolve(__dirname, '..');
 [
     'scripts/models/expression/Expression.js',
     'scripts/models/expression/ExpressionShape.js',
+    'scripts/models/relation/Relation.js',
+    'scripts/models/orderlike/Orderlike.js',
+    'scripts/models/orderlike/Orderlikes.js',
     'scripts/models/grouplike/Grouplike.js',
     'scripts/models/grouplike/Grouplikes.js',
     'scripts/models/ringlike/Scale.js',
@@ -115,6 +118,15 @@ const grouplikes = Grouplikes({
         )
     ),
 });
+const orderlikes = Orderlikes({
+    eq: Orderlike('eq', {
+        is_reflexive: true,
+        is_symmetric: true,
+        is_transitive: true,
+        is_antisymmetric: true,
+        converse: 'eq',
+    }),
+});
 const scales = Scales(grouplikes, expression_shape);
 const scale_expressions = ScaleExpressions(grouplikes, scales);
 const powers = Powers(grouplikes, expression_shape);
@@ -131,6 +143,7 @@ const paths = ExpressionPaths(grouplikes);
 const equations = Equations({
     grouplikes: grouplikes,
     ringlikes: ringlikes,
+    orderlikes: orderlikes,
     expression_shape: expression_shape,
     invertibles: Object.freeze([
         triangle_inverse,
@@ -618,6 +631,170 @@ function forEachTriple(callback) {
 // Ambiguous drags remain draggable and expose every distinct valid operation.
 // Lone-side drags enumerate ordinary inverse-capable grouplike operations.
 // -----------------------------------------------------------------------------
+
+function relationalExpressions() {
+    const two = grouplikes.constant(2);
+    const equation = new Equation(x, two);
+
+    assert(equation instanceof Expression,
+        'relations: Equation should be an Expression');
+    assert(equation instanceof Relation,
+        'relations: Equation should be a Relation');
+    assert(equation.type === 'eq' && equation.contents[0] === x && equation.contents[1] === two,
+        'relations: Equation should encode equality as an eq expression');
+    assert(equation.left === x && equation.right === two,
+        'relations: Equation should preserve left/right accessors');
+
+    const equality = Orderlike('eq', {
+        is_reflexive: true,
+        is_symmetric: true,
+        is_transitive: true,
+        is_antisymmetric: true,
+        converse: 'eq',
+    });
+    assert(
+        equality.is_reflexive && equality.is_symmetric &&
+        equality.is_transitive && equality.is_antisymmetric,
+        'relations: equality should expose its relation properties'
+    );
+
+    const order = Orderlikes({
+        lt: Orderlike('lt', {
+            is_transitive: true,
+            is_asymmetric: true,
+            converse: 'gt',
+        }),
+        gt: Orderlike('gt', {
+            is_transitive: true,
+            is_asymmetric: true,
+            converse: 'lt',
+        }),
+    });
+    const less_than = new Relation('lt', x, two);
+    const greater_than = order.swap(less_than);
+    assert(
+        greater_than.type === 'gt' && greater_than.left === two && greater_than.right === x,
+        'relations: swapping should use the converse relation'
+    );
+
+    const expression_choices = algebra.choices(
+        equation, 'L', 'path:R', manual_drag_options
+    );
+    assert(
+        expression_choices.every(choice => choice.type !== 'swap'),
+        'relations: an expression drag should not stand in for a relation-side drag'
+    );
+
+    const side_choices = algebra.choices(
+        equation, 'side:L', 'side:R', manual_drag_options
+    );
+    assert(side_choices.length === 1 && side_choices[0].type === 'swap',
+        'relations: dragging one relation-side handle onto the other should advertise swap');
+    assertShape(
+        side_choices[0].equation,
+        new Equation(two, x),
+        'relations: equality swap should exchange equation sides'
+    );
+    assert(
+        algebra.moves_for_source(equation, 'side:L', manual_drag_options).includes('side:R'),
+        'relations: relation-side swap should be advertised only from the side source'
+    );
+    assert(
+        !algebra.moves_for_source(equation, 'L', manual_drag_options).includes('path:R'),
+        'relations: a lone expression should remain distinct from its containing relation side'
+    );
+
+    const released = equation_drags.release();
+    let app = new AppState(
+        levels,
+        0,
+        equation,
+        released,
+        released.initialize(),
+        [],
+        [],
+        [],
+        'day',
+        manual_drag_options
+    );
+    app = app_updater.drag_start(app, 'side:L', 0, 0);
+    assert(
+        Object.keys(app.drag_type).sort().join(',') === 'choices,id,initialize,move',
+        'relations: side dragging should not add lifecycle behavior to drag types'
+    );
+    app = app_updater.drag_move(app, 10, 10, 'side:R');
+    assert(
+        app.drag_type.id === DragState.symbol &&
+        app.drag_choices.length === 1 &&
+        app.drag_choices[0].type === 'swap' &&
+        app.undo_history.length === 0,
+        'relations: side swap should remain a provisional drag choice until release'
+    );
+    assertShape(
+        app.equation,
+        equation,
+        'relations: provisional side swap should not mutate application equation state'
+    );
+    assertShape(
+        app.drag_choices[0].equation,
+        new Equation(two, x),
+        'relations: crossing to the opposite side should expose the swapped equation for preview'
+    );
+
+    app = app_updater.drag_move(app, 0, 0, 'side:L');
+    assert(
+        app.drag_choices.length === 0,
+        'relations: crossing back before release should remove the provisional swap'
+    );
+    assertShape(
+        app.equation,
+        equation,
+        'relations: crossing back should leave the application equation unchanged'
+    );
+    assert(
+        app.drag_type.id === DragState.symbol && app.undo_history.length === 0,
+        'relations: reversing a provisional swap should keep the drag active and history unchanged'
+    );
+
+    app = app_updater.drag_move(app, 10, 10, 'side:R');
+    app = app_updater.drag_drop(app, 'side:R');
+    assert(
+        app.drag_type.id === DragState.released &&
+        app.drag_choices.length === 0 &&
+        app.undo_history.length === 1,
+        'relations: releasing on the opposite side should commit one swap to history'
+    );
+    assertShape(
+        app.equation,
+        new Equation(two, x),
+        'relations: releasing a provisional side swap should keep the swapped equation'
+    );
+
+    let cancelled = new AppState(
+        levels,
+        0,
+        equation,
+        released,
+        released.initialize(),
+        [],
+        [],
+        [],
+        'day',
+        manual_drag_options
+    );
+    cancelled = app_updater.drag_start(cancelled, 'side:L', 0, 0);
+    cancelled = app_updater.drag_move(cancelled, 10, 10, 'side:R');
+    cancelled = app_updater.drag_cancel(cancelled);
+    assertShape(
+        cancelled.equation,
+        equation,
+        'relations: cancelling a provisional side swap should restore the original equation'
+    );
+    assert(
+        cancelled.undo_history.length === 0,
+        'relations: cancelling a provisional side swap should not change history'
+    );
+}
 
 function dragChoices() {
     const rhs = grouplikes.constant(2);
@@ -2530,6 +2707,7 @@ function distributivity() {
 ].forEach(test => test());
 
 [
+    relationalExpressions,
     dragChoices,
     automaticSimplification,
     fractionPreservation,

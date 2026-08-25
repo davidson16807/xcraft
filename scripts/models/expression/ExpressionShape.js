@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 const ExpressionShape = () => {
     function encode(expression) {
@@ -12,6 +11,12 @@ const ExpressionShape = () => {
             case 'add': return `A(${expression.contents.map(encode).sort().join(',')})`;
             case 'mul': return `M(${expression.contents.map(encode).sort().join(',')})`;
             case 'harmonic': return `H(${expression.contents.map(encode).sort().join(',')})`;
+            case 'eq':
+            case 'lt':
+            case 'lte':
+            case 'gt':
+            case 'gte':
+                return `REL(${expression.type},${encode(expression.contents[0])},${encode(expression.contents[1])})`;
             default: return '...';
         }
     }

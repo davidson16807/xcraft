@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 `EquationPathOperations` translates path-addressed equation operations into the
@@ -31,6 +30,25 @@ function EquationPathOperations(dependencies) {
         // invalid source index? no-op
 
         return equations.balance(equation, source_side, source_index, target_side);
+    }
+
+    function swap(equation, source_side, target_side) {
+        if (source_side == null || target_side == null || source_side === target_side) return noop;
+        if (!['L', 'R'].includes(source_side) || !['L', 'R'].includes(target_side)) return noop;
+        // relation swapping only applies to whole opposite sides
+
+        const source = paths.resolve(equation, source_side);
+        if (source == null) return noop;
+
+        return freeze(equations.swap(equation).map(replacement =>
+            new EquationDragChoice(
+                source,
+                null,
+                replacement,
+                target_side,
+                'swap'
+            )
+        ));
     }
 
     function commute(equation, path1, path2) {
@@ -160,6 +178,7 @@ function EquationPathOperations(dependencies) {
 
     return freeze({
         balance,
+        swap,
         commute,
         strip,
         combine,
