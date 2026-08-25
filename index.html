@@ -1,4 +1,3 @@
-<!-- HUMAN VETTED -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -25,9 +24,16 @@
     <script src="./scripts/models/ringlike/Power.js"></script>
     <script src="./scripts/models/ringlike/Powers.js"></script>
     <script src="./scripts/models/ringlike/PowerExpressions.js"></script>
-    <script src="./scripts/models/ringlike/Ringlike.js"></script>
+    <script src="./scripts/models/powertriangle/PowerTriangle.js"></script>
+    <script src="./scripts/models/powertriangle/PowerTriangles.js"></script>
+    <script src="./scripts/models/powertriangle/PowerTriangleSameness.js"></script>
+    <script src="./scripts/models/powertriangle/PowerTriangleComposition.js"></script>
+    <script src="./scripts/models/powertriangle/PowerTriangleInverse.js"></script>
+    <script src="./scripts/models/ringlike/Ringlikes.js"></script>
     <script src="./scripts/models/equation/Equation.js"></script>
+    <script src="./scripts/models/equation/EquationDragChoice.js"></script>
     <script src="./scripts/models/equation/Equations.js"></script>
+    <script src="./scripts/models/equation/EquationPathOperations.js"></script>
     <script src="./scripts/models/equation/EquationDragOperations.js"></script>
     <script src="./scripts/models/equation/EquationShape.js"></script>
     <script src="./scripts/models/app/AppState.js"></script>
@@ -71,19 +77,6 @@
                 <div>Restart</div>
                 <img src="icons/rotate-ccw.svg"/>
             </button>
-
-            <button id="drag-add" type="button" class="btn operation-toggle" aria-pressed="true">
-                <div>Add</div>
-                <img src="icons/add.svg"/>
-                <div id="drag-add-indicator">On</div>
-            </button>
-
-            <button id="drag-multiply" type="button" class="btn operation-toggle" aria-pressed="true">
-                <div>Multiply</div>
-                <img src="icons/multiply.svg"/>
-                <div id="drag-multiply-indicator">On</div>
-            </button>
-
             <button id="auto-simplify" type="button" class="btn operation-toggle" aria-pressed="true">
                 <div>Simplify</div>
                 <img src="icons/equal.svg"/>
@@ -157,7 +150,7 @@
     ];
     document.getElementById('subtitle').replaceChildren(subtitles[Math.floor(Math.random()*subtitles.length)]);
 
-    const expression_shape = ExpressionShape();
+
     const grouplikes = Grouplikes({
         'add': Grouplike('add', new Expression('constant', 0), 
             {
@@ -207,24 +200,38 @@
             )
         ),
     });
-    const scales = Scales(grouplikes, expression_shape);
-    const scale_expressions = ScaleExpressions(grouplikes, scales);
-    const powers = Powers(grouplikes, expression_shape);
-    const power_expressions = PowerExpressions(grouplikes, powers);
-    const ringlikes = Ringlike({
-        add: scale_expressions,
-        mul: power_expressions,
+
+    const expression_shape = ExpressionShape();
+    const ringlikes = Ringlikes({
+        add: ScaleExpressions(grouplikes, Scales(grouplikes, expression_shape)),
+        mul: PowerExpressions(grouplikes, Powers(grouplikes, expression_shape)),
     });
+    const power_triangles = PowerTriangles(grouplikes, expression_shape);
+
+    const equations = Equations({
+        expression_shape: expression_shape,
+        grouplikes: grouplikes,
+        ringlikes: ringlikes,
+        invertibles: Object.freeze([
+            PowerTriangleInverse(power_triangles, expression_shape),
+        ]),
+        equivalences: Object.freeze([
+            PowerTriangleSameness(power_triangles, grouplikes),
+            PowerTriangleComposition(power_triangles, grouplikes),
+        ]),
+    });
+
     const expression_paths = ExpressionPaths(grouplikes);
+    const equation_shape = EquationShape(expression_shape);
     const equation_drag_ops = EquationDragOperations({
         expression_paths: expression_paths,
-        equations: Equations({
-            grouplikes: grouplikes,
+        equation_shape: equation_shape,
+        equations: equations,
+        equation_path_operations: EquationPathOperations({
             expression_paths: expression_paths,
-            ringlikes: ringlikes,
-        })
+            equations: equations,
+        }),
     });
-    const equation_shape = EquationShape(expression_shape);
 
     const history = AppHistoryTraversal(Infinity);
 
@@ -241,8 +248,8 @@
     const expression_view = ExpressionView({
         html: html,
         render: katex.render,
-        grouplikes: grouplikes,
         expression_paths: expression_paths,
+        grouplikes: grouplikes,
         ringlikes: ringlikes,
         precedence_for_tag: tag => {
             switch (tag) {
@@ -261,8 +268,6 @@
         html: html,
         render: katex.render,
         equation_drag_operations: equation_drag_ops,
-        expression_paths: expression_paths,
-        ringlikes: ringlikes,
         expression_view: expression_view,
     });
 
@@ -284,7 +289,7 @@
             [], [], // history
             window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches?
                 'night' : 'day',
-            { enabled: new Set(['add', 'mul', 'pow', 'log', 'root', 'harmonic']), auto_simplify:true }
+            { auto_simplify:true }
         ), document
     );
 

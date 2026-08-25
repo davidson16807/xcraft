@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 class EquationDragChoice {
     constructor(expression, operator, equation, side, type) {

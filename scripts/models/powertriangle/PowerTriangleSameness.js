@@ -79,7 +79,7 @@ const PowerTriangleSameness = (triangles, grouplikes) => {
         return _combine(type, left, right, false) || _combine(type, left, right, true);
     }
 
-    function distribute(parent, source, target) {
+    function _distribute(parent, source, target) {
         const triangle = triangles.from_expression(parent, false);
         if (triangle == null) return null;
 
@@ -96,8 +96,17 @@ const PowerTriangleSameness = (triangles, grouplikes) => {
         ));
     }
 
+    function left_distribute(parent, left, right) {
+        return _distribute(parent, left, right);
+    }
+
+    function right_distribute(parent, left, right) {
+        return _distribute(parent, right, left);
+    }
+
     return Object.freeze({
         combine,
-        distribute,
+        left_distribute,
+        right_distribute,
     });
 };

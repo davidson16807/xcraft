@@ -65,4 +65,5 @@ const PowerTriangleInverse = (triangles, expression_shape) => {
         append,
         strip,
     });
+
 };

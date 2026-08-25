@@ -2,11 +2,18 @@
 // HUMAN VETTED
 
 /*
-`Expression` is the immutable model for algebraic grouplikes.
-Constructors return deeply immutable values.  Transformations never modify
-an input expression; they return either the original reference or a new tree.
+`Grouplikes` manages operations for a set of grouplike structures.
+Each operation follows from the properties of a group.
+
+Operations here are unambiguously defined by the structure. 
+Unsupported operations are represented by returning the original expression 
+(if the operation is unary) or null (if the operation is binary).
+Return types are deeply immutable expressions. 
+All functions are pure. 
 */
 const Grouplikes = (grouplike_expressions_for_tag) => {
+
+    const types = Object.freeze(Object.keys(grouplike_expressions_for_tag));
 
     const constant = value => new Expression('constant', Number(value));
     const variable = name => new Expression('variable', String(name));
@@ -23,71 +30,37 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
 
     const whole_threshold = 1e-10;
 
-    function is_whole(value) {
+    function _is_whole(value) {
         return Math.abs(value - Math.round(value)) <= whole_threshold;
     }
 
-    function is_reciprocal(expression) {
+    function _is_reciprocal(expression) {
         return expression.type === 'pow' &&
             expression.contents[1].type === 'constant' &&
             expression.contents[1].contents === -1;
     }
 
-    function contains_reciprocal(expression) {
-        if (is_reciprocal(expression)) return true;
+    function _contains_reciprocal(expression) {
+        if (_is_reciprocal(expression)) return true;
         return Array.isArray(expression.contents) &&
-            expression.contents.some(contains_reciprocal);
+            expression.contents.some(_contains_reciprocal);
     }
 
     /*
     Constant arithmetic may collapse to a Number unless doing so would turn an
     exact reciprocal expression into a non-integral decimal approximation.
     */
-    function constant_result(expression) {
+    function _constant_result(expression) {
         const value = evaluate(expression, {});
         if (!Number.isFinite(value)) return null;
-        if (contains_reciprocal(expression) && !is_whole(value)) return null;
-        return constant(is_whole(value)? Math.round(value) : value);
+        if (_contains_reciprocal(expression) && !_is_whole(value)) return null;
+        return constant(_is_whole(value)? Math.round(value) : value);
     }
 
     function simplify(expression) {
-        const simplified_constant = constant_result(expression);
-        if (simplified_constant != null) return simplified_constant;
-        if (!Array.isArray(expression.contents)) return expression;
-
-        let contents = expression.contents.map(simplify);
-
-        // Addition and multiplication are associative, so constant-valued
-        // siblings can be folded even when the entire expression still
-        // depends on a variable: e.g. x + 7 - 1 -> x + 6.
-        // TODO: This hardcodes expression types and should be replaced 
-        // when a suitable replacement becomes available
-        if (expression.type === 'add' || expression.type === 'mul') {
-            const constants = contents
-                .map((item, index) => ({ item:item, index:index, value:evaluate(item, {}) }))
-                .filter(item => Number.isFinite(item.value));
-
-            if (constants.length > 1) {
-                const constant_expression = expression.with({
-                    contents: Object.freeze(constants.map(item => item.item)),
-                });
-                const combined = constant_result(constant_expression);
-                if (combined != null) {
-                    const first = constants[0].index;
-                    const constant_indexes = new Set(constants.map(item => item.index));
-                    contents = contents.flatMap((item, index) =>
-                        index === first? [combined] :
-                        constant_indexes.has(index)? [] : [item]
-                    );
-                }
-            }
-        }
-
-        if (
-            contents.length === expression.contents.length &&
-            contents.every((item, i) => item === expression.contents[i])
-        ) return expression;
-        return expression.with({ contents: Object.freeze(contents) });
+        const structure = grouplike_expressions_for_tag[expression.type];
+        if (structure == null) return expression;
+        return structure.simplify(expression, simplify, evaluate, _constant_result);
     }
 
     function append(type, left, right) {
@@ -103,7 +76,7 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         const combined = structure.combine(left, right);
         if (combined != null) return combined;
 
-        return constant_result(
+        return _constant_result(
             new Expression(type, Object.freeze([left, right]))
         );
     }
@@ -145,6 +118,7 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
     const evaluate = (expression, variables) => evaluator(variables)(expression);
 
     return Object.freeze({
+        types,
         constant,
         variable,
         add,

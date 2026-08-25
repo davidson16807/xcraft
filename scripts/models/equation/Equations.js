@@ -1,158 +1,229 @@
 'use strict';
+// HUMAN VETTED
 
 /*
-Every successful operation in this namespace is an equivalence-preserving
-rewrite under the nonzero-divisor assumptions supplied by the active level.
-Unsupported drags return the original equation reference.
+`Equations` manages user-facing operation at the scale of expressions and equations.
+It aggregates mathematical structures and laws. 
+Expression addressing and navigation belong elsewhere.
 
-`Equations` synthesizes algebraic operations that can be derived from `Grouplikes` and `Ringlike`.
+User-facing operations can be ambiguous, so operations return lists of valid
+interpretations. Unsupported operations return an empty list.
 */
 function Equations(dependencies) {
+    const shape = dependencies.expression_shape;
+
     const grouplikes = dependencies.grouplikes;
-    const paths = dependencies.expression_paths;
     const ringlikes = dependencies.ringlikes;
+    const invertibles = dependencies.invertibles || [];
+    const equivalences = dependencies.equivalences || [];
 
-    function invert(equation, source_path, enabled) {
-        if (source_path == null) return null; // no source? no-op
+    const freeze = Object.freeze;
+    const noop = freeze([]);
 
-        const source_side = paths.split(source_path).side;
-        const source = paths.resolve(equation, source_path);
-        if (source == null) return null; // non-existant source? no-op
-
-        const source_root = paths.resolve(equation, source_side);
-        const parent_path = paths.parent(source_path);
-        const is_alone = source_path === source_side;
-
-        if (is_alone) {
-            const inverses = [...enabled]
-                .map(operation => {
-                    const create = grouplikes[operation];
-                    if (create == null || create([]) == null) return null;
-                    return ringlikes.inverse(operation, source);
-                })
-                .filter(inverse => inverse != null);
-            return inverses.length === 1? inverses[0] : null;
-        }
-
-        if (!enabled.has(source_root.type)) return null; // disabled? no-op
-        if (parent_path !== source_side) return null; // not top-level? no-op
-        const inverse = ringlikes.inverse(source_root.type, source);
-        if (inverse == null) return null;
-        const cancelled = grouplikes.cancel(
-            source_root, Number(paths.segment(source_path)));
-        return cancelled === source_root? null : inverse;
+    function _distinct(expressions) {
+        return freeze([
+            ...new Map(
+                expressions.flatMap(
+                    expression => Array.isArray(expression)? expression : [expression]
+                ).filter(
+                    expression => expression != null
+                ).map(
+                    expression => [shape.encode(expression), expression]
+                )
+            ).values()
+        ]);
     }
 
-    function balance(equation, source_path, target_side, enabled) {
-        if (source_path == null) return equation; // no source? no-op
+    function _side(equation, side) {
+        return side === 'L'? equation.left : side === 'R'? equation.right : null;
+    }
 
-        const source_side = paths.split(source_path).side;
-        if (source_side === target_side) return equation; // same on both sides? no-op
+    function _balance_choice(equation, target_side, new_source, new_target, expression, operator) {
+        const left_right = target_side === 'L'?
+            [new_target, new_source] : [new_source, new_target];
+        return new EquationDragChoice(
+            expression,
+            operator,
+            equation.with({ left:left_right[0], right:left_right[1] }),
+            target_side,
+            'balance'
+        );
+    }
 
-        const parent_path = paths.parent(source_path);
-        const is_alone = source_path === source_side;
-        if (!is_alone && parent_path !== source_side) return equation; // not top-level? no-op
+    /*
+    Applies the inverse of the source expression to both sides
+    This removes the source expression from its side and appends its inverse to the other side.
+    This function no-ops if the source expression is non-invertible.
+    `source_index == null` means the whole source side is being moved.
+    Otherwise it identifies a direct child of the source-side root.
+    */
+    function balance(equation, source_side, source_index, target_side) {
+        if (source_side === target_side) return noop;
+        // nothing to balance? no-op
 
-        const source_root = paths.resolve(equation, source_side);
-        const target_root = paths.resolve(equation, target_side);
+        const source_root = _side(equation, source_side);
+        const target_root = _side(equation, target_side);
+        if (source_root == null || target_root == null) return noop;
+        // non-existant root? your app is broken - no-op
 
-        let operation = source_root.type;
-        let inverse = invert(equation, source_path, enabled);
-        if (inverse == null) return equation; // non-invertible or ambiguous? no-op
+        const is_alone = source_index == null;
+        const source = is_alone? source_root :
+            Array.isArray(source_root.contents)? source_root.contents[source_index] : null;
+        if (source == null) return noop;
+        // non-existant source? no-op
 
-        if (is_alone) {
-            const operations = [...enabled].filter(operation => {
+        const choices = [];
+
+        if (!is_alone) {
+            const operation = source_root.type;
+
+            const invertible_choices = new Map(
+                invertibles.map(invertible => {
+                    const new_source = invertible.cancel(source_root, source);
+                    if (new_source == null) return null;
+                    const new_target = invertible.append(source_root, source, target_root);
+                    if (new_target == null) return null;
+                    const preview = invertible.append(source_root, source, new Expression('slot'));
+                    if (preview == null) return null;
+                    const key = `${shape.encode(new_source)}=${shape.encode(new_target)}`;
+                    return [key, _balance_choice(
+                        equation,
+                        target_side,
+                        new_source,
+                        new_target,
+                        preview,
+                        null
+                    )];
+                }).filter(choice => choice != null)
+            );
+            choices.push(...invertible_choices.values());
+
+            const inverse = ringlikes.inverse(operation, source);
+            if (inverse != null) {
+                const new_source = grouplikes.cancel(source_root, source_index);
+                if (new_source != null && new_source !== source_root) {
+                    const new_target = grouplikes.append(operation, target_root, inverse);
+                    const operator = ringlikes.is_inverse(operation, inverse)? null : operation;
+                    choices.push(_balance_choice(
+                        equation,
+                        target_side,
+                        new_source,
+                        new_target,
+                        inverse,
+                        operator
+                    ));
+                }
+            }
+
+            return freeze(choices);
+
+        } else {
+
+            grouplikes.types.forEach(operation => {
                 const create = grouplikes[operation];
-                return create != null && create([]) != null &&
-                    ringlikes.inverse(operation, source_root) != null;
+                if (create == null) return;
+                const identity = create([]);
+                if (identity == null) return;
+
+                const inverse = ringlikes.inverse(operation, source_root);
+                if (inverse == null) return;
+
+                const new_target = grouplikes.append(operation, target_root, inverse);
+                const operator = ringlikes.is_inverse(operation, inverse)? null : operation;
+                choices.push(_balance_choice(
+                    equation,
+                    target_side,
+                    identity,
+                    new_target,
+                    inverse,
+                    operator
+                ));
             });
-            if (operations.length !== 1) return equation;
-            operation = operations[0];
+
+            return freeze(choices);
         }
 
-        // a + b = c  ->  a = c - b
-        // ab = c  ->  b = c/a
-        // a/b = c is represented as a*b^-1 = c, so dragging b^-1 across
-        // uses the same inverse operation and reciprocal(b^-1) becomes b.
-        const new_source = is_alone? grouplikes[operation]([]) :
-            grouplikes.cancel(source_root, Number(paths.segment(source_path)));
-        if (new_source == null || (!is_alone && new_source === source_root)) return equation;
-        const new_target = grouplikes.append(operation, target_root, inverse);
-        let left, right;
-        [left,right] = target_side==='L'? [new_target, new_source] : [new_source, new_target];
-        return equation.with({left: left, right: right});
-
     }
 
-    function commute(equation, path1, path2) {
-        if (path1 == null || path2 == null || path1 === path2) return equation;
-
-        const parent_path = paths.parent(path1);
-        if (parent_path == null || parent_path !== paths.parent(path2)) return equation;
-
-        const parent = paths.resolve(equation, parent_path);
-        if (parent == null) return equation;
-
-        const segment1 = paths.segment(path1);
-        const segment2 = paths.segment(path2);
-        if (!/^\d+$/.test(segment1) || !/^\d+$/.test(segment2)) return equation;
-
-        const index1 = Number(segment1);
-        const index2 = Number(segment2);
-        if (index1 >= parent.contents.length || index2 >= parent.contents.length) return equation;
-
-        const commuted = grouplikes.commute(parent, index1, index2);
-
-        return paths.replace(equation, parent_path, commuted);
+    /*Strips an outer expression that has been wrapped in its inverse.
+    This function no-ops if the expression is non-invertible.*/
+    function strip(outer, inner, outer_fixed, inner_fixed) {
+        return _distinct(invertibles.map(invertible =>
+            invertible.strip(outer, inner, outer_fixed, inner_fixed)
+        ));
     }
 
-    function combine(equation, source_path, target_path) {
-        const parent_path = paths.parent(source_path);
-        if (parent_path == null || parent_path !== paths.parent(target_path)) return equation;
+    /*Combines the expressions at index1 and index2 of parent.contents.
+    This may either represent combining expressions like constants, terms, or factors,
+    or a applying the inverse operation of distribute(…) where 
+    an equivalence law dictates that several expressions can be combined into one.*/
+    function combine(parent, index1, index2) {
+        if (!Array.isArray(parent.contents) || index1 === index2) return noop;
+        // indexes match or parent is singleton? no-op
 
-        const parent = paths.resolve(equation, parent_path);
-        if (parent == null) return equation;
+        const source = parent.contents[index1];
+        const target = parent.contents[index2];
+        if (source == null || target == null) return noop;
+        // non-existance source and target? no-op
 
-        const source = paths.resolve(equation, source_path);
-        const target = paths.resolve(equation, target_path);
-        const source_index = Number(paths.segment(source_path));
-        const target_index = Number(paths.segment(target_path));
+        const left = index1 < index2? source : target;
+        const right = index1 < index2? target : source;
+        const replacements = _distinct([
+            grouplikes.combine(parent.type, left, right),
+            ringlikes.combine(parent.type, left, right),
+            ...equivalences.map(equivalence =>
+                equivalence.combine(parent.type, left, right)
+            ),
+        ]);
+
+        return _distinct(replacements.map(replacement =>
+            grouplikes.collapse(parent, index1, index2, replacement)
+        ));
+    }
+
+    /*Distributes the expression at source_index across the contents of the expression at target_index.
+    This may either represent distributivity in a ringlike structure,
+    or a applying the inverse operation of combine(…) where 
+    an equivalence law dictates that one expression can become several.*/
+    function distribute(parent, source_index, target_index) {
+        if (!Array.isArray(parent.contents) || source_index === target_index) return noop;
+        // indexes match or parent is singleton? no-op
+
+        const source = parent.contents[source_index];
+        const target = parent.contents[target_index];
+        if (source == null || target == null || target.type === 'constant') return noop;
+        // non-existance source and target? no-op
 
         const left = source_index < target_index? source : target;
         const right = source_index < target_index? target : source;
-        const combined = (
-            grouplikes.combine(parent.type, left, right) ||
-            ringlikes.combine(parent.type, left, right)
-        );
-        if (combined == null) return equation;
+        const operation = source_index < target_index?
+            'left_distribute' : 'right_distribute';
 
-        return paths.replace(equation, parent_path, 
-                grouplikes.collapse(parent, source_index, target_index, combined));
+        const replacements = _distinct([
+            ringlikes[operation](target.type, parent, left, right),
+            ...equivalences.map(equivalence =>
+                equivalence[operation](parent, left, right)
+            ),
+        ]);
 
+        return _distinct(replacements.map(replacement =>
+            grouplikes.collapse(parent, source_index, target_index, replacement)
+        ));
     }
 
-    function distribute(equation, source_path, target_path) {
-        const parent_path = paths.parent(source_path);
-        if (parent_path == null || parent_path !== paths.parent(target_path)) return equation;
+    /*Swaps expressions at index1 and index2 of parent.contents.
+    This function no-ops if the parent operation is neither commutative nor anti-commutative.*/
+    function commute(parent, index1, index2) {
+        if (!Array.isArray(parent.contents) || index1 === index2) return noop;
+        // indexes match or parent is singleton? no-op
 
-        const source = paths.resolve(equation, source_path);
-        const target = paths.resolve(equation, target_path);
-        const source_index = Number(paths.segment(source_path));
-        const target_index = Number(paths.segment(target_path));
-        if (target.type === 'constant') return equation;
+        const left = parent.contents[index1];
+        const right = parent.contents[index2];
+        if (left == null || right == null || left === right) return noop;
+        // non-existant or matching expressions? no-op
 
-        const parent = paths.resolve(equation, parent_path);
-        if (parent == null) return equation;
-
-        // The source always distributes across the target,
-        // so source and target position determines whether the distribution is left or right.
-        const distributed = source_index < target_index?
-            ringlikes.left_distribute(target.type, parent, source, target)
-          : ringlikes.right_distribute(target.type, parent, target, source);
-        if (distributed == null) return equation;
-
-        return paths.replace(equation, parent_path, 
-                grouplikes.collapse(parent, source_index, target_index, distributed));
+        const commuted = grouplikes.commute(parent, index1, index2);
+        return commuted === parent? noop : freeze([commuted]);
     }
 
     function simplify(equation) {
@@ -162,12 +233,12 @@ function Equations(dependencies) {
             equation.with({ left:left, right:right });
     }
 
-    return Object.freeze({
+    return freeze({
         balance,
-        commute,
+        strip,
         combine,
         distribute,
-        invert,
+        commute,
         simplify,
     });
 }

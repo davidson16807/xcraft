@@ -51,8 +51,9 @@ const PowerTriangles = (grouplikes, expression_shape) => {
     }
 
     /* Returns the two vertex indices that form the equivalent Expression's contents. */
-    function inputs(computed) {
-        return freeze(vertices.filter(vertex => vertex !== computed));
+    function inputs(triangle) {
+        const computed_vertex = computed(triangle);
+        return freeze(vertices.filter(vertex => vertex !== computed_vertex));
     }
 
     /* Returns the remaining PowerTriangle index that is neither `first` nor `second`. */
