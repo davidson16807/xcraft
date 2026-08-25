@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 `Grouplikes` manages operations for a set of grouplike structures.

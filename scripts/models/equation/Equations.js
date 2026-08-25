@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 `Equations` manages user-facing operation at the scale of expressions and equations.
@@ -50,6 +51,9 @@ function Equations(dependencies) {
     }
 
     /*
+    Applies the inverse of the source expression to both sides
+    This removes the source expression from its side and appends its inverse to the other side.
+    This function no-ops if the source expression is non-invertible.
     `source_index == null` means the whole source side is being moved.
     Otherwise it identifies a direct child of the source-side root.
     */
@@ -141,6 +145,8 @@ function Equations(dependencies) {
 
     }
 
+    /*Strips an outer expression that has been wrapped in its inverse.
+    This function no-ops if the expression is non-invertible.*/
     function strip(outer, inner, outer_fixed, inner_fixed) {
         return _distinct(invertibles.map(invertible =>
             invertible.strip(outer, inner, outer_fixed, inner_fixed)
