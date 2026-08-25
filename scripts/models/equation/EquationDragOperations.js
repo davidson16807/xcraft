@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 `EquationDragOperations.choices` is the single entry point for user drag behavior. 
