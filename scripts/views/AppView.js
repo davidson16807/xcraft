@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 function AppView(dependencies, app_updater) {
     const html = dependencies.html;

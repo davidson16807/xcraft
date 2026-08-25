@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 function EquationView(dependencies) {
 
@@ -14,17 +15,19 @@ function EquationView(dependencies) {
     }
 
     function draw_side(expression, side, draggable_paths, valid_targets) {
-        const attrs = {
-            class: 'equation-side',
-            'data-drop-key': `side:${side}`,
-        };
-        if (valid_targets.has(`side:${side}`)) {
-            attrs.class += ' valid-drop';
-            attrs['data-valid-drop'] = '1';
-        }
-        return html.span(attrs, [
-            expression_view.draw(expression, side, draggable_paths, valid_targets)
-        ]);
+        return html.span(
+            valid_targets.has(`side:${side}`)? 
+                {
+                    class: 'equation-side valid-drop',
+                    'data-drop-key': `side:${side}`,
+                    'data-valid-drop': '1',
+                }
+              : {
+                    class: 'equation-side',
+                    'data-drop-key': `side:${side}`,
+                },
+            [expression_view.draw(expression, side, draggable_paths, valid_targets)]
+        );
     }
 
     function preview_operator(operator) {
@@ -64,28 +67,26 @@ function EquationView(dependencies) {
     }
 
     function draw_choice_row(side, drag_choices, pending) {
-        const primary = [];
-        const mirrors = [];
 
-        drag_choices.forEach((choice, index) => {
-            if (choice.side === side) primary.push(draw_choice(choice, index, pending, false, false));
-            if (choice.type === 'balance' && choice.side !== side) {
-                mirrors.push(draw_choice(
-                    choice, index, false, true, drag_choices.length === 1
-                ));
-            }
-        });
+        const primary = drag_choices
+            .filter(choice => choice.side === side)
+            .map((choice, index) => draw_choice(choice, index, pending, false, false));
+
+        const mirrors = drag_choices
+            .filter(choice => choice.type === 'balance' && choice.side !== side)
+            .map((choice, index) => draw_choice(choice, index, false, true, drag_choices.length === 1));
 
         const row = html.div({
             class: `drag-ghosts-row ${pending? 'drag-choices-pending' : 'drag-choices-live'}`,
         }, [...primary, ...mirrors]);
 
-        const cancel = pending && primary.length > 0? html.button({
-            type: 'button',
-            class: 'drag-choices-cancel',
-            'data-drag-choices-cancel': '1',
-            'aria-label': 'Cancel operation choices',
-        }, [], '×') : null;
+        const cancel = !pending || primary.length < 1? null 
+            : html.button({
+                type: 'button',
+                class: 'drag-choices-cancel',
+                'data-drag-choices-cancel': '1',
+                'aria-label': 'Cancel operation choices',
+            }, [], '×');
 
         const children = side === 'L'?
             [...(cancel == null? [] : [cancel]), row] :
