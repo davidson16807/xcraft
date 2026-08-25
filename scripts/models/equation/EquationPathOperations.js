@@ -62,47 +62,51 @@ function EquationPathOperations(dependencies) {
         );
     }
 
+    function strip(equation, path1, path2) {
+        const parent_path1 = paths.parent(path1);
+        const parent_path2 = paths.parent(path2);
+        if (parent_path1 == null || parent_path2 == null || parent_path1 === parent_path2) {
+            return freeze([]);
+        }
+        // strip only applies across nested parents
+
+        const expression1 = paths.resolve(equation, path1);
+        const expression2 = paths.resolve(equation, path2);
+        if (expression1 == null || expression2 == null) return freeze([]);
+        // invalid expressions? no-op
+
+        let outer_parent_path, inner_parent_path, outer, inner;
+        if (paths.is_ancestor(parent_path1, parent_path2)) {
+            [outer_parent_path, inner_parent_path, outer, inner] =
+                [parent_path1, parent_path2, expression1, expression2];
+        } else if (paths.is_ancestor(parent_path2, parent_path1)) {
+            [outer_parent_path, inner_parent_path, outer, inner] =
+                [parent_path2, parent_path1, expression2, expression1];
+        } else {
+            return freeze([]);
+        }
+
+        const outer_parent = paths.resolve(equation, outer_parent_path);
+        const inner_parent = paths.resolve(equation, inner_parent_path);
+        if (outer_parent == null || inner_parent == null) return freeze([]);
+
+        return freeze(
+            equations.strip(outer_parent, inner_parent, outer, inner)
+                .map(replacement => new EquationDragChoice(
+                    replacement,
+                    null,
+                    paths.replace(equation, outer_parent_path, replacement),
+                    paths.split(path2).side,
+                    'combine'
+                ))
+        );
+    }
+
     function combine(equation, source_path, target_path) {
         const source_parent_path = paths.parent(source_path);
         const target_parent_path = paths.parent(target_path);
         if (source_parent_path == null || target_parent_path == null) return freeze([]);
         // invalid parents? no-op
-
-        const source = paths.resolve(equation, source_path);
-        const target = paths.resolve(equation, target_path);
-        if (source == null || target == null) return freeze([]);
-        // invalid source and target? no-op
-
-        if (source_parent_path !== target_parent_path) {
-            // parent paths are the same?
-
-            let outer_parent_path, inner_parent_path, outer, inner;
-            if (paths.is_ancestor(source_parent_path, target_parent_path)) {
-                [outer_parent_path, inner_parent_path, outer, inner] =
-                    [source_parent_path, target_parent_path, source, target];
-            } else if (paths.is_ancestor(target_parent_path, source_parent_path)) {
-                [outer_parent_path, inner_parent_path, outer, inner] =
-                    [target_parent_path, source_parent_path, target, source];
-            } else {
-                return freeze([]);
-            }
-
-            const outer_parent = paths.resolve(equation, outer_parent_path);
-            const inner_parent = paths.resolve(equation, inner_parent_path);
-            if (outer_parent == null || inner_parent == null) return freeze([]);
-
-            return freeze(
-                equations.strip(outer_parent, inner_parent, outer, inner)
-                    .map(replacement => new EquationDragChoice(
-                        replacement,
-                        null,
-                        paths.replace(equation, outer_parent_path, replacement),
-                        paths.split(target_path).side,
-                        'combine'
-                    ))
-            );
-
-        }
 
         const parent = paths.resolve(equation, source_parent_path);
         if (parent == null) return freeze([]);
@@ -153,6 +157,7 @@ function EquationPathOperations(dependencies) {
     return freeze({
         balance,
         commute,
+        strip,
         combine,
         distribute,
     });

@@ -57,6 +57,7 @@ function EquationDragOperations(dependencies) {
             ) return freeze([]);
 
             const substantive = [
+                ...path_operations.strip(equation, source_path, target_path),
                 ...path_operations.combine(equation, source_path, target_path),
                 ...path_operations.distribute(equation, source_path, target_path),
             ];

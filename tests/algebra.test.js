@@ -2101,6 +2101,20 @@ function powerTriangleLogInverse() {
     );
 
     const power_of_log = grouplikes.pow(two, grouplikes.log(two, x));
+    const strip_choices = equation_path_operations.strip(
+        new Equation(power_of_log, zero), 'L/0', 'L/1/0'
+    );
+    assert(
+        strip_choices.length > 0,
+        'EquationPathOperations.strip should expose nested inverse cancellation'
+    );
+    assertSameExpression(
+        strip_choices[0].equation.left,
+        x,
+        'EquationPathOperations.strip',
+        '2^log_2(x) -> x'
+    );
+
     assertMoveTransforms(
         power_of_log,
         'L/0',
