@@ -28,7 +28,7 @@ class AppState {
         this.redo_history = Object.freeze([...(redo_history || [])]);
         this.theme = theme || 'day';
         this.drag_options = Object.freeze(
-            drag_options || { auto_simplify:true }
+            drag_options || { auto_simplify:false }
         );
         Object.freeze(this);
     }
