@@ -36,12 +36,12 @@ function ExpressionView(dependencies) {
         if (path == null) return attrs;
 
         attrs['data-path'] = path;
-        attrs['data-drop-key'] = `path:${path}`;
+        attrs['data-drop-key'] = path;
         if (draggable_paths.has(path)) {
             attrs.class += ' draggable-symbol';
             attrs['data-draggable'] = '1';
         }
-        if (valid_targets.has(`path:${path}`)) {
+        if (valid_targets.has(path)) {
             attrs.class += ' valid-drop';
             attrs['data-valid-drop'] = '1';
         }
@@ -218,6 +218,19 @@ function ExpressionView(dependencies) {
 
             case 'variable':
                 return html.span(path_attributes(path, draggable_paths, valid_targets), [math(expression.contents)]);
+                break;
+
+            case 'side':
+                return html.span(
+                    path_attributes(path, draggable_paths, valid_targets, 'equation-side'),
+                    [draw(
+                        expression.contents[0],
+                        paths.nary(path, 0),
+                        draggable_paths,
+                        valid_targets,
+                        0
+                    )]
+                );
                 break;
 
             case 'add':

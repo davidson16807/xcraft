@@ -22,6 +22,7 @@ UNOBTRUSIVE:
 MAYBE OBTRUSIVE:
 * allow representing other algebras: set notation, boolean algebra
 * allow representing other structures, starting with orders
+* represent caveats, i.e. assumptions introduced to proceed with certain drags like division by a variable
 
 OBTRUSIVE:
 * allow inverting fractions on both sides

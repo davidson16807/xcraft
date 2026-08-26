@@ -14,16 +14,16 @@ function EquationPathOperations(dependencies) {
     const noop = freeze([]);
 
     function balance(equation, source_path, target_side) {
-        if (source_path == null) return noop;
-        // no source? no-op
+        if (source_path == null || target_side == null) return noop;
 
-        const source_side = paths.split(source_path).side;
+        const source_side = paths.root(source_path);
         if (source_side === target_side) return noop;
         // nothing to balance? no-op
 
+        const source_root_path = paths.nary(source_side, 0);
         const parent_path = paths.parent(source_path);
-        const is_alone = source_path === source_side;
-        if (!is_alone && parent_path !== source_side) return noop;
+        const is_alone = source_path === source_root_path;
+        if (!is_alone && parent_path !== source_root_path) return noop;
         // not alone and not top-level? no-op
 
         const source_index = is_alone? null : Number(paths.segment(source_path));
@@ -35,10 +35,16 @@ function EquationPathOperations(dependencies) {
 
     function swap(equation, path1, path2) {
         if (path1 == null || path2 == null || path1 === path2) return noop;
-        if (!['L', 'R'].includes(path1) || !['L', 'R'].includes(path2)) return noop;
-        // relation swapping only applies to whole opposite sides
+        if (paths.parent(path1) != null || paths.parent(path2) != null) return noop;
+        // relation swapping only applies to the two top-level side nodes
 
-        const expression1 = paths.resolve(equation, path1);
+        const side1 = paths.resolve(equation, path1);
+        const side2 = paths.resolve(equation, path2);
+        if (side1 == null || side2 == null || side1.type !== 'side' || side2.type !== 'side') {
+            return noop;
+        }
+
+        const expression1 = paths.resolve(equation, paths.nary(path1, 0));
         if (expression1 == null) return noop;
 
         return freeze(equations.swap(equation).map(replacement =>
@@ -76,7 +82,7 @@ function EquationPathOperations(dependencies) {
                         replacement,
                         null,
                         paths.replace(equation, parent_path, replacement),
-                        paths.split(path2).side,
+                        paths.root(path2),
                         'commute'
                     )
                 )
@@ -118,7 +124,7 @@ function EquationPathOperations(dependencies) {
                     replacement,
                     null,
                     paths.replace(equation, outer_parent_path, replacement),
-                    paths.split(path2).side,
+                    paths.root(path2),
                     'strip'
                 ))
         );
@@ -143,7 +149,7 @@ function EquationPathOperations(dependencies) {
                 replacement,
                 null,
                 paths.replace(equation, parent_path1, replacement),
-                paths.split(path2).side,
+                paths.root(path2),
                 'combine'
             )
         ));
@@ -170,7 +176,7 @@ function EquationPathOperations(dependencies) {
                         replacement,
                         null,
                         paths.replace(equation, parent_path, replacement),
-                        paths.split(target_path).side,
+                        paths.root(target_path),
                         'distribute'
                     )
                 )
@@ -185,5 +191,4 @@ function EquationPathOperations(dependencies) {
         combine,
         distribute,
     });
-
 }

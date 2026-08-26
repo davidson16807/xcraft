@@ -8,10 +8,8 @@ class Equation extends Relation {
     }
 
     with(attributes) {
-        const contents = attributes.contents != null? attributes.contents : this.contents;
-        const type = attributes.type != null? attributes.type : this.type;
-        const left = attributes.left != null? attributes.left : contents[0];
-        const right = attributes.right != null? attributes.right : contents[1];
-        return type === 'eq'? new Equation(left, right) : new Relation(type, left, right);
+        const relation = super.with(attributes);
+        return relation.type === 'eq'?
+            new Equation(relation.left, relation.right) : relation;
     }
 }

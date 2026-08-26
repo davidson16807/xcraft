@@ -36,11 +36,13 @@ function Equations(dependencies) {
     }
 
     function _side(equation, side) {
-        return side === 'L'? equation.left : side === 'R'? equation.right : null;
+        const side_expression = Array.isArray(equation.contents)? equation.contents[Number(side)] : null;
+        return side_expression != null && side_expression.type === 'side'?
+            side_expression.contents[0] : null;
     }
 
     function _balance_choice(equation, target_side, new_source, new_target, expression, operator) {
-        const left_right = target_side === 'L'?
+        const left_right = Number(target_side) === 0?
             [new_target, new_source] : [new_source, new_target];
         return new EquationDragChoice(
             expression,

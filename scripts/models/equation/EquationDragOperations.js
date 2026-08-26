@@ -2,8 +2,11 @@
 // HUMAN VETTED
 
 /*
-`EquationDragOperations.choices` is the single entry point for user drag behavior. 
+`EquationDragOperations.choices` is the single entry point for user drag behavior.
 It addresses concerns regarding how user drags correspond to operations on equations.
+
+All drag sources and targets are ordinary Expression paths. Relation side nodes
+are distinguished structurally by `type === 'side'`, not by a separate path domain.
 
 It returns every distinct equation that the source/target drag can
 legally produce. Ambiguity is preserved for the application layer to resolve.
@@ -17,7 +20,7 @@ function EquationDragOperations(dependencies) {
     const freeze = Object.freeze;
 
     /*
-    `format` filters out redundant choices 
+    `format` filters out redundant choices
     and simplifies choices if auto_simplify is activated
     */
     function format(choices, drag_options) {
@@ -39,73 +42,50 @@ function EquationDragOperations(dependencies) {
         ]);
     }
 
-    function choices(equation, source, target_key, drag_options) {
-        if (source == null || target_key == null) return freeze([]);
-        const source_key = source.includes(':')? source : `path:${source}`;
-        const source_path = paths.path(source_key);
-        const target_path = paths.path(target_key);
- 
-        switch(paths.domain(source_key) + '->' + paths.domain(target_key)){
+    function choices(equation, source_path, target_path, drag_options) {
+        if (source_path == null || target_path == null) return freeze([]);
+        // no paths? no-op
 
-            case 'side->side':
-                return format(
-                    path_operations.swap(equation, source_path, target_path),
-                    drag_options
-                );
+        const source = paths.resolve(equation, source_path);
+        const target = paths.resolve(equation, target_path);
+        if (source == null || target == null) return freeze([]);
+        // non-existant paths? no-op
 
-            case 'path->side': 
-                return format(
-                    path_operations.balance(equation, source_path, target_path),
-                    drag_options
-                );
+        const source_is_side = source.type === 'side';
+        const target_is_side = target.type === 'side';
 
-            case 'path->path': 
-                // non-existant target? no-op
-                if (paths.resolve(equation, target_path) == null) return freeze([]);
-                // source_path and target are the same or direct descendants? no-op
-                if (source_path === target_path ||
-                    paths.is_ancestor(source_path, target_path) ||
-                    paths.is_ancestor(target_path, source_path)
-                ) return freeze([]);
-
-                const substantive = [
-                    ...path_operations.strip(equation, source_path, target_path),
-                    ...path_operations.combine(equation, source_path, target_path),
-                    ...path_operations.distribute(equation, source_path, target_path),
-                ];
-                return substantive.length > 0? 
-                    format(substantive, drag_options)
-                  : format(path_operations.commute(equation, source_path, target_path), drag_options);
-
-            default:
-                return freeze([]);
-
+        if (source_is_side) {
+            return target_is_side?
+                format(path_operations.swap(equation, source_path, target_path), drag_options) :
+                freeze([]);
         }
 
+        if (target_is_side) {
+            return format(path_operations.balance(equation, source_path, target_path), drag_options);
+        }
+
+        if (source_path === target_path ||
+            paths.is_ancestor(source_path, target_path) ||
+            paths.is_ancestor(target_path, source_path)
+        ) return freeze([]);
+        // source_path and target are the same or direct descendants? no-op
+
+        const primary = [
+            ...path_operations.strip(equation, source_path, target_path),
+            ...path_operations.combine(equation, source_path, target_path),
+            ...path_operations.distribute(equation, source_path, target_path),
+        ];
+        const secondary = [
+            ...path_operations.commute(equation, source_path, target_path),
+        ]
+        return format(primary.length > 0? primary : secondary, drag_options);
     }
 
-    function moves_for_source(equation, source, drag_options) {
-        const source_key = source.includes(':')? source : `path:${source}`;
-        const source_path = paths.path(source_key);
-        const source_side = paths.split(source_path).side;
-        const other_side = source_side === 'L'? 'R' : 'L';
- 
-        if (paths.domain(source_key) === 'side') {
-            const target_key = `side:${other_side}`;
-            return freeze(
-                choices(equation, source, target_key, drag_options).length > 0?
-                    [target_key] : []
-            );
-        } else {
-            const candidates = [
-                `side:${other_side}`,
-                ...paths.all(equation).map(path => `path:${path}`),
-            ];
-            return freeze(candidates.filter(target_key =>
-                choices(equation, source, target_key, drag_options).length > 0
-            ));
-        }
-
+    function moves_for_source(equation, source_path, drag_options) {
+        if (paths.resolve(equation, source_path) == null) return freeze([]);
+        return freeze(paths.all(equation).filter(target_path =>
+            choices(equation, source_path, target_path, drag_options).length > 0
+        ));
     }
 
     function draggable_paths(equation, drag_options) {
