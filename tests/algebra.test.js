@@ -910,6 +910,55 @@ ${context}`
         'drag choices: commute should remain available when it is the only operation'
     );
 
+    const commute_equation = new Equation(grouplikes.add([x, y]), rhs);
+    let commute_app = new AppState(
+        levels,
+        0,
+        commute_equation,
+        equation_drags.release(),
+        equation_drags.release().initialize(),
+        [],
+        [],
+        [],
+        'day',
+        manual_drag_options
+    );
+    commute_app = app_updater.drag_start(commute_app, 'L/0', 0, 0);
+    commute_app = app_updater.drag_move(commute_app, 10, 10, 'path:L/1');
+    assert(
+        commute_app.drag_choices.length === 1 &&
+        commute_app.drag_choices[0].type === 'commute' &&
+        commute_app.undo_history.length === 0,
+        'drag choices: commute should remain provisional while the pointer is held'
+    );
+    assertShape(
+        commute_app.equation,
+        commute_equation,
+        'drag choices: provisional commute should not mutate application equation state'
+    );
+    assertShape(
+        commute_app.drag_choices[0].equation,
+        new Equation(grouplikes.add([y, x]), rhs),
+        'drag choices: commute choice should expose the swapped expression for preview'
+    );
+    commute_app = app_updater.drag_move(commute_app, 0, 0, 'path:L/0');
+    assert(
+        commute_app.drag_choices.length === 0 && commute_app.undo_history.length === 0,
+        'drag choices: moving a commute back to its source should remove the provisional swap'
+    );
+    commute_app = app_updater.drag_move(commute_app, 10, 10, 'path:L/1');
+    commute_app = app_updater.drag_drop(commute_app, 'path:L/1');
+    assert(
+        commute_app.undo_history.length === 1 &&
+        commute_app.drag_type.id === DragState.released,
+        'drag choices: releasing a provisional commute should commit exactly once'
+    );
+    assertShape(
+        commute_app.equation,
+        new Equation(grouplikes.add([y, x]), rhs),
+        'drag choices: releasing commute should keep the swapped expression'
+    );
+
     // App state keeps multiple choices after drop, commits only when one is
     // chosen, and does not put the pending-choice state in history.
     const released = equation_drags.release();

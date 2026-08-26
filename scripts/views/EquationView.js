@@ -134,11 +134,10 @@ function EquationView(dependencies) {
     return Object.freeze({
 
         draw: function(equation, drag_state, drag_choices, drag_options, div_io) {
-            const side_dragging = drag_state != null &&
-                drag_state.source_path.startsWith('side:');
-            const provisional = side_dragging && drag_choices.length === 1?
-                drag_choices[0].equation
-              : equation;
+            const swap_choice = drag_state != null && drag_choices.length === 1 &&
+                ['swap', 'commute'].includes(drag_choices[0].type)?
+                drag_choices[0] : null;
+            const provisional = swap_choice == null? equation : swap_choice.equation;
             const valid_targets = new Set(drag_state && drag_state.candidates || []);
             const draggable_paths = new Set(
                 equation_drag_ops.draggable_paths(provisional, drag_options)
@@ -152,7 +151,7 @@ function EquationView(dependencies) {
                     ).length > 0
                 )
             );
-            const choices = side_dragging? [] : drag_choices || [];
+            const choices = swap_choice == null? drag_choices || [] : [];
             const pending = drag_state == null && choices.length > 1;
 
             div_io.replaceChildren(
