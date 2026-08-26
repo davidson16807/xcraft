@@ -10,6 +10,7 @@ function AppView(dependencies, app_updater) {
 
         const app_element = dom_io.getElementById('app');
         const equation_element = dom_io.getElementById('equation');
+        const history_element = dom_io.getElementById('history');
         const level_title = dom_io.getElementById('level-title');
         const level_concept = dom_io.getElementById('level-concept');
         const level_context = dom_io.getElementById('level-context');
@@ -22,6 +23,8 @@ function AppView(dependencies, app_updater) {
         const dark_button = dom_io.getElementById('dark');
         const auto_simplify_button = dom_io.getElementById('auto-simplify');
         const auto_simplify_indicator = dom_io.getElementById('auto-simplify-indicator');
+        const history_button = dom_io.getElementById('history-toggle');
+        const history_indicator = dom_io.getElementById('history-indicator');
         const level_menu = dom_io.getElementById('level-menu');
         const solved_mark = dom_io.getElementById('solved-mark');
 
@@ -43,7 +46,25 @@ function AppView(dependencies, app_updater) {
         dark_button.style.display = app.theme !== 'night'? 'none' : '';
         auto_simplify_button.setAttribute('aria-pressed', String(!!app.drag_options.auto_simplify));
         auto_simplify_indicator.textContent = app.drag_options.auto_simplify? 'On' : 'Off';
+        history_button.setAttribute('aria-pressed', String(app.history_visible));
+        history_indicator.textContent = app.history_visible? 'On' : 'Off';
         solved_mark.classList.toggle('visible', solved);
+
+        history_element.hidden = !app.history_visible;
+        history_element.replaceChildren(
+            ...(app.history_visible? app.undo_history.map((equation, index) => {
+                const equation_node = html.div({ class:'history-equation' }, []);
+                equation_view.draw(equation, null, [], null, equation_node);
+                return html.button({
+                    type: 'button',
+                    class: 'history-item',
+                    'data-history-index': String(index),
+                    'aria-label': `Roll back to transformation ${index + 1}`,
+                }, [equation_node]);
+            }) : [])
+        );
+
+        if (app.history_visible) history_element.scrollTop = history_element.scrollHeight;
 
         level_menu.replaceChildren(
             ...app.levels.map((level, i) =>
@@ -69,6 +90,7 @@ function AppView(dependencies, app_updater) {
         draw(app, dom_io);
 
         const equation_element = dom_io.getElementById('equation');
+        const history_element = dom_io.getElementById('history');
         const undo_button = dom_io.getElementById('undo');
         const redo_button = dom_io.getElementById('redo');
         const restart_button = dom_io.getElementById('restart');
@@ -76,6 +98,7 @@ function AppView(dependencies, app_updater) {
         const next_button = dom_io.getElementById('next-level');
         const theme_button = dom_io.getElementById('theme');
         const auto_simplify_button = dom_io.getElementById('auto-simplify');
+        const history_button = dom_io.getElementById('history-toggle');
         const level_menu = dom_io.getElementById('level-menu');
 
         function dispatch(updated) {
@@ -174,6 +197,15 @@ function AppView(dependencies, app_updater) {
         next_button.addEventListener('click', () => dispatch(app_updater.next_level(app)));
         theme_button.addEventListener('click', () => dispatch(app_updater.toggle_theme(app)));
         auto_simplify_button.addEventListener('click', () => dispatch(app_updater.toggle_auto_simplify(app)));
+        history_button.addEventListener('click', () => dispatch(app_updater.toggle_history(app)));
+
+        history_element.addEventListener('click', event => {
+            const item = event.target.closest('[data-history-index]');
+            if (!item) return;
+            const index = Number(item.getAttribute('data-history-index'))
+            if (!Number.isInteger(index) || index < 0 || index >= app.undo_history.length) return app;
+            dispatch(app_updater.rollback(app, index));
+        });
 
         level_menu.addEventListener('click', event => {
             const button = event.target.closest('[data-level-index]');

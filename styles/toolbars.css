@@ -103,6 +103,8 @@ In portrait orientations, it will expand from bottom right to bottom left.
     /* max width on mobile */
     max-width : 100%;
     overflow-x: auto;
+
+    z-index: 1;
 }
 
 @media (orientation: landscape) {

@@ -80,6 +80,13 @@
                 <div>Restart</div>
                 <img src="icons/rotate-ccw.svg"/>
             </button>
+
+            <button id="history-toggle" type="button" class="btn operation-toggle" aria-pressed="true">
+                <div>History</div>
+                <img src="icons/history.svg"/>
+                <div id="history-indicator">Off</div>
+            </button>
+
             <button id="auto-simplify" type="button" class="btn operation-toggle" aria-pressed="true">
                 <div>Simplify</div>
                 <img src="icons/equal.svg"/>
@@ -123,6 +130,10 @@
 
     <main>
 
+        <section id="history" class="history-stage" aria-label="Equation history" hidden></section>
+
+        <section id="equation" class="equation-stage" aria-label="Interactive equation"></section>
+
         <section class="lesson-header">
             <div class="lesson-title-row">
                 <h1 id="level-title">Balance</h1>
@@ -131,8 +142,6 @@
             <p id="level-concept"></p>
             <p id="level-context" hidden></p>
         </section>
-
-        <section id="equation" class="equation-stage" aria-label="Interactive equation"></section>
 
     </main>
 

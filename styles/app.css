@@ -195,8 +195,18 @@ main {
     flex-direction: column;
 }
 
+main:has(.history-stage:not([hidden])) {
+    height: 100vh;
+    min-height: 0;
+    padding-top: clamp(76px, 12vh, 112px);
+    box-sizing: border-box;
+    justify-content: flex-end;
+    overflow: hidden;
+}
+
 .lesson-header {
-    padding: clamp(18px, 4vh, 42px) 0 8px;
+    flex: 0 0 auto;
+    padding: 8px 0 clamp(18px, 3vh, 32px);
     text-align: center;
 }
 
@@ -252,6 +262,52 @@ main {
     color: var(--ink);
 }
 
+
+.history-stage {
+    flex: 1 1 0;
+    width: min(980px, 100%);
+    max-height: 38vh;
+    min-height: 0;
+    margin: 0 auto;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid var(--hairline);
+}
+
+.history-stage[hidden] {
+    display: none;
+}
+
+.history-item {
+    flex: 0 0 auto;
+    width: 100%;
+    padding: 4px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+    font: inherit;
+}
+
+.history-item:hover,
+.history-item:focus-visible {
+    background: var(--offpaper);
+    outline: none;
+}
+
+.history-equation .equation-row {
+    min-height: 64px;
+    gap: clamp(10px, 2vw, 24px);
+    font-size: clamp(1.1rem, 3vw, 2rem);
+}
+
+.history-equation .equation-side {
+    min-height: 48px;
+    padding: 6px 10px;
+}
+
 .equation-stage {
     flex: 1;
     min-height: 360px;
@@ -263,6 +319,13 @@ main {
     -webkit-user-select: none;
     position: relative;
     padding: 42px 12px 170px;
+}
+
+main:has(.history-stage:not([hidden])) .equation-stage {
+    flex: 0 0 auto;
+    width: 100%;
+    padding-bottom: 120px;
+    box-sizing: border-box;
 }
 
 .equation-row {
@@ -546,6 +609,12 @@ button.drag-ghost:focus-visible {
 
 .katex {
     color: inherit;
+}
+
+@media (orientation: landscape) and (pointer: coarse) {
+    main:has(.history-stage:not([hidden])) {
+        padding-top: 0;
+    }
 }
 
 @media (max-width: 640px) and (orientation: portrait) {

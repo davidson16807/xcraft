@@ -1,5 +1,5 @@
 'use strict';
-// HUMAN WRITTEN
+// HUMAN VETTED
 
 function AppHistoryTraversal(max_history_size) {
 
@@ -34,6 +34,19 @@ function AppHistoryTraversal(max_history_size) {
                 equation: next,
                 undo_history: [...app.undo_history, app.equation],
                 redo_history: redo,
+            });
+        },
+
+        rollback: function(app, index) {
+            const previous = app.undo_history[index];
+            return app.with({
+                equation: previous,
+                undo_history: app.undo_history.slice(0, index),
+                redo_history: [
+                    ...app.redo_history,
+                    app.equation,
+                    ...app.undo_history.slice(index + 1).reverse(),
+                ],
             });
         },
 

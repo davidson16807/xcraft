@@ -49,11 +49,13 @@ function AppUpdater(dependencies) {
         drag_cancel: (app) => drag_ops.cancel(app),
         undo: (app) => release(history.undo(app)),
         redo: (app) => release(history.redo(app)),
+        rollback: (app, index) => release(history.rollback(app, index)),
         restart: (app) => release(load_level(app, app.level_index)),
         last_level: (app) => release(load_level(app, app.level_index-1)),
         next_level: (app) => release(load_level(app, app.level_index+1)),
         select_level: (app, level_index) => release(load_level(app, level_index)),
         toggle_theme: (app) => app.with({ theme: app.theme === 'day'? 'night' : 'day' }),
+        toggle_history: (app) => app.with({ history_visible: !app.history_visible }),
         toggle_auto_simplify: (app) => release(app.with({
             drag_options: {
                 ...app.drag_options,

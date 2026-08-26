@@ -16,7 +16,8 @@ class AppState {
         undo_history,
         redo_history,
         theme,
-        drag_options
+        drag_options,
+        history_visible
     ) {
         this.levels = Object.freeze([...(levels || [])]);
         this.level_index = level_index;
@@ -30,6 +31,7 @@ class AppState {
         this.drag_options = Object.freeze(
             drag_options || { auto_simplify:false }
         );
+        this.history_visible = !!history_visible;
         Object.freeze(this);
     }
 
@@ -45,6 +47,7 @@ class AppState {
             attributes.redo_history  != null? attributes.redo_history     : this.redo_history,
             attributes.theme         != null? attributes.theme            : this.theme,
             attributes.drag_options  != null? attributes.drag_options     : this.drag_options,
+            attributes.history_visible != null? attributes.history_visible : this.history_visible,
         );
     }
 }

@@ -119,7 +119,7 @@ function EquationView(dependencies) {
             const provisional = provisional_choice == null? equation : provisional_choice.equation;
             const valid_targets = new Set(drag_state && drag_state.candidates || []);
             const draggable_paths = new Set(
-                equation_drag_ops.draggable_paths(provisional, drag_options)
+                drag_options == null? [] : equation_drag_ops.draggable_paths(provisional, drag_options)
             );
             const choices = provisional_choice == null? drag_choices : [];
             const pending = drag_state == null && choices.length > 1;

@@ -1085,6 +1085,73 @@ function automaticSimplification() {
         'automatic simplification: toggling should not modify the equation');
 }
 
+
+function historyPresentation() {
+    const released = equation_drags.release();
+    const a = new Equation(x, grouplikes.constant(1));
+    const b = new Equation(x, grouplikes.constant(2));
+    const c = new Equation(x, grouplikes.constant(3));
+    const d = new Equation(x, grouplikes.constant(4));
+
+    let app = new AppState(
+        levels,
+        0,
+        a,
+        released,
+        released.initialize(),
+        [],
+        [],
+        [],
+        'day',
+        manual_drag_options
+    );
+
+    assert(app.history_visible === false,
+        'history presentation: history should be hidden by default');
+
+    app = app_updater.toggle_history(app);
+    assert(app.history_visible === true,
+        'history presentation: toolbar toggle should show history');
+
+    app = history.do(app, b);
+    app = history.do(app, c);
+    app = history.do(app, d);
+    assert(
+        app.undo_history.length === 3 &&
+        app.undo_history[0] === a &&
+        app.undo_history[1] === b &&
+        app.undo_history[2] === c,
+        'history presentation: undo history should remain chronological'
+    );
+
+    app = app_updater.rollback(app, 1);
+    assert(
+        app.equation === b &&
+        app.undo_history.length === 1 &&
+        app.undo_history[0] === a,
+        'history presentation: clicking an earlier equation should roll current state back to it'
+    );
+    assert(
+        app.redo_history.length === 2 &&
+        app.redo_history[0] === d &&
+        app.redo_history[1] === c,
+        'history presentation: rollback should preserve later states in redo order'
+    );
+    assert(app.history_visible === true,
+        'history presentation: rollback should not change history visibility');
+
+    app = app_updater.redo(app);
+    assert(app.equation === c,
+        'history presentation: redo after rollback should advance to the next transformation');
+    app = app_updater.redo(app);
+    assert(app.equation === d,
+        'history presentation: redo after rollback should eventually restore the former current state');
+
+    app = app_updater.toggle_history(app);
+    assert(app.history_visible === false,
+        'history presentation: toolbar toggle should hide history again');
+}
+
 // -----------------------------------------------------------------------------
 // Fraction-preserving constant arithmetic
 // Exact reciprocal structure is retained unless evaluation yields a whole
@@ -2719,6 +2786,7 @@ function distributivity() {
     relationalExpressions,
     dragChoices,
     automaticSimplification,
+    historyPresentation,
     fractionPreservation,
     ringExpressionInterface,
     additiveClosure,
