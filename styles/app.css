@@ -302,6 +302,7 @@ main {
     display: flex;
     justify-content: center;
     align-items: center;
+    gap: 0.18em;
     transition: background 80ms linear, border-color 80ms linear;
 }
 

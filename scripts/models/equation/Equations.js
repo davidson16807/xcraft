@@ -14,6 +14,7 @@ function Equations(dependencies) {
 
     const grouplikes = dependencies.grouplikes;
     const ringlikes = dependencies.ringlikes;
+    const orderlikes = dependencies.orderlikes;
     const invertibles = dependencies.invertibles || [];
     const equivalences = dependencies.equivalences || [];
 
@@ -211,6 +212,12 @@ function Equations(dependencies) {
         ));
     }
 
+    /*Swaps the two sides of a relation through its converse relation.*/
+    function swap(relation) {
+        const swapped = orderlikes.swap(relation);
+        return swapped === relation? noop : freeze([swapped]);
+    }
+
     /*Swaps expressions at index1 and index2 of parent.contents.
     This function no-ops if the parent operation is neither commutative nor anti-commutative.*/
     function commute(parent, index1, index2) {
@@ -238,6 +245,7 @@ function Equations(dependencies) {
         strip,
         combine,
         distribute,
+        swap,
         commute,
         simplify,
     });

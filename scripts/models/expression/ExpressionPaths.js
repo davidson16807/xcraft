@@ -4,7 +4,7 @@
 const ExpressionPaths = (grouplikes) => {
 
     function domain(path) {
-        return path.split(':')[0];
+        return !path.includes(':')? 'path' : path.split(':')[0];
     }
 
     function path(path) {

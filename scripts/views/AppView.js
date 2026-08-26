@@ -4,7 +4,7 @@
 function AppView(dependencies, app_updater) {
     const html = dependencies.html;
     const equation_view = dependencies.equation_view;
-    const equation_shape = dependencies.equation_shape;
+    const expression_shape = dependencies.expression_shape;
 
     function draw(app, dom_io) {
 
@@ -26,7 +26,7 @@ function AppView(dependencies, app_updater) {
         const solved_mark = dom_io.getElementById('solved-mark');
 
         const level = app.levels[app.level_index];
-        const solved = equation_shape.encode(app.equation) === equation_shape.encode(level.goal);
+        const solved = expression_shape.encode(app.equation) === expression_shape.encode(level.goal);
         app_element.setAttribute('data-theme', app.theme);
 
         level_title.textContent = level.title;

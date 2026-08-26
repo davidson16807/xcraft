@@ -33,6 +33,25 @@ function EquationPathOperations(dependencies) {
         return equations.balance(equation, source_side, source_index, target_side);
     }
 
+    function swap(equation, path1, path2) {
+        if (path1 == null || path2 == null || path1 === path2) return noop;
+        if (!['L', 'R'].includes(path1) || !['L', 'R'].includes(path2)) return noop;
+        // relation swapping only applies to whole opposite sides
+
+        const expression1 = paths.resolve(equation, path1);
+        if (expression1 == null) return noop;
+
+        return freeze(equations.swap(equation).map(replacement =>
+            new EquationDragChoice(
+                expression1,
+                null,
+                replacement,
+                path2,
+                'swap'
+            )
+        ));
+    }
+
     function commute(equation, path1, path2) {
         if (path1 == null || path2 == null || path1 === path2) return noop;
         // nothing to swap? no-op
@@ -160,6 +179,7 @@ function EquationPathOperations(dependencies) {
 
     return freeze({
         balance,
+        swap,
         commute,
         strip,
         combine,

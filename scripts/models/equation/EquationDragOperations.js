@@ -12,7 +12,7 @@ function EquationDragOperations(dependencies) {
     const paths = dependencies.expression_paths;
     const equations = dependencies.equations;
     const path_operations = dependencies.equation_path_operations;
-    const equation_shape = dependencies.equation_shape;
+    const expression_shape = dependencies.expression_shape;
 
     const freeze = Object.freeze;
 
@@ -33,54 +33,79 @@ function EquationDragOperations(dependencies) {
                             choice.side,
                             choice.type
                         );
-                    return [equation_shape.encode(normalized.equation), normalized];
+                    return [expression_shape.encode(normalized.equation), normalized];
                 }
             )).values()
         ]);
     }
 
-    function choices(equation, source_path, target_key, drag_options) {
-        if (source_path == null || target_key == null) return freeze([]);
+    function choices(equation, source, target_key, drag_options) {
+        if (source == null || target_key == null) return freeze([]);
+        const source_key = source.includes(':')? source : `path:${source}`;
+        const source_path = paths.path(source_key);
+        const target_path = paths.path(target_key);
+ 
+        switch(paths.domain(source_key) + '->' + paths.domain(target_key)){
 
-        switch(paths.domain(target_key)) {
-        case 'side': 
-            const side = target_key.slice(5);
-            return format(path_operations.balance(equation, source_path, side), drag_options);
+            case 'side->side':
+                return format(
+                    path_operations.swap(equation, source_path, target_path),
+                    drag_options
+                );
 
-        case 'path': 
-            const target_path = paths.path(target_key);
-            // non-existant target? no-op
-            if (paths.resolve(equation, target_path) == null) return freeze([]);
-            // source and target are the same or direct descendants? no-op
-            if (source_path === target_path ||
-                paths.is_ancestor(source_path, target_path) ||
-                paths.is_ancestor(target_path, source_path)
-            ) return freeze([]);
+            case 'path->side': 
+                return format(
+                    path_operations.balance(equation, source_path, target_path),
+                    drag_options
+                );
 
-            const substantive = [
-                ...path_operations.strip(equation, source_path, target_path),
-                ...path_operations.combine(equation, source_path, target_path),
-                ...path_operations.distribute(equation, source_path, target_path),
-            ];
-            return substantive.length > 0? 
-                format(substantive, drag_options)
-              : format(path_operations.commute(equation, source_path, target_path), drag_options);
+            case 'path->path': 
+                // non-existant target? no-op
+                if (paths.resolve(equation, target_path) == null) return freeze([]);
+                // source_path and target are the same or direct descendants? no-op
+                if (source_path === target_path ||
+                    paths.is_ancestor(source_path, target_path) ||
+                    paths.is_ancestor(target_path, source_path)
+                ) return freeze([]);
 
-        default:
-            return freeze([]);
+                const substantive = [
+                    ...path_operations.strip(equation, source_path, target_path),
+                    ...path_operations.combine(equation, source_path, target_path),
+                    ...path_operations.distribute(equation, source_path, target_path),
+                ];
+                return substantive.length > 0? 
+                    format(substantive, drag_options)
+                  : format(path_operations.commute(equation, source_path, target_path), drag_options);
+
+            default:
+                return freeze([]);
+
         }
+
     }
 
-    function moves_for_source(equation, source_path, drag_options) {
-        const parsed = paths.split(source_path);
-        const other_side = parsed.side === 'L'? 'R' : 'L';
-        const candidates = [
-            `side:${other_side}`,
-            ...paths.all(equation).map(path => `path:${path}`),
-        ];
-        return freeze(candidates.filter(target_key =>
-            choices(equation, source_path, target_key, drag_options).length > 0
-        ));
+    function moves_for_source(equation, source, drag_options) {
+        const source_key = source.includes(':')? source : `path:${source}`;
+        const source_path = paths.path(source_key);
+        const source_side = paths.split(source_path).side;
+        const other_side = source_side === 'L'? 'R' : 'L';
+ 
+        if (paths.domain(source_key) === 'side') {
+            const target_key = `side:${other_side}`;
+            return freeze(
+                choices(equation, source, target_key, drag_options).length > 0?
+                    [target_key] : []
+            );
+        } else {
+            const candidates = [
+                `side:${other_side}`,
+                ...paths.all(equation).map(path => `path:${path}`),
+            ];
+            return freeze(candidates.filter(target_key =>
+                choices(equation, source, target_key, drag_options).length > 0
+            ));
+        }
+
     }
 
     function draggable_paths(equation, drag_options) {

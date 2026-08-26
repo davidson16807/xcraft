@@ -16,6 +16,9 @@
     <script src="./scripts/models/expression/Expression.js"></script>
     <script src="./scripts/models/expression/ExpressionShape.js"></script>
     <script src="./scripts/models/expression/ExpressionPaths.js"></script>
+    <script src="./scripts/models/relation/Relation.js"></script>
+    <script src="./scripts/models/orderlike/Orderlike.js"></script>
+    <script src="./scripts/models/orderlike/Orderlikes.js"></script>
     <script src="./scripts/models/grouplike/Grouplike.js"></script>
     <script src="./scripts/models/grouplike/Grouplikes.js"></script>
     <script src="./scripts/models/ringlike/Scale.js"></script>
@@ -202,6 +205,15 @@
     });
 
     const expression_shape = ExpressionShape();
+    const orderlikes = Orderlikes({
+        eq: Orderlike('eq', {
+            is_reflexive: true,
+            is_symmetric: true,
+            is_transitive: true,
+            is_antisymmetric: true,
+            converse: 'eq',
+        }),
+    });
     const ringlikes = Ringlikes({
         add: ScaleExpressions(grouplikes, Scales(grouplikes, expression_shape)),
         mul: PowerExpressions(grouplikes, Powers(grouplikes, expression_shape)),
@@ -212,6 +224,7 @@
         expression_shape: expression_shape,
         grouplikes: grouplikes,
         ringlikes: ringlikes,
+        orderlikes: orderlikes,
         invertibles: Object.freeze([
             PowerTriangleInverse(power_triangles, expression_shape),
         ]),
@@ -222,10 +235,9 @@
     });
 
     const expression_paths = ExpressionPaths(grouplikes);
-    const equation_shape = EquationShape(expression_shape);
     const equation_drag_ops = EquationDragOperations({
         expression_paths: expression_paths,
-        equation_shape: equation_shape,
+        expression_shape: expression_shape,
         equations: equations,
         equation_path_operations: EquationPathOperations({
             expression_paths: expression_paths,
@@ -240,7 +252,7 @@
         app_history_traversal: history,
         drag_ops: AppDragOperations(equation_drags, history),
         equation_drags: equation_drags,
-        equation_shape: equation_shape
+        expression_shape: expression_shape
     });
 
     const html = Html(document);
@@ -275,7 +287,7 @@
         html: html,
         render: katex.render,
         equation_view: equation_view,
-        equation_shape: equation_shape,
+        expression_shape: expression_shape,
     }, app_updater);
 
     const released = equation_drags.release();
