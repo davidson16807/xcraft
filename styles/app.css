@@ -329,7 +329,7 @@ main:has(.history-stage:not([hidden])) .equation-stage {
 }
 
 .equation-row {
-    width: min(980px, 100%);
+    width: 100%;
     min-height: 190px;
     display: flex;
     align-items: center;
@@ -339,7 +339,7 @@ main:has(.history-stage:not([hidden])) .equation-stage {
 }
 
 .equation-column {
-    flex: 1 1 0;
+    flex: 0 1 auto;
     min-width: 0;
     position: relative;
     display: flex;
