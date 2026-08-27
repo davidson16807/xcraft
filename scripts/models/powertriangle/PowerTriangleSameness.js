@@ -38,7 +38,7 @@ Using drags, each power law is implemented by two operations:
 
 Names for drags are chosen by analogy to drags for arithmetic.
 */
-const PowerTriangleSameness = (triangles, grouplikes) => {
+const PowerTriangleSameness = (triangles, grouplikes, expression_caveats) => {
 
     // the operation associated with each vertex
     const affinities = [
@@ -65,13 +65,14 @@ const PowerTriangleSameness = (triangles, grouplikes) => {
 
         return fixeds.map(fixed => {
             const varying = triangles.other(fixed, computed);
-            return triangles.to_expression(a.with(
+            const result = triangles.to_expression(a.with(
                 varying,
                 grouplikes[affinities[fixed][varying]]([
                     a[varying],
                     b[varying],
                 ])
             ));
+            return result == null? null : expression_caveats.inherit(result, left, right);
         });
     }
 
@@ -91,9 +92,10 @@ const PowerTriangleSameness = (triangles, grouplikes) => {
         if (fixed < 0 || varying < 0) return null;
         if (target.type !== affinities[fixed][varying]) return null;
 
-        return grouplikes[affinities[fixed][computed]](target.contents.map(
+        const result = grouplikes[affinities[fixed][computed]](target.contents.map(
             term => triangles.to_expression(triangle.with(varying, term))
         ));
+        return result == null? null : expression_caveats.inherit(result, parent, source, target);
     }
 
     function left_distribute(parent, left, right) {

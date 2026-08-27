@@ -14,6 +14,7 @@
     <script src="https://cdn.jsdelivr.net/npm/katex@0.18.1/dist/katex.min.js"></script>
     <script src="./scripts/dom/Html.js"></script>
     <script src="./scripts/models/expression/Expression.js"></script>
+    <script src="./scripts/models/expression/ExpressionCaveats.js"></script>
     <script src="./scripts/models/expression/ExpressionShape.js"></script>
     <script src="./scripts/models/expression/ExpressionPaths.js"></script>
     <script src="./scripts/models/relation/Relation.js"></script>
@@ -164,6 +165,9 @@
     document.getElementById('subtitle').replaceChildren(subtitles[Math.floor(Math.random()*subtitles.length)]);
 
 
+    const expression_shape = ExpressionShape();
+    const expression_caveats = ExpressionCaveats(expression_shape);
+
     const grouplikes = Grouplikes({
         'add': Grouplike('add', new Expression('constant', 0), 
             {
@@ -173,7 +177,8 @@
                 is_left_cancellative: true, 
                 is_right_cancellative: true,
             },
-            evaluate => expression => expression.contents.reduce((accumulator, item) => accumulator + evaluate(item), 0)
+            evaluate => expression => expression.contents.reduce((accumulator, item) => accumulator + evaluate(item), 0),
+            expression_caveats
         ),
         'mul': Grouplike('mul', new Expression('constant', 1), 
             {
@@ -183,24 +188,28 @@
                 is_left_cancellative: true, 
                 is_right_cancellative: true,
             },
-            evaluate => expression => expression.contents.reduce((accumulator, item) => accumulator * evaluate(item), 1)
+            evaluate => expression => expression.contents.reduce((accumulator, item) => accumulator * evaluate(item), 1),
+            expression_caveats
         ),
         'pow': Grouplike('pow', new Expression('constant', 1), 
             {
                 is_right_cancellative: true,
             },
-            evaluate => expression => Math.pow(evaluate(expression.contents[0]), evaluate(expression.contents[1]))
+            evaluate => expression => Math.pow(evaluate(expression.contents[0]), evaluate(expression.contents[1])),
+            expression_caveats
         ),
         'log': Grouplike('log', undefined,
             {},
-            evaluate => expression => Math.log(evaluate(expression.contents[1])) / Math.log(evaluate(expression.contents[0]))
+            evaluate => expression => Math.log(evaluate(expression.contents[1])) / Math.log(evaluate(expression.contents[0])),
+            expression_caveats
         ),
         'root': Grouplike('root', undefined,
             {},
             evaluate => expression => Math.pow(
                 evaluate(expression.contents[1]),
                 1 / evaluate(expression.contents[0])
-            )
+            ),
+            expression_caveats
         ),
         'harmonic': Grouplike('harmonic', undefined,
             {
@@ -210,11 +219,16 @@
             evaluate => expression => 1 / expression.contents.reduce(
                 (sum, item) => sum + 1 / evaluate(item),
                 0
-            )
+            ),
+            expression_caveats
         ),
     });
 
-    const expression_shape = ExpressionShape();
+    const comparable = comparison => evaluate => relation => {
+        const left = evaluate(relation.left);
+        const right = evaluate(relation.right);
+        return Number.isFinite(left) && Number.isFinite(right)? comparison(left, right) : undefined;
+    };
     const orderlikes = Orderlikes({
         eq: Orderlike('eq', {
             is_reflexive: true,
@@ -222,13 +236,39 @@
             is_transitive: true,
             is_antisymmetric: true,
             converse: 'eq',
-        }),
-    });
+        }, comparable((left, right) => left === right)),
+        neq: Orderlike('neq', {
+            is_symmetric: true,
+            converse: 'neq',
+        }, comparable((left, right) => left !== right)),
+        lt: Orderlike('lt', {
+            is_transitive: true,
+            is_asymmetric: true,
+            converse: 'gt',
+        }, comparable((left, right) => left < right)),
+        lte: Orderlike('lte', {
+            is_reflexive: true,
+            is_transitive: true,
+            is_antisymmetric: true,
+            converse: 'gte',
+        }, comparable((left, right) => left <= right)),
+        gt: Orderlike('gt', {
+            is_transitive: true,
+            is_asymmetric: true,
+            converse: 'lt',
+        }, comparable((left, right) => left > right)),
+        gte: Orderlike('gte', {
+            is_reflexive: true,
+            is_transitive: true,
+            is_antisymmetric: true,
+            converse: 'lte',
+        }, comparable((left, right) => left >= right)),
+    }, grouplikes);
     const ringlikes = Ringlikes({
-        add: ScaleExpressions(grouplikes, Scales(grouplikes, expression_shape)),
-        mul: PowerExpressions(grouplikes, Powers(grouplikes, expression_shape)),
+        add: ScaleExpressions(grouplikes, Scales(grouplikes, expression_shape), expression_caveats),
+        mul: PowerExpressions(grouplikes, Powers(grouplikes, expression_shape), orderlikes, expression_caveats),
     });
-    const power_triangles = PowerTriangles(grouplikes, expression_shape);
+    const power_triangles = PowerTriangles(grouplikes, expression_shape, orderlikes, expression_caveats);
 
     const equations = Equations({
         expression_shape: expression_shape,
@@ -236,11 +276,11 @@
         ringlikes: ringlikes,
         orderlikes: orderlikes,
         invertibles: Object.freeze([
-            PowerTriangleInverse(power_triangles, expression_shape),
+            PowerTriangleInverse(power_triangles, expression_shape, expression_caveats),
         ]),
         equivalences: Object.freeze([
-            PowerTriangleSameness(power_triangles, grouplikes),
-            PowerTriangleComposition(power_triangles, grouplikes),
+            PowerTriangleSameness(power_triangles, grouplikes, expression_caveats),
+            PowerTriangleComposition(power_triangles, grouplikes, expression_caveats),
         ]),
     });
 
@@ -291,6 +331,7 @@
         render: katex.render,
         equation_drag_operations: equation_drag_ops,
         expression_view: expression_view,
+        expression_caveats: expression_caveats,
     });
 
     const app_view = AppView({

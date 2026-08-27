@@ -1,17 +1,28 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 Operates on grouplikes that can be expressed as powers.
 */
-const PowerExpressions = (grouplikes, powers) => {
+const PowerExpressions = (grouplikes, powers, orderlikes, expression_caveats) => {
+
+    function _nonzero_caveat(expression) {
+        const caveat = new Relation('neq', expression, grouplikes.constant(0));
+        return orderlikes.evaluate(caveat, {}) === true? null : caveat;
+    }
+
+    function _with_nonzero_caveat(result, expression) {
+        const caveat = _nonzero_caveat(expression);
+        return caveat == null? result : expression_caveats.add(result, [caveat]);
+    }
 
     function inverse(expression) {
-        if (expression.type === 'constant' && expression.contents === 0) return null;
+        const value = grouplikes.evaluate(expression, {});
+        if (Number.isFinite(value) && value === 0) return null;
         if (expression.type === 'constant' && expression.contents === 1) return expression;
-        return powers.to_expression(
+        const inverse = powers.to_expression(
             powers.invert(
                 powers.from_expression(expression)));
+        return _with_nonzero_caveat(expression_caveats.inherit(inverse, expression), expression);
     }
 
     function is_inverse(expression) {
@@ -23,7 +34,13 @@ const PowerExpressions = (grouplikes, powers) => {
         const a = powers.from_expression(left);
         const b = powers.from_expression(right);
         const combined = powers.combine(a, b);
-        return combined == null? null : powers.to_expression(combined);
+        if (combined == null) return null;
+
+        let result = expression_caveats.inherit(powers.to_expression(combined), left, right);
+        if (a.power < 0 || b.power < 0) {
+            result = _with_nonzero_caveat(result, a.base);
+        }
+        return result;
     }
 
     function left_distribute(parent, left, right) {
@@ -33,7 +50,10 @@ const PowerExpressions = (grouplikes, powers) => {
     function right_distribute(parent, left, right) {
         if (parent.type !== 'pow') return null;
         if (left.type !== 'mul') return null;
-        return grouplikes.mul(left.contents.map(term => grouplikes.pow(term, right)));
+        return expression_caveats.inherit(
+            grouplikes.mul(left.contents.map(term => grouplikes.pow(term, right))),
+            parent, left, right
+        );
     }
 
     return Object.freeze({

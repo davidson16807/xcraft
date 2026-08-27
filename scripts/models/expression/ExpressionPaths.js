@@ -1,12 +1,11 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 Addresses every non-root Expression by its contents indexes.
 For a Relation, 0 and 1 are its side nodes; 0/0 and 1/0 are the expressions
 occupying those sides. There is one path language and no separate path domain.
 */
-const ExpressionPaths = (grouplikes) => {
+const ExpressionPaths = grouplikes => {
 
     function nary(path, index) {
         return path == null? String(index) : `${path}/${index}`;
@@ -71,8 +70,7 @@ const ExpressionPaths = (grouplikes) => {
     }
 
     function replace(expression, path, replacement) {
-        if (path == null) return replacement;
-        return _replace(expression, path.split('/'), replacement);
+        return path == null? replacement : _replace(expression, path.split('/'), replacement);
     }
 
     function all(expression) {

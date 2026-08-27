@@ -1,10 +1,9 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 `PowerTriangles` describes operations, relations, and properties to and from `PowerTriangle`.
 */
-const PowerTriangles = (grouplikes, expression_shape) => {
+const PowerTriangles = (grouplikes, expression_shape, orderlikes, expression_caveats) => {
     const freeze = Object.freeze;
     const vertices = freeze([0, 1, 2]);
 
@@ -34,14 +33,58 @@ const PowerTriangles = (grouplikes, expression_shape) => {
         ));
     }
 
+    function _contains_slot(expression) {
+        if (!(expression instanceof Expression)) return false;
+        if (expression.type === 'slot') return true;
+        return Array.isArray(expression.contents) && expression.contents.some(_contains_slot);
+    }
+
+    function _with_domain_caveat(expression, type, left, right) {
+        if (_contains_slot(left) || _contains_slot(right)) return expression;
+        const caveat = new Relation(type, left, right);
+        const value = orderlikes.evaluate(caveat, {});
+        if (value === false) return null;
+        return value === true? expression : expression_caveats.add(expression, [caveat]);
+    }
+
     function to_expression(triangle) {
         const values = vertices.map(vertex => triangle[vertex]);
         const id = values.findIndex(vertex => vertex == null);
         if (id < 0 || values.filter(vertex => vertex == null).length !== 1) return null;
 
-        return grouplikes[tag_for_id[id]](
+        let expression = grouplikes[tag_for_id[id]](
             ...values.filter(vertex => vertex != null)
         );
+
+        if (expression.type === 'log') {
+            const zero = grouplikes.constant(0);
+            expression = _with_domain_caveat(expression, 'gt', expression.contents[1], zero);
+            if (expression != null) {
+                expression = _with_domain_caveat(expression, 'gt', expression.contents[0], zero);
+            }
+            if (expression != null) {
+                expression = _with_domain_caveat(
+                    expression,
+                    'neq',
+                    expression.contents[0],
+                    grouplikes.constant(1)
+                );
+            }
+        }
+
+        if (expression != null && expression.type === 'root') {
+            const index = grouplikes.evaluate(expression.contents[0], {});
+            if (index !== 1) {
+                expression = _with_domain_caveat(
+                    expression,
+                    'gte',
+                    expression.contents[1],
+                    grouplikes.constant(0)
+                );
+            }
+        }
+
+        return expression;
     }
 
     // Returns the PowerTriangle index computed by the triangle.

@@ -7,6 +7,7 @@ const path = require('path');
 const root = path.resolve(__dirname, '..');
 [
     'scripts/models/expression/Expression.js',
+    'scripts/models/expression/ExpressionCaveats.js',
     'scripts/models/expression/ExpressionShape.js',
     'scripts/models/relation/Relation.js',
     'scripts/models/orderlike/Orderlike.js',
@@ -46,6 +47,7 @@ const root = path.resolve(__dirname, '..');
 });
 
 const expression_shape = ExpressionShape();
+const expression_caveats = ExpressionCaveats(expression_shape);
 const grouplikes = Grouplikes({
     'add': Grouplike(
         'add',
@@ -60,7 +62,8 @@ const grouplikes = Grouplikes({
         evaluate => expression => expression.contents.reduce(
             (accumulator, item) => accumulator + evaluate(item),
             0
-        )
+        ),
+        expression_caveats
     ),
     'mul': Grouplike(
         'mul',
@@ -75,7 +78,8 @@ const grouplikes = Grouplikes({
         evaluate => expression => expression.contents.reduce(
             (accumulator, item) => accumulator * evaluate(item),
             1
-        )
+        ),
+        expression_caveats
     ),
     'pow': Grouplike(
         'pow',
@@ -86,14 +90,16 @@ const grouplikes = Grouplikes({
         evaluate => expression => Math.pow(
             evaluate(expression.contents[0]),
             evaluate(expression.contents[1])
-        )
+        ),
+        expression_caveats
     ),
     'log': Grouplike(
         'log',
         undefined,
         {},
         evaluate => expression => Math.log(evaluate(expression.contents[1])) /
-            Math.log(evaluate(expression.contents[0]))
+            Math.log(evaluate(expression.contents[0])),
+        expression_caveats
     ),
     'root': Grouplike(
         'root',
@@ -102,7 +108,8 @@ const grouplikes = Grouplikes({
         evaluate => expression => Math.pow(
             evaluate(expression.contents[1]),
             1 / evaluate(expression.contents[0])
-        )
+        ),
+        expression_caveats
     ),
     'harmonic': Grouplike(
         'harmonic',
@@ -114,9 +121,15 @@ const grouplikes = Grouplikes({
         evaluate => expression => 1 / expression.contents.reduce(
             (sum, item) => sum + 1 / evaluate(item),
             0
-        )
+        ),
+        expression_caveats
     ),
-});
+}, expression_caveats);
+const comparable = comparison => evaluate => relation => {
+    const left = evaluate(relation.left);
+    const right = evaluate(relation.right);
+    return Number.isFinite(left) && Number.isFinite(right)? comparison(left, right) : undefined;
+};
 const orderlikes = Orderlikes({
     eq: Orderlike('eq', {
         is_reflexive: true,
@@ -124,18 +137,44 @@ const orderlikes = Orderlikes({
         is_transitive: true,
         is_antisymmetric: true,
         converse: 'eq',
-    }),
-});
+    }, comparable((left, right) => left === right)),
+    neq: Orderlike('neq', {
+        is_symmetric: true,
+        converse: 'neq',
+    }, comparable((left, right) => left !== right)),
+    lt: Orderlike('lt', {
+        is_transitive: true,
+        is_asymmetric: true,
+        converse: 'gt',
+    }, comparable((left, right) => left < right)),
+    lte: Orderlike('lte', {
+        is_reflexive: true,
+        is_transitive: true,
+        is_antisymmetric: true,
+        converse: 'gte',
+    }, comparable((left, right) => left <= right)),
+    gt: Orderlike('gt', {
+        is_transitive: true,
+        is_asymmetric: true,
+        converse: 'lt',
+    }, comparable((left, right) => left > right)),
+    gte: Orderlike('gte', {
+        is_reflexive: true,
+        is_transitive: true,
+        is_antisymmetric: true,
+        converse: 'lte',
+    }, comparable((left, right) => left >= right)),
+}, grouplikes);
 const scales = Scales(grouplikes, expression_shape);
-const scale_expressions = ScaleExpressions(grouplikes, scales);
+const scale_expressions = ScaleExpressions(grouplikes, scales, expression_caveats);
 const powers = Powers(grouplikes, expression_shape);
-const power_triangles = PowerTriangles(grouplikes, expression_shape);
-const triangle_sameness = PowerTriangleSameness(power_triangles, grouplikes);
-const triangle_composition = PowerTriangleComposition(power_triangles, grouplikes);
-const triangle_inverse = PowerTriangleInverse(power_triangles, expression_shape);
+const power_triangles = PowerTriangles(grouplikes, expression_shape, orderlikes, expression_caveats);
+const triangle_sameness = PowerTriangleSameness(power_triangles, grouplikes, expression_caveats);
+const triangle_composition = PowerTriangleComposition(power_triangles, grouplikes, expression_caveats);
+const triangle_inverse = PowerTriangleInverse(power_triangles, expression_shape, expression_caveats);
 const ringlikes = Ringlikes({
     add: scale_expressions,
-    mul: PowerExpressions(grouplikes, powers),
+    mul: PowerExpressions(grouplikes, powers, orderlikes, expression_caveats),
 });
 const paths = ExpressionPaths(grouplikes);
 const equations = Equations({
@@ -678,7 +717,7 @@ function relationalExpressions() {
             is_asymmetric: true,
             converse: 'lt',
         }),
-    });
+    }, grouplikes);
     const less_than = new Relation('lt', x, two);
     const greater_than = order.swap(less_than);
     assert(
@@ -1151,6 +1190,195 @@ function historyPresentation() {
     assert(app.history_visible === false,
         'history presentation: toolbar toggle should hide history again');
 }
+
+// -----------------------------------------------------------------------------
+// Caveat tracking
+// Transformations preserve consumed caveats and operations may add new ones.
+// -----------------------------------------------------------------------------
+
+function caveatTracking() {
+    const nonzero_x = new Relation('neq', x, zero);
+    const nonzero_x_plus_one = new Relation('neq', grouplikes.add([x, one]), zero);
+    const same_shape_nonzero_x = new Relation('neq', grouplikes.variable('x'), grouplikes.constant(0));
+    const caveat_key = expression => expression_shape.encode(expression);
+    const has_caveat = (expression, caveat) =>
+        expression_caveats.all(expression).some(item => caveat_key(item) === caveat_key(caveat));
+
+    const caveated_x = expression_caveats.add(x, [nonzero_x]);
+    assert(Array.isArray(caveated_x.caveats),
+        'caveats: Expression.caveats should be an array');
+    assert(caveated_x.all_caveats == null && caveated_x.with_caveats == null && caveated_x.inherit_caveats == null,
+        'caveats: caveat operations should not extend the Expression method interface');
+    assert(has_caveat(caveated_x, nonzero_x),
+        'caveats: the caveat dependency should add caveat Expressions');
+    assertShape(caveated_x, x,
+        'caveats: caveats should not change structural expression shape');
+    assert(Object.isFrozen(caveated_x.caveats),
+        'caveats: the caveat array should preserve Expression immutability');
+
+    assert(
+        expression_caveats.add(x, [zero]).caveats.length === 0,
+        'caveats: a false constant caveat should not be added'
+    );
+
+    const nested = new Expression('add', Object.freeze([
+        caveated_x,
+        expression_caveats.add(one, [same_shape_nonzero_x]),
+    ]));
+    const nested_caveats = expression_caveats.all(nested);
+    assert(
+        nested_caveats.length === 1 && caveat_key(nested_caveats[0]) === caveat_key(nonzero_x),
+        'caveats: recursive collection should index duplicate caveat Expressions by shape'
+    );
+
+    const arithmetic = grouplikes.add([
+        grouplikes.constant(7),
+        grouplikes.constant(-1),
+    ]);
+    const caveated_arithmetic = expression_caveats.add(arithmetic, [nonzero_x]);
+    const simplified = grouplikes.simplify(caveated_arithmetic);
+    assertSameExpression(
+        simplified,
+        grouplikes.constant(6),
+        'caveats',
+        'simplification should still produce the expected expression'
+    );
+    assert(has_caveat(simplified, nonzero_x),
+        'caveats: simplification must preserve caveats from the expression it consumes');
+
+    const direct_add = Grouplike(
+        'add',
+        zero,
+        {
+            is_commutative: true,
+            is_associative: true,
+            is_invertible: true,
+            is_left_cancellative: true,
+            is_right_cancellative: true,
+        },
+        evaluate => expression => expression.contents.reduce(
+            (sum, item) => sum + evaluate(item),
+            0
+        ),
+        expression_caveats
+    );
+    const caveated_sum = expression_caveats.add(
+        direct_add.create([x, one]),
+        [nonzero_x]
+    );
+    assert(has_caveat(direct_add.commute(caveated_sum, 0, 1), nonzero_x),
+        'caveats: atomic Grouplike operations should preserve caveats without Grouplikes');
+
+    const direct_scaled = scale_expressions.combine(caveated_x, x);
+    assert(has_caveat(direct_scaled, nonzero_x),
+        'caveats: atomic ScaleExpressions operations should preserve caveats without Ringlikes');
+
+    const caveated_power = expression_caveats.add(
+        grouplikes.pow(x, grouplikes.constant(2)),
+        [nonzero_x]
+    );
+    assert(has_caveat(triangle_inverse.cancel(caveated_power, caveated_power.contents[1]), nonzero_x),
+        'caveats: atomic power-triangle operations should preserve caveats without Equations');
+
+    assert(Grouplikes.length === 1 && Ringlikes.length === 1 && ExpressionPaths.length === 1,
+        'caveats: dispatcher and path constructors should not depend on ExpressionCaveats');
+
+    const reciprocal_x = ringlikes.inverse('mul', x);
+    assert(has_caveat(reciprocal_x, nonzero_x),
+        'caveats: introducing a variable reciprocal should require a nonzero divisor');
+
+    const six = grouplikes.constant(6);
+    const one_sixth = grouplikes.div(one, six);
+    const nonzero_one_sixth = new Relation('neq', one_sixth, zero);
+    assert(orderlikes.evaluate(nonzero_one_sixth, {}) === true,
+        'caveats: orderlikes should evaluate a constant-valued nonzero relation to true');
+    const reciprocal_one_sixth = ringlikes.inverse('mul', one_sixth);
+    assert(expression_caveats.all(reciprocal_one_sixth).length === 0,
+        'caveats: a nonzero condition that evaluates to true should not be retained');
+
+    const zero_sum = grouplikes.add([one, grouplikes.constant(-1)]);
+    const nonzero_zero_sum = new Relation('neq', zero_sum, zero);
+    assert(orderlikes.evaluate(nonzero_zero_sum, {}) === false,
+        'caveats: orderlikes should evaluate a constant-valued nonzero relation to false');
+    assert(ringlikes.inverse('mul', zero_sum) == null,
+        'caveats: an operation whose nonzero condition evaluates to false should be rejected');
+
+    const reciprocal_sum = ringlikes.inverse('mul', grouplikes.add([x, one]));
+    assert(has_caveat(reciprocal_sum, nonzero_x_plus_one),
+        'caveats: reciprocal caveats should describe compound divisors');
+
+    const raw_reciprocal_x = grouplikes.pow(x, grouplikes.constant(-1));
+    const cancelled = ringlikes.combine('mul', x, raw_reciprocal_x);
+    assertSameExpression(
+        cancelled,
+        one,
+        'caveats',
+        'multiplicative cancellation should still collapse x/x to one'
+    );
+    assert(has_caveat(cancelled, nonzero_x),
+        'caveats: cancelling a reciprocal should retain the nonzero restriction even when the reciprocal disappears');
+
+    const y = grouplikes.variable('y');
+    const balanced = move(
+        new Equation(grouplikes.mul([x, y]), one),
+        '0/0/0',
+        '1',
+        manual_drag_options
+    );
+    assert(has_caveat(balanced, nonzero_x),
+        'caveats: multiplicative balance should carry the introduced nonzero restriction on the equation');
+
+    const two = grouplikes.constant(2);
+    const positive_x = new Relation('gt', x, zero);
+    const nonnegative_x = new Relation('gte', x, zero);
+    const log_x = power_triangles.to_expression(new PowerTriangle(two, null, x));
+    assert(has_caveat(log_x, positive_x),
+        'caveats: introducing log_2(x) should require a positive logarithm input');
+
+    const b = grouplikes.variable('b');
+    const positive_b = new Relation('gt', b, zero);
+    const nonunit_b = new Relation('neq', b, one);
+    const log_base_b = power_triangles.to_expression(new PowerTriangle(b, null, x));
+    assert(has_caveat(log_base_b, positive_b),
+        'caveats: introducing log_b(x) should require a positive logarithm base');
+    assert(has_caveat(log_base_b, nonunit_b),
+        'caveats: introducing log_b(x) should require a logarithm base other than one');
+
+    assert(power_triangles.to_expression(new PowerTriangle(zero, null, x)) == null,
+        'caveats: introducing a logarithm with base zero should be rejected');
+    assert(power_triangles.to_expression(new PowerTriangle(grouplikes.constant(-2), null, x)) == null,
+        'caveats: introducing a logarithm with a negative base should be rejected');
+    assert(power_triangles.to_expression(new PowerTriangle(one, null, x)) == null,
+        'caveats: introducing a logarithm with base one should be rejected');
+
+    const one_half = grouplikes.div(one, two);
+    const log_half_x = power_triangles.to_expression(new PowerTriangle(one_half, null, x));
+    assert(
+        expression_caveats.all(log_half_x).length === 1 && has_caveat(log_half_x, positive_x),
+        'caveats: a known logarithm base between zero and one should be accepted without a base caveat'
+    );
+
+    const log_eight = power_triangles.to_expression(new PowerTriangle(two, null, grouplikes.constant(8)));
+    assert(expression_caveats.all(log_eight).length === 0,
+        'caveats: a logarithm input known to be positive should not retain a caveat');
+    assert(power_triangles.to_expression(new PowerTriangle(two, null, grouplikes.constant(-1))) == null,
+        'caveats: introducing a logarithm with a known negative input should be rejected');
+
+    const square_root_x = power_triangles.to_expression(new PowerTriangle(null, two, x));
+    assert(has_caveat(square_root_x, nonnegative_x),
+        'caveats: introducing a non-degenerate root should require a nonnegative radicand');
+
+    const identity_root_x = power_triangles.to_expression(new PowerTriangle(null, one, x));
+    assert(expression_caveats.all(identity_root_x).length === 0,
+        'caveats: root_1(x) should not introduce a radicand restriction');
+
+    const square_root_nine = power_triangles.to_expression(new PowerTriangle(null, two, grouplikes.constant(9)));
+    assert(expression_caveats.all(square_root_nine).length === 0,
+        'caveats: a root radicand known to be nonnegative should not retain a caveat');
+    assert(power_triangles.to_expression(new PowerTriangle(null, two, grouplikes.constant(-1))) == null,
+        'caveats: introducing a non-degenerate root with a known negative radicand should be rejected');
+}
+
 
 // -----------------------------------------------------------------------------
 // Fraction-preserving constant arithmetic
@@ -2787,6 +3015,7 @@ function distributivity() {
     dragChoices,
     automaticSimplification,
     historyPresentation,
+    caveatTracking,
     fractionPreservation,
     ringExpressionInterface,
     additiveClosure,

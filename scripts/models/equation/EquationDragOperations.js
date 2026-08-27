@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 `EquationDragOperations.choices` is the single entry point for user drag behavior.
@@ -24,22 +23,22 @@ function EquationDragOperations(dependencies) {
     and simplifies choices if auto_simplify is activated
     */
     function format(choices, drag_options) {
-        return freeze([
-            ...new Map(choices.map(choice => {
-                    const equation = drag_options.auto_simplify?
-                        equations.simplify(choice.equation) : choice.equation;
-                    const normalized = equation === choice.equation? choice :
-                        new EquationDragChoice(
-                            choice.expression,
-                            choice.operator,
-                            equation,
-                            choice.side,
-                            choice.type
-                        );
-                    return [expression_shape.encode(normalized.equation), normalized];
-                }
-            )).values()
-        ]);
+        const distinct = new Map();
+        choices.forEach(choice => {
+            const equation = drag_options.auto_simplify?
+                equations.simplify(choice.equation) : choice.equation;
+            let normalized = equation === choice.equation? choice :
+                new EquationDragChoice(
+                    choice.expression,
+                    choice.operator,
+                    equation,
+                    choice.side,
+                    choice.type
+                );
+            const key = expression_shape.encode(normalized.equation);
+            if (!distinct.has(key)) distinct.set(key, normalized);
+        });
+        return freeze([...distinct.values()]);
     }
 
     function choices(equation, source_path, target_path, drag_options) {

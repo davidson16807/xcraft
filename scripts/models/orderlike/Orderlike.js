@@ -6,7 +6,7 @@
 properties of that structure; callers request an operation rather than inspect
 those properties to determine applicability.
 */
-const Orderlike = (label, properties) => {
+const Orderlike = (label, properties, evaluator) => {
     const is_reflexive = !!properties.is_reflexive;
     const is_symmetric = !!properties.is_symmetric;
     const is_transitive = !!properties.is_transitive;
@@ -32,5 +32,6 @@ const Orderlike = (label, properties) => {
         is_antisymmetric,
         is_asymmetric,
         swap,
+        evaluator,
     });
 };

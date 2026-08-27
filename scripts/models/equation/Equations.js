@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 `Equations` manages user-facing operation at the scale of expressions and equations.
@@ -11,7 +10,6 @@ interpretations. Unsupported operations return an empty list.
 */
 function Equations(dependencies) {
     const shape = dependencies.expression_shape;
-
     const grouplikes = dependencies.grouplikes;
     const ringlikes = dependencies.ringlikes;
     const orderlikes = dependencies.orderlikes;
@@ -22,17 +20,16 @@ function Equations(dependencies) {
     const noop = freeze([]);
 
     function _distinct(expressions) {
-        return freeze([
-            ...new Map(
-                expressions.flatMap(
-                    expression => Array.isArray(expression)? expression : [expression]
-                ).filter(
-                    expression => expression != null
-                ).map(
-                    expression => [shape.encode(expression), expression]
-                )
-            ).values()
-        ]);
+        const distinct = new Map();
+        expressions.flatMap(
+            expression => Array.isArray(expression)? expression : [expression]
+        ).filter(
+            expression => expression != null
+        ).forEach(expression => {
+            const key = shape.encode(expression);
+            if (!distinct.has(key)) distinct.set(key, expression);
+        });
+        return freeze([...distinct.values()]);
     }
 
     function _side(equation, side) {
@@ -44,10 +41,14 @@ function Equations(dependencies) {
     function _balance_choice(equation, target_side, new_source, new_target, expression, operator) {
         const left_right = Number(target_side) === 0?
             [new_target, new_source] : [new_source, new_target];
+        const replacement = equation.with({
+            left:left_right[0],
+            right:left_right[1],
+        });
         return new EquationDragChoice(
             expression,
             operator,
-            equation.with({ left:left_right[0], right:left_right[1] }),
+            replacement,
             target_side,
             'balance'
         );

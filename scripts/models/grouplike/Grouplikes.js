@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 `Grouplikes` manages operations for a set of grouplike structures.
@@ -11,7 +10,7 @@ Unsupported operations are represented by returning the original expression
 Return types are deeply immutable expressions. 
 All functions are pure. 
 */
-const Grouplikes = (grouplike_expressions_for_tag) => {
+const Grouplikes = grouplike_expressions_for_tag => {
 
     const types = Object.freeze(Object.keys(grouplike_expressions_for_tag));
 
@@ -65,43 +64,27 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
 
     function append(type, left, right) {
         const structure = grouplike_expressions_for_tag[type];
-        if (structure == null) return left;
-        return structure.append(left, right);
+        return structure == null? left : structure.append(left, right);
     }
 
     function combine(type, left, right) {
         const structure = grouplike_expressions_for_tag[type];
-        if (structure == null) return null;
-
-        const combined = structure.combine(left, right);
-        if (combined != null) return combined;
-
-        return _constant_result(
-            new Expression(type, Object.freeze([left, right]))
-        );
+        return structure == null? null : structure.combine(left, right, _constant_result);
     }
 
     function commute(expression, index1, index2) {
         const structure = grouplike_expressions_for_tag[expression.type];
-        if (structure == null) return expression;
-        return structure.commute(expression, index1, index2);
+        return structure == null? expression : structure.commute(expression, index1, index2);
     }
 
     function cancel(expression, index) {
         const structure = grouplike_expressions_for_tag[expression.type];
-        if (structure == null) return expression;
-        return structure.cancel(expression, index);
+        return structure == null? expression : structure.cancel(expression, index);
     }
 
     function collapse(expression, index1, index2, replacement) {
         const structure = grouplike_expressions_for_tag[expression.type];
-        if (structure == null) return expression;
-        const lo = Math.min(index1, index2);
-        const hi = Math.max(index1, index2);
-        const contents = expression.contents.slice();
-        contents[lo] = replacement;
-        contents.splice(hi, 1);
-        return structure.create(contents);
+        return structure == null? expression : structure.collapse(expression, index1, index2, replacement);
     }
 
     const evaluator = variables => expression => {
