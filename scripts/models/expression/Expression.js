@@ -18,7 +18,12 @@ class Expression {
     }
 
     caveat(...caveats) {
-        return this.with({caveats: [...this.caveats, ...(caveats == null? [] : caveats)]})
+        return this.with({
+            caveats: [
+                ...this.caveats, 
+                ...(caveats == null? [] : caveats.filter(caveat=>caveat!=null))
+            ]
+        })
     }
 
 }

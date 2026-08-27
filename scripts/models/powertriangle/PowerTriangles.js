@@ -34,14 +34,42 @@ const PowerTriangles = (grouplikes, expression_shape) => {
         ));
     }
 
+    function _contains_slot(expression) {
+        if (!(expression instanceof Expression)) return false;
+        if (expression.type === 'slot') return true;
+        return Array.isArray(expression.contents) && expression.contents.some(_contains_slot);
+    }
+
+    function _caveat(expression, caveat) {
+        return _contains_slot(caveat)? expression : expression.caveat(caveat);
+    }
+
     function to_expression(triangle) {
         const values = vertices.map(vertex => triangle[vertex]);
         const id = values.findIndex(vertex => vertex == null);
         if (id < 0 || values.filter(vertex => vertex == null).length !== 1) return null;
 
-        return grouplikes[tag_for_id[id]](
+        let expression = grouplikes[tag_for_id[id]](
             ...values.filter(vertex => vertex != null)
         );
+
+        const zero = grouplikes.constant(0);
+        const one = grouplikes.constant(1);
+
+        if (expression.type === 'log') {
+            expression = _caveat(expression, new Relation('gt', expression.contents[1], zero));
+            expression = _caveat(expression, new Relation('gt', expression.contents[0], zero));
+            expression = _caveat(expression, new Relation('neq', expression.contents[0], one));
+        }
+
+        if (expression != null && expression.type === 'root') {
+            const index = grouplikes.evaluate(expression.contents[0], {});
+            if (index !== 1) {
+                expression = _caveat(expression, new Relation('gte', expression.contents[1], zero));
+            }
+        }
+
+        return expression;
     }
 
     // Returns the PowerTriangle index computed by the triangle.

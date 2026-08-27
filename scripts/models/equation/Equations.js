@@ -3,7 +3,7 @@
 
 /*
 `Equations` manages user-facing operation at the scale of expressions and equations.
-It aggregates mathematical structures and laws. 
+It aggregates mathematical structures and laws.
 Expression addressing and navigation belong elsewhere.
 
 User-facing operations can be ambiguous, so operations return lists of valid
@@ -15,6 +15,7 @@ function Equations(dependencies) {
     const grouplikes = dependencies.grouplikes;
     const ringlikes = dependencies.ringlikes;
     const orderlikes = dependencies.orderlikes;
+    const caveats = dependencies.expression_caveats;
     const invertibles = dependencies.invertibles || [];
     const equivalences = dependencies.equivalences || [];
 
@@ -44,10 +45,16 @@ function Equations(dependencies) {
     function _balance_choice(equation, target_side, new_source, new_target, expression, operator) {
         const left_right = Number(target_side) === 0?
             [new_target, new_source] : [new_source, new_target];
+        const gathered = caveats.gather(equation, new_source, new_target, expression);
+        if (gathered == null) return null;
+        const replacement = equation
+            .with({ left:left_right[0], right:left_right[1] })
+            .caveat(...gathered);
+
         return new EquationDragChoice(
             expression,
             operator,
-            equation.with({ left:left_right[0], right:left_right[1] }),
+            replacement,
             target_side,
             'balance'
         );
@@ -89,14 +96,15 @@ function Equations(dependencies) {
                     const preview = invertible.append(source_root, source, new Expression('slot'));
                     if (preview == null) return null;
                     const key = `${shape.encode(new_source)}=${shape.encode(new_target)}`;
-                    return [key, _balance_choice(
+                    const choice = _balance_choice(
                         equation,
                         target_side,
                         new_source,
                         new_target,
                         preview,
                         null
-                    )];
+                    );
+                    return choice == null? null : [key, choice];
                 }).filter(choice => choice != null)
             );
             choices.push(...invertible_choices.values());
@@ -107,14 +115,15 @@ function Equations(dependencies) {
                 if (new_source != null && new_source !== source_root) {
                     const new_target = grouplikes.append(operation, target_root, inverse);
                     const operator = ringlikes.is_inverse(operation, inverse)? null : operation;
-                    choices.push(_balance_choice(
+                    const choice = _balance_choice(
                         equation,
                         target_side,
                         new_source,
                         new_target,
                         inverse,
                         operator
-                    ));
+                    );
+                    if (choice != null) choices.push(choice);
                 }
             }
 
@@ -133,14 +142,15 @@ function Equations(dependencies) {
 
                 const new_target = grouplikes.append(operation, target_root, inverse);
                 const operator = ringlikes.is_inverse(operation, inverse)? null : operation;
-                choices.push(_balance_choice(
+                const choice = _balance_choice(
                     equation,
                     target_side,
                     identity,
                     new_target,
                     inverse,
                     operator
-                ));
+                );
+                if (choice != null) choices.push(choice);
             });
 
             return freeze(choices);
@@ -151,14 +161,22 @@ function Equations(dependencies) {
     /*Strips an outer expression that has been wrapped in its inverse.
     This function no-ops if the expression is non-invertible.*/
     function strip(outer, inner, outer_fixed, inner_fixed) {
-        return _distinct(invertibles.map(invertible =>
-            invertible.strip(outer, inner, outer_fixed, inner_fixed)
-        ));
+        return _distinct(invertibles.map(invertible => {
+            const replacement = invertible.strip(
+                outer,
+                inner,
+                outer_fixed,
+                inner_fixed
+            );
+            if (replacement == null) return null;
+            const gathered = caveats.gather(outer, replacement);
+            return gathered && replacement.caveat(...gathered);
+        }));
     }
 
     /*Combines the expressions at index1 and index2 of parent.contents.
     This may either represent combining expressions like constants, terms, or factors,
-    or a applying the inverse operation of distribute(…) where 
+    or a applying the inverse operation of distribute(…) where
     an equivalence law dictates that several expressions can be combined into one.*/
     function combine(parent, index1, index2) {
         if (!Array.isArray(parent.contents) || index1 === index2) return noop;
@@ -179,14 +197,16 @@ function Equations(dependencies) {
             ),
         ]);
 
-        return _distinct(replacements.map(replacement =>
-            grouplikes.collapse(parent, index1, index2, replacement)
-        ));
+        return _distinct(replacements.map(replacement => {
+            const gathered = caveats.gather(parent, replacement);
+            return gathered && grouplikes.collapse(parent, index1, index2, replacement)
+                    .caveat(...gathered);
+        }));
     }
 
     /*Distributes the expression at source_index across the contents of the expression at target_index.
     This may either represent distributivity in a ringlike structure,
-    or a applying the inverse operation of combine(…) where 
+    or a applying the inverse operation of combine(…) where
     an equivalence law dictates that one expression can become several.*/
     function distribute(parent, source_index, target_index) {
         if (!Array.isArray(parent.contents) || source_index === target_index) return noop;
@@ -209,9 +229,12 @@ function Equations(dependencies) {
             ),
         ]);
 
-        return _distinct(replacements.map(replacement =>
-            grouplikes.collapse(parent, source_index, target_index, replacement)
-        ));
+        return _distinct(replacements.map(replacement => {
+            const gathered = caveats.gather(parent, replacement);
+            return gathered &&
+                grouplikes.collapse(parent, source_index, target_index, replacement)
+                    .caveat(...gathered);
+        }));
     }
 
     /*Swaps the two sides of a relation through its converse relation.*/
@@ -232,7 +255,9 @@ function Equations(dependencies) {
         // non-existant or matching expressions? no-op
 
         const commuted = grouplikes.commute(parent, index1, index2);
-        return commuted === parent? noop : freeze([commuted]);
+        if (commuted === parent) return noop;
+        const gathered = caveats.gather(parent, commuted);
+        return gathered == null? noop : freeze([commuted.caveat(...gathered)]);
     }
 
     function simplify(equation) {

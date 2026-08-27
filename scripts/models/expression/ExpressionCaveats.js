@@ -17,15 +17,15 @@ const ExpressionCaveats = (expression_shape, orderlikes) => {
     }
 
     function unique(caveats) {
-        return freeze([
-            ...new Map(
-                caveats.map(caveat=>{
-                    if (!(caveat instanceof Expression)) return null;
-                    if (_is_true(caveat) === true) return null;
-                    return [expression_shape.encode(caveat), caveat];
-                }).filter(pair => pair != null)
-            ).values()
-        ]);
+        const by_shape = new Map();
+        for (const caveat of caveats) {
+            if (!(caveat instanceof Expression)) continue;
+            const is_true = _is_true(caveat);
+            if (is_true === false) return null;
+            if (is_true === true) continue;
+            by_shape.set(expression_shape.encode(caveat), caveat);
+        }
+        return freeze([...by_shape.values()]);
     }
 
     function gather(...expressions) {
@@ -36,7 +36,8 @@ const ExpressionCaveats = (expression_shape, orderlikes) => {
             if (Array.isArray(expression.contents)) expression.contents.forEach(collect);
         };
         expressions.forEach(collect);
-        return freeze(unique(caveats));
+        const gathered = unique(caveats);
+        return gathered == null? null : freeze(gathered);
     }
 
     return freeze({ gather, unique });

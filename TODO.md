@@ -20,12 +20,12 @@ UNOBTRUSIVE:
 
 MAYBE OBTRUSIVE:
 * allow representing other algebras: set notation, boolean algebra
-* represent caveats, i.e. assumptions introduced to proceed with certain drags, like x≠0 when division by x is involved
 * courses
 * "techtree" of operations
 * mode=god, mode=creative, mode=story
 * remove caveats list from level description
 * history needs to start at the bottom and work upward as equations are added
+* merge remove extension classes for Relation and Equation
 
 OBTRUSIVE:
 * allow inverting fractions on both sides
