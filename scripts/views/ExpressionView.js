@@ -17,6 +17,18 @@ function ExpressionView(dependencies) {
         return node;
     }
 
+
+    function relation_symbol(type) {
+        return ({
+            eq: '=',
+            neq: '\\ne',
+            lt: '<',
+            lte: '\\le',
+            gt: '>',
+            gte: '\\ge',
+        })[type] || null;
+    }
+
     function maybe_parenthesize(node, expression, parent_precedence, is_power_base) {
         const needs_parentheses =
             precedence_for_tag(expression.type) < parent_precedence ||
@@ -219,6 +231,23 @@ function ExpressionView(dependencies) {
             case 'variable':
                 return html.span(path_attributes(path, draggable_paths, valid_targets), [math(expression.contents)]);
                 break;
+
+            case 'eq':
+            case 'neq':
+            case 'lt':
+            case 'lte':
+            case 'gt':
+            case 'gte': {
+                const symbol = relation_symbol(expression.type);
+                return html.span(
+                    path_attributes(path, draggable_paths, valid_targets, 'expression-relation'),
+                    [
+                        draw(Relation.content(expression.contents[0]), null, empty_paths, empty_paths, 0),
+                        math(symbol, 'math-operator relation-operator'),
+                        draw(Relation.content(expression.contents[1]), null, empty_paths, empty_paths, 0),
+                    ]
+                );
+            }
 
             case 'side':
                 return html.span(

@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 `Grouplike` manages operations for a single grouplike structure.
@@ -26,6 +25,7 @@ const Grouplike = (label, identity, properties, evaluator) => {
     const is_right_cancellative = properties.is_right_cancellative;
 
     function create(contents) {
+        const inputs = contents.filter(item => item instanceof Expression);
         let formatted = [];
         if (!is_associative) {
             formatted = contents;
@@ -42,11 +42,15 @@ const Grouplike = (label, identity, properties, evaluator) => {
         // wrap in Expression if not done yet
         formatted = formatted.map(item => 
             item instanceof Expression? item : new Expression('constant', item));
+        let result;
         if (formatted.length === 0) {
-            return identity != null && identity != null? identity : null;
+            result = identity != null? identity : null;
+        } else if (formatted.length === 1) {
+            result = formatted[0];
+        } else {
+            result = new Expression(label, Object.freeze(formatted));
         }
-        if (formatted.length === 1) return formatted[0];
-        else return new Expression(label, Object.freeze(formatted));
+        return result == null? null : ExpressionCaveats.inherit(result, ...inputs);
     }
 
     function _is_identity(expression) {

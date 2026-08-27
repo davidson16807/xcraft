@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 `Ringlikes` manages operations for a set of ringlike structures.
@@ -14,7 +13,8 @@ const Ringlikes = ringlike_for_tag => {
 
     function inverse(type, expression) {
         const ringlike = ringlike_for_tag[type];
-        return ringlike && ringlike.inverse(expression);
+        const inverse = ringlike && ringlike.inverse(expression);
+        return inverse == null || inverse === expression? inverse : ExpressionCaveats.inherit(inverse, expression);
     }
 
     function is_inverse(type, expression) {
@@ -28,17 +28,20 @@ const Ringlikes = ringlike_for_tag => {
 
     function combine(type, left, right) {
         const ringlike = ringlike_for_tag[type];
-        return ringlike && ringlike.combine(left, right);
+        const combined = ringlike && ringlike.combine(left, right);
+        return combined == null? combined : ExpressionCaveats.inherit(combined, left, right);
     }
 
     function left_distribute(type, parent, left, right) {
         const ringlike = ringlike_for_tag[type];
-        return ringlike && ringlike.left_distribute(parent, left, right);
+        const distributed = ringlike && ringlike.left_distribute(parent, left, right);
+        return distributed == null? distributed : ExpressionCaveats.inherit(distributed, parent, left, right);
     }
 
     function right_distribute(type, parent, left, right) {
         const ringlike = ringlike_for_tag[type];
-        return ringlike && ringlike.right_distribute(parent, left, right);
+        const distributed = ringlike && ringlike.right_distribute(parent, left, right);
+        return distributed == null? distributed : ExpressionCaveats.inherit(distributed, parent, left, right);
     }
 
     return Object.freeze({

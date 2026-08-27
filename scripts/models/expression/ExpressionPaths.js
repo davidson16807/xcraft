@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 Addresses every non-root Expression by its contents indexes.
@@ -60,7 +59,7 @@ const ExpressionPaths = (grouplikes) => {
     }
 
     function _replace(expression, segments, replacement) {
-        if (segments.length === 0) return replacement;
+        if (segments.length === 0) return ExpressionCaveats.inherit(replacement, expression);
         const head = segments[0];
         const tail = segments.slice(1);
         const current_child = _child(expression, head);
@@ -71,7 +70,7 @@ const ExpressionPaths = (grouplikes) => {
     }
 
     function replace(expression, path, replacement) {
-        if (path == null) return replacement;
+        if (path == null) return ExpressionCaveats.inherit(replacement, expression);
         return _replace(expression, path.split('/'), replacement);
     }
 

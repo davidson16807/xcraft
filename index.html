@@ -14,6 +14,7 @@
     <script src="https://cdn.jsdelivr.net/npm/katex@0.18.1/dist/katex.min.js"></script>
     <script src="./scripts/dom/Html.js"></script>
     <script src="./scripts/models/expression/Expression.js"></script>
+    <script src="./scripts/models/expression/ExpressionCaveats.js"></script>
     <script src="./scripts/models/expression/ExpressionShape.js"></script>
     <script src="./scripts/models/expression/ExpressionPaths.js"></script>
     <script src="./scripts/models/relation/Relation.js"></script>
@@ -215,6 +216,11 @@
     });
 
     const expression_shape = ExpressionShape();
+    const comparable = comparison => evaluate => relation => {
+        const left = evaluate(relation.left);
+        const right = evaluate(relation.right);
+        return Number.isFinite(left) && Number.isFinite(right)? comparison(left, right) : undefined;
+    };
     const orderlikes = Orderlikes({
         eq: Orderlike('eq', {
             is_reflexive: true,
@@ -222,13 +228,39 @@
             is_transitive: true,
             is_antisymmetric: true,
             converse: 'eq',
-        }),
-    });
+        }, comparable((left, right) => left === right)),
+        neq: Orderlike('neq', {
+            is_symmetric: true,
+            converse: 'neq',
+        }, comparable((left, right) => left !== right)),
+        lt: Orderlike('lt', {
+            is_transitive: true,
+            is_asymmetric: true,
+            converse: 'gt',
+        }, comparable((left, right) => left < right)),
+        lte: Orderlike('lte', {
+            is_reflexive: true,
+            is_transitive: true,
+            is_antisymmetric: true,
+            converse: 'gte',
+        }, comparable((left, right) => left <= right)),
+        gt: Orderlike('gt', {
+            is_transitive: true,
+            is_asymmetric: true,
+            converse: 'lt',
+        }, comparable((left, right) => left > right)),
+        gte: Orderlike('gte', {
+            is_reflexive: true,
+            is_transitive: true,
+            is_antisymmetric: true,
+            converse: 'lte',
+        }, comparable((left, right) => left >= right)),
+    }, grouplikes);
     const ringlikes = Ringlikes({
         add: ScaleExpressions(grouplikes, Scales(grouplikes, expression_shape)),
-        mul: PowerExpressions(grouplikes, Powers(grouplikes, expression_shape)),
+        mul: PowerExpressions(grouplikes, Powers(grouplikes, expression_shape), orderlikes),
     });
-    const power_triangles = PowerTriangles(grouplikes, expression_shape);
+    const power_triangles = PowerTriangles(grouplikes, expression_shape, orderlikes);
 
     const equations = Equations({
         expression_shape: expression_shape,

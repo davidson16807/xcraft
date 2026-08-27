@@ -8,11 +8,11 @@ second path domain: 0 and 1 address the sides; 0/0 and 1/0 address the
 expressions occupying them.
 */
 class Relation extends Expression {
-    constructor(type, left, right) {
+    constructor(type, left, right, caveats) {
         super(type, Object.freeze([
             Relation.side(left),
             Relation.side(right),
-        ]));
+        ]), caveats);
     }
 
     static side(expression) {
@@ -39,6 +39,7 @@ class Relation extends Expression {
             attributes.type != null? attributes.type : this.type,
             attributes.left != null? attributes.left : Relation.content(contents[0]),
             attributes.right != null? attributes.right : Relation.content(contents[1]),
+            [...this.caveats, ...(attributes.caveats || [])],
         );
     }
 }
