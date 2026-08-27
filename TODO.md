@@ -24,7 +24,7 @@ MAYBE OBTRUSIVE:
 * "techtree" of operations
 * mode=god, mode=creative, mode=story
 * remove caveats list from level description
-* history needs to start at the bottom and work upward as equations are added
+* expand target side width to prevent sides rapidly switching back and forth
 * rename: `Equation*`→`Relation*`
 
 OBTRUSIVE:

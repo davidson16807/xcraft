@@ -241,13 +241,6 @@ main:has(.history-stage:not([hidden])) {
     font-size: 0.95rem;
 }
 
-#level-context {
-    margin: 4px auto 0;
-    max-width: 660px;
-    color: var(--quiet);
-    font-size: 0.82rem;
-}
-
 .goal {
     margin-top: 12px;
     display: flex;
