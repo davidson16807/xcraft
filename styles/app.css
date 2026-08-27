@@ -297,6 +297,38 @@ main:has(.history-stage:not([hidden])) {
     outline: none;
 }
 
+.equation-display {
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.equation-caveats {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+    padding: 0 12px;
+    color: var(--quiet);
+    font-size: clamp(0.85rem, 1.8vw, 1.15rem);
+}
+
+.equation-caveat {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35em;
+    white-space: nowrap;
+}
+
+.history-equation .equation-caveats {
+    margin-top: 2px;
+    font-size: 0.8rem;
+}
+
 .history-equation .equation-row {
     min-height: 64px;
     gap: clamp(10px, 2vw, 24px);

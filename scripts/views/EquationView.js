@@ -6,6 +6,7 @@ function EquationView(dependencies) {
     const html = dependencies.html;
     const equation_drag_ops = dependencies.equation_drag_operations;
     const expression_view = dependencies.expression_view;
+    const caveats = dependencies.expression_caveats;
     const render = dependencies.render;
 
     function math(latex, class_name) {
@@ -17,11 +18,23 @@ function EquationView(dependencies) {
     function relation_symbol(type) {
         return ({
             eq: '=',
+            neq: '\\ne',
             lt: '<',
             lte: '\\le',
             gt: '>',
             gte: '\\ge',
         })[type] || '?';
+    }
+
+    function draw_caveat(caveat) {
+        if (caveat instanceof Relation) {
+            return html.div({ class:'equation-caveat' }, [
+                expression_view.draw(caveat.left),
+                math(relation_symbol(caveat.type), 'math-operator'),
+                expression_view.draw(caveat.right),
+            ]);
+        }
+        return html.div({ class:'equation-caveat' }, [expression_view.draw(caveat)]);
     }
 
     function preview_operator(operator) {
@@ -124,25 +137,33 @@ function EquationView(dependencies) {
             const choices = provisional_choice == null? drag_choices : [];
             const pending = drag_state == null && choices.length > 1;
 
+            const equation_caveats = caveats.gather(provisional);
             div_io.replaceChildren(
-                html.div({ class:'equation-row' }, [
-                    draw_column(
-                        provisional.contents[0],
-                        '0',
-                        draggable_paths,
-                        valid_targets,
-                        choices,
-                        pending
-                    ),
-                    html.span({ class:'equals-sign' }, [math(relation_symbol(provisional.type), 'math-equals')]),
-                    draw_column(
-                        provisional.contents[1],
-                        '1',
-                        draggable_paths,
-                        valid_targets,
-                        choices,
-                        pending
-                    ),
+                html.div({ class:'equation-display' }, [
+                    html.div({ class:'equation-row' }, [
+                        draw_column(
+                            provisional.contents[0],
+                            '0',
+                            draggable_paths,
+                            valid_targets,
+                            choices,
+                            pending
+                        ),
+                        html.span({ class:'equals-sign' }, [math(relation_symbol(provisional.type), 'math-equals')]),
+                        draw_column(
+                            provisional.contents[1],
+                            '1',
+                            draggable_paths,
+                            valid_targets,
+                            choices,
+                            pending
+                        ),
+                    ]),
+                    ...(equation_caveats.length === 0? [] : [
+                        html.div({ class:'equation-caveats', 'aria-label':'Caveats' },
+                            equation_caveats.map(draw_caveat)
+                        )
+                    ]),
                 ])
             );
         },

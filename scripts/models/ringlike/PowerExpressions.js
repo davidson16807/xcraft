@@ -7,11 +7,13 @@ Operates on grouplikes that can be expressed as powers.
 const PowerExpressions = (grouplikes, powers) => {
 
     function inverse(expression) {
-        if (expression.type === 'constant' && expression.contents === 0) return null;
         if (expression.type === 'constant' && expression.contents === 1) return expression;
-        return powers.to_expression(
-            powers.invert(
-                powers.from_expression(expression)));
+
+        const inverse = powers.invert(powers.from_expression(expression));
+        const result = powers.to_expression(inverse);
+        if (result == null || inverse.power >= 0) return result;
+
+        return result.caveat(new Relation('neq', inverse.base, grouplikes.constant(0)));
     }
 
     function is_inverse(expression) {

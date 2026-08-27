@@ -8,6 +8,7 @@ const root = path.resolve(__dirname, '..');
 [
     'scripts/models/expression/Expression.js',
     'scripts/models/expression/ExpressionShape.js',
+    'scripts/models/expression/ExpressionCaveats.js',
     'scripts/models/relation/Relation.js',
     'scripts/models/orderlike/Orderlike.js',
     'scripts/models/orderlike/Orderlikes.js',
@@ -117,6 +118,11 @@ const grouplikes = Grouplikes({
         )
     ),
 });
+const comparable = comparison => evaluate => relation => {
+    const left = evaluate(relation.left);
+    const right = evaluate(relation.right);
+    return Number.isFinite(left) && Number.isFinite(right)? comparison(left, right) : undefined;
+};
 const orderlikes = Orderlikes({
     eq: Orderlike('eq', {
         is_reflexive: true,
@@ -124,8 +130,35 @@ const orderlikes = Orderlikes({
         is_transitive: true,
         is_antisymmetric: true,
         converse: 'eq',
-    }),
-});
+    }, comparable((left, right) => left === right)),
+    neq: Orderlike('neq', {
+        is_symmetric: true,
+        converse: 'neq',
+    }, comparable((left, right) => left !== right)),
+    lt: Orderlike('lt', {
+        is_transitive: true,
+        is_asymmetric: true,
+        converse: 'gt',
+    }, comparable((left, right) => left < right)),
+    lte: Orderlike('lte', {
+        is_reflexive: true,
+        is_transitive: true,
+        is_antisymmetric: true,
+        converse: 'gte',
+    }, comparable((left, right) => left <= right)),
+    gt: Orderlike('gt', {
+        is_transitive: true,
+        is_asymmetric: true,
+        converse: 'lt',
+    }, comparable((left, right) => left > right)),
+    gte: Orderlike('gte', {
+        is_reflexive: true,
+        is_transitive: true,
+        is_antisymmetric: true,
+        converse: 'lte',
+    }, comparable((left, right) => left >= right)),
+}, grouplikes);
+const expression_caveats = ExpressionCaveats(expression_shape, orderlikes);
 const scales = Scales(grouplikes, expression_shape);
 const scale_expressions = ScaleExpressions(grouplikes, scales);
 const powers = Powers(grouplikes, expression_shape);
@@ -143,6 +176,7 @@ const equations = Equations({
     ringlikes: ringlikes,
     orderlikes: orderlikes,
     expression_shape: expression_shape,
+    expression_caveats: expression_caveats,
     invertibles: Object.freeze([
         triangle_inverse,
     ]),
@@ -805,6 +839,145 @@ function relationalExpressions() {
     );
 }
 
+
+function caveatTracking() {
+    const two = grouplikes.constant(2);
+    const six = grouplikes.constant(6);
+    const half = grouplikes.constant(0.5);
+    const b = grouplikes.variable('b');
+    const nonzero_x = new Relation('neq', x, zero);
+    const positive_x = new Relation('gt', x, zero);
+    const nonnegative_x = new Relation('gte', x, zero);
+    const positive_b = new Relation('gt', b, zero);
+    const nonunit_b = new Relation('neq', b, one);
+    const key = expression => expression_shape.encode(expression);
+    const has = (expression, caveat) =>
+        expression_caveats.gather(expression).some(item => key(item) === key(caveat));
+
+    assert(
+        Object.keys(expression_caveats).join(',') === 'gather,unique',
+        'caveats: ExpressionCaveats should expose only gather and unique'
+    );
+
+    assert(
+        expression_caveats.unique([nonzero_x, nonzero_x]).length === 1,
+        'caveats: unique should deduplicate caveats by expression shape'
+    );
+
+    assert(orderlikes.evaluate(new Relation('neq', six, zero), {}) === true,
+        'caveats: orderlike evaluator should resolve true constant relations');
+    assert(orderlikes.evaluate(new Relation('neq', zero, zero), {}) === false,
+        'caveats: orderlike evaluator should resolve false constant relations');
+    assert(orderlikes.evaluate(nonzero_x, {}) === undefined,
+        'caveats: orderlike evaluator should leave symbolic relations unresolved');
+
+    const reciprocal_x = ringlikes.inverse('mul', x);
+    assert(reciprocal_x != null && has(reciprocal_x, nonzero_x),
+        'caveats: introducing a reciprocal should require a nonzero denominator');
+    const reciprocal_six = ringlikes.inverse('mul', six);
+    const accepted_reciprocal_six = expression_caveats.gather(reciprocal_six);
+    assert(
+        accepted_reciprocal_six != null && accepted_reciprocal_six.length === 0,
+        'caveats: true constant reciprocal restrictions should be omitted when indexed'
+    );
+    const reciprocal_zero = ringlikes.inverse('mul', zero);
+    assert(reciprocal_zero != null && expression_caveats.gather(reciprocal_zero) == null,
+        'caveats: false constant reciprocal restrictions should reject the transformation');
+
+    const log_b_x = power_triangles.to_expression(new PowerTriangle(b, null, x));
+    assert(
+        log_b_x != null &&
+        has(log_b_x, positive_x) &&
+        has(log_b_x, positive_b) &&
+        has(log_b_x, nonunit_b),
+        'caveats: a symbolic logarithm should track argument and base restrictions'
+    );
+    const log_x_x = power_triangles.to_expression(new PowerTriangle(x, null, x));
+    assert(log_x_x != null && expression_caveats.gather(log_x_x).length === 2,
+        'caveats: caveats should be indexed uniquely by expression shape');
+
+    const log_half_six = power_triangles.to_expression(new PowerTriangle(half, null, six));
+    const accepted_log_half_six = expression_caveats.gather(log_half_six);
+    assert(
+        accepted_log_half_six != null && accepted_log_half_six.length === 0,
+        'caveats: valid constant logarithm restrictions should be omitted when indexed'
+    );
+    const unit_base_log = power_triangles.to_expression(new PowerTriangle(one, null, six));
+    assert(unit_base_log != null && expression_caveats.gather(unit_base_log) == null,
+        'caveats: logarithm base one should reject the transformation');
+    const zero_input_log = power_triangles.to_expression(new PowerTriangle(two, null, zero));
+    assert(zero_input_log != null && expression_caveats.gather(zero_input_log) == null,
+        'caveats: non-positive logarithm input should reject the transformation');
+
+    const square_root_x = power_triangles.to_expression(new PowerTriangle(null, two, x));
+    assert(square_root_x != null && has(square_root_x, nonnegative_x),
+        'caveats: a non-degenerate symbolic root should require a nonnegative radicand');
+    const identity_root_x = power_triangles.to_expression(new PowerTriangle(null, one, x));
+    assert(identity_root_x != null && expression_caveats.gather(identity_root_x).length === 0,
+        'caveats: the degenerate first root should add no restriction');
+    const invalid_root = power_triangles.to_expression(
+        new PowerTriangle(null, two, grouplikes.constant(-1))
+    );
+    assert(invalid_root != null && expression_caveats.gather(invalid_root) == null,
+        'caveats: an invalid constant root should reject the transformation');
+
+    const wrapped_log = grouplikes.add([log_b_x, one]);
+    assert(has(wrapped_log, positive_x) && has(wrapped_log, positive_b),
+        'caveats: adding structure around an existing expression should retain nested caveats naturally');
+
+    const caveated_sum = grouplikes.add([x, two, grouplikes.constant(-1)]).with({
+        caveats: Object.freeze([nonzero_x]),
+    });
+    const simplified = equations.simplify(new Equation(caveated_sum, zero));
+    assert(has(simplified, nonzero_x),
+        'caveats: destructive simplification through Equations should preserve caveats');
+
+    const caveated_pair = grouplikes.add([x, x]).with({
+        caveats: Object.freeze([nonzero_x]),
+    });
+    const combined = equations.combine(caveated_pair, 0, 1);
+    assert(combined.length > 0 && combined.every(result => has(result, nonzero_x)),
+        'caveats: destructive combination through Equations should preserve caveats');
+
+    const caveated_commutative = grouplikes.add([x, one]).with({
+        caveats: Object.freeze([nonzero_x]),
+    });
+    const commuted = equations.commute(caveated_commutative, 0, 1);
+    assert(commuted.length === 1 && has(commuted[0], nonzero_x),
+        'caveats: replacement during commute should preserve parent caveats');
+
+    const balanced = equations.balance(
+        new Equation(caveated_commutative, two), 0, 1, 1
+    );
+    assert(balanced.length > 0 && balanced.every(choice => has(choice.equation, nonzero_x)),
+        'caveats: balancing should preserve caveats from the equation it rewrites');
+
+    [
+        'scripts/models/grouplike/Grouplike.js',
+        'scripts/models/grouplike/Grouplikes.js',
+        'scripts/models/ringlike/Ringlikes.js',
+        'scripts/models/ringlike/ScaleExpressions.js',
+        'scripts/models/ringlike/PowerExpressions.js',
+        'scripts/models/powertriangle/PowerTriangles.js',
+        'scripts/models/powertriangle/PowerTriangleInverse.js',
+        'scripts/models/powertriangle/PowerTriangleSameness.js',
+        'scripts/models/powertriangle/PowerTriangleComposition.js',
+        'scripts/models/expression/ExpressionPaths.js',
+        'scripts/models/equation/EquationDragOperations.js',
+    ].forEach(file => assert(
+        !fs.readFileSync(path.join(root, file), 'utf8').includes('expression_caveats'),
+        `caveats: ${file} should not depend on ExpressionCaveats`
+    ));
+
+    [
+        'scripts/models/ringlike/PowerExpressions.js',
+        'scripts/models/powertriangle/PowerTriangles.js',
+    ].forEach(file => assert(
+        !fs.readFileSync(path.join(root, file), 'utf8').includes('orderlikes'),
+        `caveats: ${file} should not depend on Orderlikes`
+    ));
+}
+
 function dragChoices() {
     const rhs = grouplikes.constant(2);
 
@@ -1254,9 +1427,10 @@ function ringExpressionInterface() {
         'Ringlikes',
         'multiplicative inverse should be involutive'
     );
+    const reciprocal_zero = ringlikes.inverse('mul', zero);
     assert(
-        ringlikes.inverse('mul', zero) == null,
-        'Ringlikes: zero should not have a multiplicative inverse'
+        reciprocal_zero != null && expression_caveats.gather(reciprocal_zero) == null,
+        'Ringlikes: a zero reciprocal candidate should be rejected by caveat validation'
     );
     assertSameExpression(
         ringlikes.inverse('mul', one),
@@ -2784,6 +2958,7 @@ function distributivity() {
 
 [
     relationalExpressions,
+    caveatTracking,
     dragChoices,
     automaticSimplification,
     historyPresentation,

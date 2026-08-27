@@ -15,6 +15,7 @@
     <script src="./scripts/dom/Html.js"></script>
     <script src="./scripts/models/expression/Expression.js"></script>
     <script src="./scripts/models/expression/ExpressionShape.js"></script>
+    <script src="./scripts/models/expression/ExpressionCaveats.js"></script>
     <script src="./scripts/models/expression/ExpressionPaths.js"></script>
     <script src="./scripts/models/relation/Relation.js"></script>
     <script src="./scripts/models/orderlike/Orderlike.js"></script>
@@ -38,7 +39,6 @@
     <script src="./scripts/models/equation/Equations.js"></script>
     <script src="./scripts/models/equation/EquationPathOperations.js"></script>
     <script src="./scripts/models/equation/EquationDragOperations.js"></script>
-    <script src="./scripts/models/equation/EquationShape.js"></script>
     <script src="./scripts/models/app/AppState.js"></script>
     <script src="./scripts/models/app/AppHistoryTraversal.js"></script>
     <script src="./scripts/models/app/AppDragOperations.js"></script>
@@ -215,6 +215,11 @@
     });
 
     const expression_shape = ExpressionShape();
+    const comparable = comparison => evaluate => relation => {
+        const left = evaluate(relation.left);
+        const right = evaluate(relation.right);
+        return Number.isFinite(left) && Number.isFinite(right)? comparison(left, right) : undefined;
+    };
     const orderlikes = Orderlikes({
         eq: Orderlike('eq', {
             is_reflexive: true,
@@ -222,8 +227,35 @@
             is_transitive: true,
             is_antisymmetric: true,
             converse: 'eq',
-        }),
-    });
+        }, comparable((left, right) => left === right)),
+        neq: Orderlike('neq', {
+            is_symmetric: true,
+            converse: 'neq',
+        }, comparable((left, right) => left !== right)),
+        lt: Orderlike('lt', {
+            is_transitive: true,
+            is_asymmetric: true,
+            converse: 'gt',
+        }, comparable((left, right) => left < right)),
+        lte: Orderlike('lte', {
+            is_reflexive: true,
+            is_transitive: true,
+            is_antisymmetric: true,
+            converse: 'gte',
+        }, comparable((left, right) => left <= right)),
+        gt: Orderlike('gt', {
+            is_transitive: true,
+            is_asymmetric: true,
+            converse: 'lt',
+        }, comparable((left, right) => left > right)),
+        gte: Orderlike('gte', {
+            is_reflexive: true,
+            is_transitive: true,
+            is_antisymmetric: true,
+            converse: 'lte',
+        }, comparable((left, right) => left >= right)),
+    }, grouplikes);
+    const expression_caveats = ExpressionCaveats(expression_shape, orderlikes);
     const ringlikes = Ringlikes({
         add: ScaleExpressions(grouplikes, Scales(grouplikes, expression_shape)),
         mul: PowerExpressions(grouplikes, Powers(grouplikes, expression_shape)),
@@ -235,6 +267,7 @@
         grouplikes: grouplikes,
         ringlikes: ringlikes,
         orderlikes: orderlikes,
+        expression_caveats: expression_caveats,
         invertibles: Object.freeze([
             PowerTriangleInverse(power_triangles, expression_shape),
         ]),
@@ -291,6 +324,7 @@
         render: katex.render,
         equation_drag_operations: equation_drag_ops,
         expression_view: expression_view,
+        expression_caveats: expression_caveats,
     });
 
     const app_view = AppView({
