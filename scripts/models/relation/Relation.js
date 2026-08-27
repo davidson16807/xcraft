@@ -1,6 +1,4 @@
 'use strict';
-// HUMAN VETTED
-
 /*
 A Relation is an Expression whose two contents are unary `side` Expressions.
 The side nodes make relation operands independently addressable without a
@@ -39,7 +37,7 @@ class Relation extends Expression {
             attributes.type != null? attributes.type : this.type,
             attributes.left != null? attributes.left : Relation.content(contents[0]),
             attributes.right != null? attributes.right : Relation.content(contents[1]),
-            [...this.caveats, ...(attributes.caveats || [])],
+            attributes.caveats != null? attributes.caveats : this.caveats,
         );
     }
 }

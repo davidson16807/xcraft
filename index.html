@@ -165,6 +165,9 @@
     document.getElementById('subtitle').replaceChildren(subtitles[Math.floor(Math.random()*subtitles.length)]);
 
 
+    const expression_shape = ExpressionShape();
+    const expression_caveats = ExpressionCaveats(expression_shape);
+
     const grouplikes = Grouplikes({
         'add': Grouplike('add', new Expression('constant', 0), 
             {
@@ -174,7 +177,8 @@
                 is_left_cancellative: true, 
                 is_right_cancellative: true,
             },
-            evaluate => expression => expression.contents.reduce((accumulator, item) => accumulator + evaluate(item), 0)
+            evaluate => expression => expression.contents.reduce((accumulator, item) => accumulator + evaluate(item), 0),
+            expression_caveats
         ),
         'mul': Grouplike('mul', new Expression('constant', 1), 
             {
@@ -184,24 +188,28 @@
                 is_left_cancellative: true, 
                 is_right_cancellative: true,
             },
-            evaluate => expression => expression.contents.reduce((accumulator, item) => accumulator * evaluate(item), 1)
+            evaluate => expression => expression.contents.reduce((accumulator, item) => accumulator * evaluate(item), 1),
+            expression_caveats
         ),
         'pow': Grouplike('pow', new Expression('constant', 1), 
             {
                 is_right_cancellative: true,
             },
-            evaluate => expression => Math.pow(evaluate(expression.contents[0]), evaluate(expression.contents[1]))
+            evaluate => expression => Math.pow(evaluate(expression.contents[0]), evaluate(expression.contents[1])),
+            expression_caveats
         ),
         'log': Grouplike('log', undefined,
             {},
-            evaluate => expression => Math.log(evaluate(expression.contents[1])) / Math.log(evaluate(expression.contents[0]))
+            evaluate => expression => Math.log(evaluate(expression.contents[1])) / Math.log(evaluate(expression.contents[0])),
+            expression_caveats
         ),
         'root': Grouplike('root', undefined,
             {},
             evaluate => expression => Math.pow(
                 evaluate(expression.contents[1]),
                 1 / evaluate(expression.contents[0])
-            )
+            ),
+            expression_caveats
         ),
         'harmonic': Grouplike('harmonic', undefined,
             {
@@ -211,11 +219,11 @@
             evaluate => expression => 1 / expression.contents.reduce(
                 (sum, item) => sum + 1 / evaluate(item),
                 0
-            )
+            ),
+            expression_caveats
         ),
-    });
+    }, expression_caveats);
 
-    const expression_shape = ExpressionShape();
     const comparable = comparison => evaluate => relation => {
         const left = evaluate(relation.left);
         const right = evaluate(relation.right);
@@ -258,12 +266,13 @@
     }, grouplikes);
     const ringlikes = Ringlikes({
         add: ScaleExpressions(grouplikes, Scales(grouplikes, expression_shape)),
-        mul: PowerExpressions(grouplikes, Powers(grouplikes, expression_shape), orderlikes),
-    });
-    const power_triangles = PowerTriangles(grouplikes, expression_shape, orderlikes);
+        mul: PowerExpressions(grouplikes, Powers(grouplikes, expression_shape), orderlikes, expression_caveats),
+    }, expression_caveats);
+    const power_triangles = PowerTriangles(grouplikes, expression_shape, orderlikes, expression_caveats);
 
     const equations = Equations({
         expression_shape: expression_shape,
+        expression_caveats: expression_caveats,
         grouplikes: grouplikes,
         ringlikes: ringlikes,
         orderlikes: orderlikes,
@@ -276,10 +285,11 @@
         ]),
     });
 
-    const expression_paths = ExpressionPaths(grouplikes);
+    const expression_paths = ExpressionPaths(grouplikes, expression_caveats);
     const equation_drag_ops = EquationDragOperations({
         expression_paths: expression_paths,
         expression_shape: expression_shape,
+        expression_caveats: expression_caveats,
         equations: equations,
         equation_path_operations: EquationPathOperations({
             expression_paths: expression_paths,
@@ -323,6 +333,7 @@
         render: katex.render,
         equation_drag_operations: equation_drag_ops,
         expression_view: expression_view,
+        expression_caveats: expression_caveats,
     });
 
     const app_view = AppView({

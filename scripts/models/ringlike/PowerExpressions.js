@@ -3,7 +3,7 @@
 /*
 Operates on grouplikes that can be expressed as powers.
 */
-const PowerExpressions = (grouplikes, powers, orderlikes) => {
+const PowerExpressions = (grouplikes, powers, orderlikes, expression_caveats) => {
 
     function _nonzero_caveat(expression) {
         const caveat = new Relation('neq', expression, grouplikes.constant(0));
@@ -12,7 +12,7 @@ const PowerExpressions = (grouplikes, powers, orderlikes) => {
 
     function _with_nonzero_caveat(result, expression) {
         const caveat = _nonzero_caveat(expression);
-        return caveat == null? result : ExpressionCaveats.add(result, [caveat]);
+        return caveat == null? result : expression_caveats.add(result, [caveat]);
     }
 
     function inverse(expression) {
@@ -22,7 +22,7 @@ const PowerExpressions = (grouplikes, powers, orderlikes) => {
         const inverse = powers.to_expression(
             powers.invert(
                 powers.from_expression(expression)));
-        return _with_nonzero_caveat(ExpressionCaveats.inherit(inverse, expression), expression);
+        return _with_nonzero_caveat(expression_caveats.inherit(inverse, expression), expression);
     }
 
     function is_inverse(expression) {
@@ -36,7 +36,7 @@ const PowerExpressions = (grouplikes, powers, orderlikes) => {
         const combined = powers.combine(a, b);
         if (combined == null) return null;
 
-        let result = ExpressionCaveats.inherit(powers.to_expression(combined), left, right);
+        let result = expression_caveats.inherit(powers.to_expression(combined), left, right);
         if (a.power < 0 || b.power < 0) {
             result = _with_nonzero_caveat(result, a.base);
         }
@@ -50,7 +50,7 @@ const PowerExpressions = (grouplikes, powers, orderlikes) => {
     function right_distribute(parent, left, right) {
         if (parent.type !== 'pow') return null;
         if (left.type !== 'mul') return null;
-        return ExpressionCaveats.inherit(
+        return expression_caveats.inherit(
             grouplikes.mul(left.contents.map(term => grouplikes.pow(term, right))),
             parent, left, right
         );

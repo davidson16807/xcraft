@@ -15,6 +15,7 @@ function EquationDragOperations(dependencies) {
     const equations = dependencies.equations;
     const path_operations = dependencies.equation_path_operations;
     const expression_shape = dependencies.expression_shape;
+    const expression_caveats = dependencies.expression_caveats;
 
     const freeze = Object.freeze;
 
@@ -41,7 +42,7 @@ function EquationDragOperations(dependencies) {
                 normalized = new EquationDragChoice(
                     normalized.expression,
                     normalized.operator,
-                    ExpressionCaveats.inherit(normalized.equation, existing.equation),
+                    expression_caveats.inherit(normalized.equation, existing.equation),
                     normalized.side,
                     normalized.type
                 );

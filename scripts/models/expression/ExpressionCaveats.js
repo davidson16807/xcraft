@@ -4,16 +4,14 @@
 Caveats are Expressions. They are stored as immutable arrays, unique by
 ExpressionShape. A false constant is not a caveat.
 */
-const ExpressionCaveats = (() => {
-    let shape;
-    const expression_shape = () => shape || (shape = ExpressionShape());
+const ExpressionCaveats = expression_shape => {
 
     function index(caveats) {
         const by_shape = new Map();
         for (const caveat of caveats || []) {
             if (!(caveat instanceof Expression)) continue;
             if (caveat.type === 'constant' && !caveat.contents) continue;
-            by_shape.set(expression_shape().encode(caveat), caveat);
+            by_shape.set(expression_shape.encode(caveat), caveat);
         }
         return Object.freeze([...by_shape.values()]);
     }
@@ -44,4 +42,4 @@ const ExpressionCaveats = (() => {
     }
 
     return Object.freeze({ index, all, add, inherit });
-})();
+};

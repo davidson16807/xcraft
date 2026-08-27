@@ -3,7 +3,7 @@
 /*
 `PowerTriangles` describes operations, relations, and properties to and from `PowerTriangle`.
 */
-const PowerTriangles = (grouplikes, expression_shape, orderlikes) => {
+const PowerTriangles = (grouplikes, expression_shape, orderlikes, expression_caveats) => {
     const freeze = Object.freeze;
     const vertices = freeze([0, 1, 2]);
 
@@ -44,7 +44,7 @@ const PowerTriangles = (grouplikes, expression_shape, orderlikes) => {
         const caveat = new Relation(type, left, right);
         const value = orderlikes.evaluate(caveat, {});
         if (value === false) return null;
-        return value === true? expression : ExpressionCaveats.add(expression, [caveat]);
+        return value === true? expression : expression_caveats.add(expression, [caveat]);
     }
 
     function to_expression(triangle) {

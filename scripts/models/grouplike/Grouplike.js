@@ -16,7 +16,7 @@ is_commutative  Boolean
 evaluator       (Expression->T) -> (Expression->T)
                 e.g. subevaluate => expression => expression.contents.reduce((accumulator, item) => accumulator + subevaluate(item, variables), 0)
 */
-const Grouplike = (label, identity, properties, evaluator) => {
+const Grouplike = (label, identity, properties, evaluator, expression_caveats) => {
 
     const is_commutative = properties.is_commutative;
     const is_associative = properties.is_associative;
@@ -50,7 +50,7 @@ const Grouplike = (label, identity, properties, evaluator) => {
         } else {
             result = new Expression(label, Object.freeze(formatted));
         }
-        return result == null? null : ExpressionCaveats.inherit(result, ...inputs);
+        return result == null? null : expression_caveats.inherit(result, ...inputs);
     }
 
     function _is_identity(expression) {

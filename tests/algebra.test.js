@@ -47,6 +47,7 @@ const root = path.resolve(__dirname, '..');
 });
 
 const expression_shape = ExpressionShape();
+const expression_caveats = ExpressionCaveats(expression_shape);
 const grouplikes = Grouplikes({
     'add': Grouplike(
         'add',
@@ -61,7 +62,8 @@ const grouplikes = Grouplikes({
         evaluate => expression => expression.contents.reduce(
             (accumulator, item) => accumulator + evaluate(item),
             0
-        )
+        ),
+        expression_caveats
     ),
     'mul': Grouplike(
         'mul',
@@ -76,7 +78,8 @@ const grouplikes = Grouplikes({
         evaluate => expression => expression.contents.reduce(
             (accumulator, item) => accumulator * evaluate(item),
             1
-        )
+        ),
+        expression_caveats
     ),
     'pow': Grouplike(
         'pow',
@@ -87,14 +90,16 @@ const grouplikes = Grouplikes({
         evaluate => expression => Math.pow(
             evaluate(expression.contents[0]),
             evaluate(expression.contents[1])
-        )
+        ),
+        expression_caveats
     ),
     'log': Grouplike(
         'log',
         undefined,
         {},
         evaluate => expression => Math.log(evaluate(expression.contents[1])) /
-            Math.log(evaluate(expression.contents[0]))
+            Math.log(evaluate(expression.contents[0])),
+        expression_caveats
     ),
     'root': Grouplike(
         'root',
@@ -103,7 +108,8 @@ const grouplikes = Grouplikes({
         evaluate => expression => Math.pow(
             evaluate(expression.contents[1]),
             1 / evaluate(expression.contents[0])
-        )
+        ),
+        expression_caveats
     ),
     'harmonic': Grouplike(
         'harmonic',
@@ -115,9 +121,10 @@ const grouplikes = Grouplikes({
         evaluate => expression => 1 / expression.contents.reduce(
             (sum, item) => sum + 1 / evaluate(item),
             0
-        )
+        ),
+        expression_caveats
     ),
-});
+}, expression_caveats);
 const comparable = comparison => evaluate => relation => {
     const left = evaluate(relation.left);
     const right = evaluate(relation.right);
@@ -161,20 +168,21 @@ const orderlikes = Orderlikes({
 const scales = Scales(grouplikes, expression_shape);
 const scale_expressions = ScaleExpressions(grouplikes, scales);
 const powers = Powers(grouplikes, expression_shape);
-const power_triangles = PowerTriangles(grouplikes, expression_shape, orderlikes);
+const power_triangles = PowerTriangles(grouplikes, expression_shape, orderlikes, expression_caveats);
 const triangle_sameness = PowerTriangleSameness(power_triangles, grouplikes);
 const triangle_composition = PowerTriangleComposition(power_triangles, grouplikes);
 const triangle_inverse = PowerTriangleInverse(power_triangles, expression_shape);
 const ringlikes = Ringlikes({
     add: scale_expressions,
-    mul: PowerExpressions(grouplikes, powers, orderlikes),
-});
-const paths = ExpressionPaths(grouplikes);
+    mul: PowerExpressions(grouplikes, powers, orderlikes, expression_caveats),
+}, expression_caveats);
+const paths = ExpressionPaths(grouplikes, expression_caveats);
 const equations = Equations({
     grouplikes: grouplikes,
     ringlikes: ringlikes,
     orderlikes: orderlikes,
     expression_shape: expression_shape,
+    expression_caveats: expression_caveats,
     invertibles: Object.freeze([
         triangle_inverse,
     ]),
@@ -190,6 +198,7 @@ const equation_path_operations = EquationPathOperations({
 const algebra = EquationDragOperations({
     expression_paths: paths,
     expression_shape: expression_shape,
+    expression_caveats: expression_caveats,
     equations: equations,
     equation_path_operations: equation_path_operations,
 });
@@ -1195,32 +1204,30 @@ function caveatTracking() {
     const same_shape_nonzero_x = new Relation('neq', grouplikes.variable('x'), grouplikes.constant(0));
     const caveat_key = expression => expression_shape.encode(expression);
     const has_caveat = (expression, caveat) =>
-        ExpressionCaveats.all(expression).some(item => caveat_key(item) === caveat_key(caveat));
+        expression_caveats.all(expression).some(item => caveat_key(item) === caveat_key(caveat));
 
-    const caveated_x = x.with({ caveats:[nonzero_x] });
+    const caveated_x = expression_caveats.add(x, [nonzero_x]);
     assert(Array.isArray(caveated_x.caveats),
         'caveats: Expression.caveats should be an array');
     assert(caveated_x.all_caveats == null && caveated_x.with_caveats == null && caveated_x.inherit_caveats == null,
         'caveats: caveat operations should not extend the Expression method interface');
     assert(has_caveat(caveated_x, nonzero_x),
-        'caveats: constructor/with should preserve caveat Expressions');
+        'caveats: the caveat dependency should add caveat Expressions');
     assertShape(caveated_x, x,
         'caveats: caveats should not change structural expression shape');
-    assert(has_caveat(caveated_x.with({ caveats:[] }), nonzero_x),
-        'caveats: Expression.with should not discard an existing caveat');
     assert(Object.isFrozen(caveated_x.caveats),
         'caveats: the caveat array should preserve Expression immutability');
 
     assert(
-        x.with({ caveats:[zero] }).caveats.length === 0,
+        expression_caveats.add(x, [zero]).caveats.length === 0,
         'caveats: a false constant caveat should not be added'
     );
 
     const nested = new Expression('add', Object.freeze([
         caveated_x,
-        one.with({ caveats:[same_shape_nonzero_x] }),
+        expression_caveats.add(one, [same_shape_nonzero_x]),
     ]));
-    const nested_caveats = ExpressionCaveats.all(nested);
+    const nested_caveats = expression_caveats.all(nested);
     assert(
         nested_caveats.length === 1 && caveat_key(nested_caveats[0]) === caveat_key(nonzero_x),
         'caveats: recursive collection should index duplicate caveat Expressions by shape'
@@ -1229,8 +1236,9 @@ function caveatTracking() {
     const arithmetic = grouplikes.add([
         grouplikes.constant(7),
         grouplikes.constant(-1),
-    ]).with({ caveats:[nonzero_x] });
-    const simplified = grouplikes.simplify(arithmetic);
+    ]);
+    const caveated_arithmetic = expression_caveats.add(arithmetic, [nonzero_x]);
+    const simplified = grouplikes.simplify(caveated_arithmetic);
     assertSameExpression(
         simplified,
         grouplikes.constant(6),
@@ -1250,7 +1258,7 @@ function caveatTracking() {
     assert(orderlikes.evaluate(nonzero_one_sixth, {}) === true,
         'caveats: orderlikes should evaluate a constant-valued nonzero relation to true');
     const reciprocal_one_sixth = ringlikes.inverse('mul', one_sixth);
-    assert(ExpressionCaveats.all(reciprocal_one_sixth).length === 0,
+    assert(expression_caveats.all(reciprocal_one_sixth).length === 0,
         'caveats: a nonzero condition that evaluates to true should not be retained');
 
     const zero_sum = grouplikes.add([one, grouplikes.constant(-1)]);
@@ -1311,12 +1319,12 @@ function caveatTracking() {
     const one_half = grouplikes.div(one, two);
     const log_half_x = power_triangles.to_expression(new PowerTriangle(one_half, null, x));
     assert(
-        ExpressionCaveats.all(log_half_x).length === 1 && has_caveat(log_half_x, positive_x),
+        expression_caveats.all(log_half_x).length === 1 && has_caveat(log_half_x, positive_x),
         'caveats: a known logarithm base between zero and one should be accepted without a base caveat'
     );
 
     const log_eight = power_triangles.to_expression(new PowerTriangle(two, null, grouplikes.constant(8)));
-    assert(ExpressionCaveats.all(log_eight).length === 0,
+    assert(expression_caveats.all(log_eight).length === 0,
         'caveats: a logarithm input known to be positive should not retain a caveat');
     assert(power_triangles.to_expression(new PowerTriangle(two, null, grouplikes.constant(-1))) == null,
         'caveats: introducing a logarithm with a known negative input should be rejected');
@@ -1326,11 +1334,11 @@ function caveatTracking() {
         'caveats: introducing a non-degenerate root should require a nonnegative radicand');
 
     const identity_root_x = power_triangles.to_expression(new PowerTriangle(null, one, x));
-    assert(ExpressionCaveats.all(identity_root_x).length === 0,
+    assert(expression_caveats.all(identity_root_x).length === 0,
         'caveats: root_1(x) should not introduce a radicand restriction');
 
     const square_root_nine = power_triangles.to_expression(new PowerTriangle(null, two, grouplikes.constant(9)));
-    assert(ExpressionCaveats.all(square_root_nine).length === 0,
+    assert(expression_caveats.all(square_root_nine).length === 0,
         'caveats: a root radicand known to be nonnegative should not retain a caveat');
     assert(power_triangles.to_expression(new PowerTriangle(null, two, grouplikes.constant(-1))) == null,
         'caveats: introducing a non-degenerate root with a known negative radicand should be rejected');

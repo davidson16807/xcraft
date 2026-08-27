@@ -1,11 +1,10 @@
 'use strict';
-// HUMAN VETTED
 
 class Expression {
     constructor(type, contents, caveats) {
         this.type = type;
         this.contents = contents;
-        this.caveats = ExpressionCaveats.index(caveats || []);
+        this.caveats = Object.freeze([...(caveats || [])]);
         Object.freeze(this);
     }
 
@@ -13,7 +12,7 @@ class Expression {
         return new Expression(
             attributes.type     != null? attributes.type     : this.type,
             attributes.contents != null? attributes.contents : this.contents,
-            [...this.caveats, ...(attributes.caveats || [])],
+            attributes.caveats  != null? attributes.caveats  : this.caveats,
         );
     }
 }

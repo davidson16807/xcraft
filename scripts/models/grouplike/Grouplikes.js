@@ -10,7 +10,7 @@ Unsupported operations are represented by returning the original expression
 Return types are deeply immutable expressions. 
 All functions are pure. 
 */
-const Grouplikes = (grouplike_expressions_for_tag) => {
+const Grouplikes = (grouplike_expressions_for_tag, expression_caveats) => {
 
     const types = Object.freeze(Object.keys(grouplike_expressions_for_tag));
 
@@ -53,7 +53,7 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         const value = evaluate(expression, {});
         if (!Number.isFinite(value)) return null;
         if (_contains_reciprocal(expression) && !_is_whole(value)) return null;
-        return ExpressionCaveats.inherit(
+        return expression_caveats.inherit(
             constant(_is_whole(value)? Math.round(value) : value),
             expression
         );
@@ -63,14 +63,14 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         const structure = grouplike_expressions_for_tag[expression.type];
         if (structure == null) return expression;
         const simplified = structure.simplify(expression, simplify, evaluate, _constant_result);
-        return simplified === expression? expression : ExpressionCaveats.inherit(simplified, expression);
+        return simplified === expression? expression : expression_caveats.inherit(simplified, expression);
     }
 
     function append(type, left, right) {
         const structure = grouplike_expressions_for_tag[type];
         if (structure == null) return left;
         const appended = structure.append(left, right);
-        return appended == null? null : ExpressionCaveats.inherit(appended, left, right);
+        return appended == null? null : expression_caveats.inherit(appended, left, right);
     }
 
     function combine(type, left, right) {
@@ -78,7 +78,7 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         if (structure == null) return null;
 
         const combined = structure.combine(left, right);
-        if (combined != null) return ExpressionCaveats.inherit(combined, left, right);
+        if (combined != null) return expression_caveats.inherit(combined, left, right);
 
         return _constant_result(
             new Expression(type, Object.freeze([left, right]))
@@ -89,14 +89,14 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         const structure = grouplike_expressions_for_tag[expression.type];
         if (structure == null) return expression;
         const commuted = structure.commute(expression, index1, index2);
-        return commuted === expression? expression : ExpressionCaveats.inherit(commuted, expression);
+        return commuted === expression? expression : expression_caveats.inherit(commuted, expression);
     }
 
     function cancel(expression, index) {
         const structure = grouplike_expressions_for_tag[expression.type];
         if (structure == null) return expression;
         const cancelled = structure.cancel(expression, index);
-        return cancelled === expression? expression : ExpressionCaveats.inherit(cancelled, expression);
+        return cancelled === expression? expression : expression_caveats.inherit(cancelled, expression);
     }
 
     function collapse(expression, index1, index2, replacement) {
@@ -108,7 +108,7 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         contents[lo] = replacement;
         contents.splice(hi, 1);
         const collapsed = structure.create(contents);
-        return collapsed == null? null : ExpressionCaveats.inherit(collapsed, expression, replacement);
+        return collapsed == null? null : expression_caveats.inherit(collapsed, expression, replacement);
     }
 
     const evaluator = variables => expression => {
