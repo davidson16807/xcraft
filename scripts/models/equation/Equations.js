@@ -10,8 +10,6 @@ interpretations. Unsupported operations return an empty list.
 */
 function Equations(dependencies) {
     const shape = dependencies.expression_shape;
-    const expression_caveats = dependencies.expression_caveats;
-
     const grouplikes = dependencies.grouplikes;
     const ringlikes = dependencies.ringlikes;
     const orderlikes = dependencies.orderlikes;
@@ -29,8 +27,7 @@ function Equations(dependencies) {
             expression => expression != null
         ).forEach(expression => {
             const key = shape.encode(expression);
-            const existing = distinct.get(key);
-            distinct.set(key, existing == null? expression : expression_caveats.inherit(existing, expression));
+            if (!distinct.has(key)) distinct.set(key, expression);
         });
         return freeze([...distinct.values()]);
     }
@@ -44,10 +41,10 @@ function Equations(dependencies) {
     function _balance_choice(equation, target_side, new_source, new_target, expression, operator) {
         const left_right = Number(target_side) === 0?
             [new_target, new_source] : [new_source, new_target];
-        const replacement = expression_caveats.inherit(
-            equation.with({ left:left_right[0], right:left_right[1] }),
-            equation, new_source, new_target, expression
-        );
+        const replacement = equation.with({
+            left:left_right[0],
+            right:left_right[1],
+        });
         return new EquationDragChoice(
             expression,
             operator,

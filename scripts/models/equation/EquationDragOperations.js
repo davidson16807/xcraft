@@ -15,7 +15,6 @@ function EquationDragOperations(dependencies) {
     const equations = dependencies.equations;
     const path_operations = dependencies.equation_path_operations;
     const expression_shape = dependencies.expression_shape;
-    const expression_caveats = dependencies.expression_caveats;
 
     const freeze = Object.freeze;
 
@@ -37,17 +36,7 @@ function EquationDragOperations(dependencies) {
                     choice.type
                 );
             const key = expression_shape.encode(normalized.equation);
-            const existing = distinct.get(key);
-            if (existing != null) {
-                normalized = new EquationDragChoice(
-                    normalized.expression,
-                    normalized.operator,
-                    expression_caveats.inherit(normalized.equation, existing.equation),
-                    normalized.side,
-                    normalized.type
-                );
-            }
-            distinct.set(key, normalized);
+            if (!distinct.has(key)) distinct.set(key, normalized);
         });
         return freeze([...distinct.values()]);
     }

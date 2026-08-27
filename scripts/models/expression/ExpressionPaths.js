@@ -5,7 +5,7 @@ Addresses every non-root Expression by its contents indexes.
 For a Relation, 0 and 1 are its side nodes; 0/0 and 1/0 are the expressions
 occupying those sides. There is one path language and no separate path domain.
 */
-const ExpressionPaths = (grouplikes, expression_caveats) => {
+const ExpressionPaths = grouplikes => {
 
     function nary(path, index) {
         return path == null? String(index) : `${path}/${index}`;
@@ -59,7 +59,7 @@ const ExpressionPaths = (grouplikes, expression_caveats) => {
     }
 
     function _replace(expression, segments, replacement) {
-        if (segments.length === 0) return expression_caveats.inherit(replacement, expression);
+        if (segments.length === 0) return replacement;
         const head = segments[0];
         const tail = segments.slice(1);
         const current_child = _child(expression, head);
@@ -70,8 +70,7 @@ const ExpressionPaths = (grouplikes, expression_caveats) => {
     }
 
     function replace(expression, path, replacement) {
-        if (path == null) return expression_caveats.inherit(replacement, expression);
-        return _replace(expression, path.split('/'), replacement);
+        return path == null? replacement : _replace(expression, path.split('/'), replacement);
     }
 
     function all(expression) {

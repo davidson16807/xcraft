@@ -166,23 +166,22 @@ const orderlikes = Orderlikes({
     }, comparable((left, right) => left >= right)),
 }, grouplikes);
 const scales = Scales(grouplikes, expression_shape);
-const scale_expressions = ScaleExpressions(grouplikes, scales);
+const scale_expressions = ScaleExpressions(grouplikes, scales, expression_caveats);
 const powers = Powers(grouplikes, expression_shape);
 const power_triangles = PowerTriangles(grouplikes, expression_shape, orderlikes, expression_caveats);
-const triangle_sameness = PowerTriangleSameness(power_triangles, grouplikes);
-const triangle_composition = PowerTriangleComposition(power_triangles, grouplikes);
-const triangle_inverse = PowerTriangleInverse(power_triangles, expression_shape);
+const triangle_sameness = PowerTriangleSameness(power_triangles, grouplikes, expression_caveats);
+const triangle_composition = PowerTriangleComposition(power_triangles, grouplikes, expression_caveats);
+const triangle_inverse = PowerTriangleInverse(power_triangles, expression_shape, expression_caveats);
 const ringlikes = Ringlikes({
     add: scale_expressions,
     mul: PowerExpressions(grouplikes, powers, orderlikes, expression_caveats),
-}, expression_caveats);
-const paths = ExpressionPaths(grouplikes, expression_caveats);
+});
+const paths = ExpressionPaths(grouplikes);
 const equations = Equations({
     grouplikes: grouplikes,
     ringlikes: ringlikes,
     orderlikes: orderlikes,
     expression_shape: expression_shape,
-    expression_caveats: expression_caveats,
     invertibles: Object.freeze([
         triangle_inverse,
     ]),
@@ -198,7 +197,6 @@ const equation_path_operations = EquationPathOperations({
 const algebra = EquationDragOperations({
     expression_paths: paths,
     expression_shape: expression_shape,
-    expression_caveats: expression_caveats,
     equations: equations,
     equation_path_operations: equation_path_operations,
 });
@@ -1247,6 +1245,43 @@ function caveatTracking() {
     );
     assert(has_caveat(simplified, nonzero_x),
         'caveats: simplification must preserve caveats from the expression it consumes');
+
+    const direct_add = Grouplike(
+        'add',
+        zero,
+        {
+            is_commutative: true,
+            is_associative: true,
+            is_invertible: true,
+            is_left_cancellative: true,
+            is_right_cancellative: true,
+        },
+        evaluate => expression => expression.contents.reduce(
+            (sum, item) => sum + evaluate(item),
+            0
+        ),
+        expression_caveats
+    );
+    const caveated_sum = expression_caveats.add(
+        direct_add.create([x, one]),
+        [nonzero_x]
+    );
+    assert(has_caveat(direct_add.commute(caveated_sum, 0, 1), nonzero_x),
+        'caveats: atomic Grouplike operations should preserve caveats without Grouplikes');
+
+    const direct_scaled = scale_expressions.combine(caveated_x, x);
+    assert(has_caveat(direct_scaled, nonzero_x),
+        'caveats: atomic ScaleExpressions operations should preserve caveats without Ringlikes');
+
+    const caveated_power = expression_caveats.add(
+        grouplikes.pow(x, grouplikes.constant(2)),
+        [nonzero_x]
+    );
+    assert(has_caveat(triangle_inverse.cancel(caveated_power, caveated_power.contents[1]), nonzero_x),
+        'caveats: atomic power-triangle operations should preserve caveats without Equations');
+
+    assert(Grouplikes.length === 1 && Ringlikes.length === 1 && ExpressionPaths.length === 1,
+        'caveats: dispatcher and path constructors should not depend on ExpressionCaveats');
 
     const reciprocal_x = ringlikes.inverse('mul', x);
     assert(has_caveat(reciprocal_x, nonzero_x),

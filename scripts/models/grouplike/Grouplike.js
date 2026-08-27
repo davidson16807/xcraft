@@ -63,7 +63,9 @@ const Grouplike = (label, identity, properties, evaluator, expression_caveats) =
 
     function simplify(expression, simplify, evaluate, constant_result) {
         const simplified_constant = constant_result(expression);
-        if (simplified_constant != null) return simplified_constant;
+        if (simplified_constant != null) {
+            return expression_caveats.inherit(simplified_constant, expression);
+        }
         if (!Array.isArray(expression.contents)) return expression;
 
         let contents = expression.contents.map(simplify);
@@ -82,8 +84,9 @@ const Grouplike = (label, identity, properties, evaluator, expression_caveats) =
                 const constant_expression = expression.with({
                     contents: Object.freeze(constants.map(item => item.item)),
                 });
-                const combined = constant_result(constant_expression);
+                let combined = constant_result(constant_expression);
                 if (combined != null) {
+                    combined = expression_caveats.inherit(combined, constant_expression);
                     const first = constants[0].index;
                     const constant_indexes = new Set(constants.map(item => item.index));
                     contents = contents.flatMap((item, index) =>
@@ -98,7 +101,10 @@ const Grouplike = (label, identity, properties, evaluator, expression_caveats) =
             contents.length === expression.contents.length &&
             contents.every((item, i) => item === expression.contents[i])
         ) return expression;
-        return expression.with({ contents: Object.freeze(contents) });
+        return expression_caveats.inherit(
+            expression.with({ contents: Object.freeze(contents) }),
+            expression
+        );
     }
 
     function append(left, right) {
@@ -107,24 +113,44 @@ const Grouplike = (label, identity, properties, evaluator, expression_caveats) =
           : create([left, right]);
     }
 
-    function combine(left, right) {
-        if (_is_identity(left) && is_left_cancellative) return right;
-        if (_is_identity(right) && is_right_cancellative) return left;
-        return null;
+    function combine(left, right, constant_result) {
+        if (_is_identity(left) && is_left_cancellative) {
+            return expression_caveats.inherit(right, left, right);
+        }
+        if (_is_identity(right) && is_right_cancellative) {
+            return expression_caveats.inherit(left, left, right);
+        }
+        if (constant_result == null) return null;
+        const expression = new Expression(label, Object.freeze([left, right]));
+        const result = constant_result(expression);
+        return result == null? null : expression_caveats.inherit(result, expression);
     }
 
     function commute(expression, index1, index2) {
         if (!is_commutative) return expression;
         const contents = expression.contents.slice();
         [contents[index1], contents[index2]] = [contents[index2], contents[index1]];
-        return create(contents);
+        const result = create(contents);
+        return result == null? null : expression_caveats.inherit(result, expression);
     }
 
     function cancel(expression, index) {
         if (!is_invertible) return expression;
         const contents = expression.contents.slice();
         contents.splice(index, 1);
-        return expression.type !== label? expression : create(contents);
+        if (expression.type !== label) return expression;
+        const result = create(contents);
+        return result == null? null : expression_caveats.inherit(result, expression);
+    }
+
+    function collapse(expression, index1, index2, replacement) {
+        const lo = Math.min(index1, index2);
+        const hi = Math.max(index1, index2);
+        const contents = expression.contents.slice();
+        contents[lo] = replacement;
+        contents.splice(hi, 1);
+        const result = create(contents);
+        return result == null? null : expression_caveats.inherit(result, expression, replacement);
     }
 
     return Object.freeze({
@@ -134,6 +160,7 @@ const Grouplike = (label, identity, properties, evaluator, expression_caveats) =
         combine,
         commute,
         cancel,
+        collapse,
         simplify,
         evaluator,
     });

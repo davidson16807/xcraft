@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 Composition of a power-triangle projection with itself.
@@ -35,7 +34,7 @@ Using drags, each power law is implemented by two operations:
   across elements of the other known vertex
 
 */
-const PowerTriangleComposition = (triangles, grouplikes) => {
+const PowerTriangleComposition = (triangles, grouplikes, expression_caveats) => {
     const exponent = 1;
     const computed_for_operation = Object.freeze({ root:0, pow:2 });
 
@@ -52,9 +51,10 @@ const PowerTriangleComposition = (triangles, grouplikes) => {
         const inner = triangles.from_expression(outer[recursive], false);
         if (inner == null || inner[computed] != null) return null;
 
-        return triangles.to_expression(inner.with(
+        const result = triangles.to_expression(inner.with(
             exponent, grouplikes.mul([inner[exponent], outer[exponent]])
         ));
+        return result == null? null : expression_caveats.inherit(result, left, right);
     }
 
     function _distribute(parent, source, target) {
@@ -71,9 +71,10 @@ const PowerTriangleComposition = (triangles, grouplikes) => {
         const inner = triangles.to_expression(triangle.with(exponent, target.contents[0]));
         const outer_exponent = grouplikes.mul(target.contents.slice(1));
 
-        return triangles.to_expression(
+        const result = triangles.to_expression(
             triangle.with(recursive, inner).with(exponent, outer_exponent)
         );
+        return result == null? null : expression_caveats.inherit(result, parent, source, target);
     }
 
     function left_distribute(parent, left, right) {

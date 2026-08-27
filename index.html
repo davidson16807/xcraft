@@ -222,7 +222,7 @@
             ),
             expression_caveats
         ),
-    }, expression_caveats);
+    });
 
     const comparable = comparison => evaluate => relation => {
         const left = evaluate(relation.left);
@@ -265,31 +265,29 @@
         }, comparable((left, right) => left >= right)),
     }, grouplikes);
     const ringlikes = Ringlikes({
-        add: ScaleExpressions(grouplikes, Scales(grouplikes, expression_shape)),
+        add: ScaleExpressions(grouplikes, Scales(grouplikes, expression_shape), expression_caveats),
         mul: PowerExpressions(grouplikes, Powers(grouplikes, expression_shape), orderlikes, expression_caveats),
-    }, expression_caveats);
+    });
     const power_triangles = PowerTriangles(grouplikes, expression_shape, orderlikes, expression_caveats);
 
     const equations = Equations({
         expression_shape: expression_shape,
-        expression_caveats: expression_caveats,
         grouplikes: grouplikes,
         ringlikes: ringlikes,
         orderlikes: orderlikes,
         invertibles: Object.freeze([
-            PowerTriangleInverse(power_triangles, expression_shape),
+            PowerTriangleInverse(power_triangles, expression_shape, expression_caveats),
         ]),
         equivalences: Object.freeze([
-            PowerTriangleSameness(power_triangles, grouplikes),
-            PowerTriangleComposition(power_triangles, grouplikes),
+            PowerTriangleSameness(power_triangles, grouplikes, expression_caveats),
+            PowerTriangleComposition(power_triangles, grouplikes, expression_caveats),
         ]),
     });
 
-    const expression_paths = ExpressionPaths(grouplikes, expression_caveats);
+    const expression_paths = ExpressionPaths(grouplikes);
     const equation_drag_ops = EquationDragOperations({
         expression_paths: expression_paths,
         expression_shape: expression_shape,
-        expression_caveats: expression_caveats,
         equations: equations,
         equation_path_operations: EquationPathOperations({
             expression_paths: expression_paths,

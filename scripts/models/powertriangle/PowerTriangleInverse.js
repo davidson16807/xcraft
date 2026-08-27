@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 `PowerTriangleInverse` handles nested inverse relationships and balancing one
@@ -8,7 +7,7 @@ known triangle vertex across an equation.
 The fixed and computed vertices are derived from the actual parent projection,
 so one instance handles all six inverse/co-inverse orientations.
 */
-const PowerTriangleInverse = (triangles, expression_shape) => {
+const PowerTriangleInverse = (triangles, expression_shape, expression_caveats) => {
     const shape = expression_shape;
 
     function cancel(parent, source) {
@@ -19,7 +18,11 @@ const PowerTriangleInverse = (triangles, expression_shape) => {
         const fixed = triangle.indexOf(source);
         if (computed == null || fixed < 0) return null;
 
-        return triangle[triangles.other(fixed, computed)];
+        return expression_caveats.inherit(
+            triangle[triangles.other(fixed, computed)],
+            parent,
+            source
+        );
     }
 
     function append(parent, source, target) {
@@ -33,7 +36,8 @@ const PowerTriangleInverse = (triangles, expression_shape) => {
         const values = [null, null, null];
         values[fixed] = source;
         values[computed] = target;
-        return triangles.to_expression(new PowerTriangle(...values));
+        const result = triangles.to_expression(new PowerTriangle(...values));
+        return result == null? null : expression_caveats.inherit(result, parent, source, target);
     }
 
     function strip(outer_expression, inner_expression, outer_fixed_expression, inner_fixed_expression) {
@@ -57,7 +61,13 @@ const PowerTriangleInverse = (triangles, expression_shape) => {
         if (outer[outer_other] !== inner_expression) return null;
 
         const inner_other = triangles.other(inner_fixed, inner_computed);
-        return inner[inner_other];
+        return expression_caveats.inherit(
+            inner[inner_other],
+            outer_expression,
+            inner_expression,
+            outer_fixed_expression,
+            inner_fixed_expression
+        );
     }
 
     return Object.freeze({
