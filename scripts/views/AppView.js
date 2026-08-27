@@ -7,6 +7,8 @@ function AppView(dependencies, app_updater) {
     const expression_shape = dependencies.expression_shape;
 
     function draw(app, dom_io) {
+        typecheck(app, 'AppState');
+        typecheck(dom_io, 'HTMLDocument+Document');
 
         const app_element = dom_io.getElementById('app');
         const equation_element = dom_io.getElementById('equation');
@@ -87,6 +89,8 @@ function AppView(dependencies, app_updater) {
     }
 
     function wire(app, dom_io) {
+        typecheck(app, 'AppState');
+        typecheck(dom_io, 'HTMLDocument+Document');
         draw(app, dom_io);
 
         const equation_element = dom_io.getElementById('equation');

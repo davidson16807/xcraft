@@ -23,6 +23,8 @@ const PowerTriangles = (grouplikes, expression_shape) => {
     const tag_for_id = freeze('root log pow'.split(' '));
 
     function from_expression(expression, promote) {
+        typecheck(expression, 'Expression');
+        typecheck(promote, 'Boolean+1');
         const args = arguments_for_tag[expression.type];
         if (args == null) {
             return promote?
@@ -45,6 +47,7 @@ const PowerTriangles = (grouplikes, expression_shape) => {
     }
 
     function to_expression(triangle) {
+        typecheck(triangle, 'PowerTriangle');
         const values = vertices.map(vertex => triangle[vertex]);
         const id = values.findIndex(vertex => vertex == null);
         if (id < 0 || values.filter(vertex => vertex == null).length !== 1) return null;
@@ -74,24 +77,30 @@ const PowerTriangles = (grouplikes, expression_shape) => {
 
     // Returns the PowerTriangle index computed by the triangle.
     function computed(triangle) {
+        typecheck(triangle, 'PowerTriangle');
         const computed = vertices.find(vertex => triangle[vertex] == null);
         return computed == null? null : computed;
     }
 
     /* Returns the two vertex indices that form the equivalent Expression's contents. */
     function inputs(triangle) {
+        typecheck(triangle, 'PowerTriangle');
         const computed_vertex = computed(triangle);
         return freeze(vertices.filter(vertex => vertex !== computed_vertex));
     }
 
     /* Returns the remaining PowerTriangle index that is neither `first` nor `second`. */
     function other(first, second) {
+        typecheck(first, 'Number');
+        typecheck(second, 'Number');
         const vertex = vertices.find(vertex => vertex !== first && vertex !== second);
         return vertex == null? null : vertex;
     }
 
     /* Returns the matching uncomputed vertices between left and right, or null if no such vertex exists.*/
     function matching(left, right) {
+        typecheck(left, 'PowerTriangle');
+        typecheck(right, 'PowerTriangle');
         return freeze(vertices.filter(vertex => {
             const a = left[vertex];
             const b = right[vertex];

@@ -76,6 +76,9 @@ const PowerTriangleSameness = (triangles, grouplikes) => {
     }
 
     function combine(type, left, right) {
+        typecheck(type, 'String');
+        typecheck(left, 'Expression');
+        typecheck(right, 'Expression');
         return _combine(type, left, right, false) || _combine(type, left, right, true);
     }
 
@@ -97,10 +100,16 @@ const PowerTriangleSameness = (triangles, grouplikes) => {
     }
 
     function left_distribute(parent, left, right) {
+        typecheck(parent, 'Expression');
+        typecheck(left, 'Expression');
+        typecheck(right, 'Expression');
         return _distribute(parent, left, right);
     }
 
     function right_distribute(parent, left, right) {
+        typecheck(parent, 'Expression');
+        typecheck(left, 'Expression');
+        typecheck(right, 'Expression');
         return _distribute(parent, right, left);
     }
 

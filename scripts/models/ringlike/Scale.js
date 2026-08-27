@@ -3,6 +3,9 @@
 
 class Scale {
     constructor(coefficient, basis, key) {
+        typecheck(coefficient, 'Number');
+        typecheck(basis, 'Expression+1');
+        typecheck(key, 'String');
         this.coefficient = coefficient;
         this.basis = basis;
         this.key = key;

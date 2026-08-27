@@ -13,30 +13,47 @@ All functions are pure.
 const Ringlikes = ringlike_for_tag => {
 
     function inverse(type, expression) {
+        typecheck(type, 'String');
+        typecheck(expression, 'Expression');
         const ringlike = ringlike_for_tag[type];
         return ringlike && ringlike.inverse(expression);
     }
 
     function is_inverse(type, expression) {
+        typecheck(type, 'String');
+        typecheck(expression, 'Expression');
         const ringlike = ringlike_for_tag[type];
         return ringlike && ringlike.is_inverse(expression);
     }
 
     function absolute(type, expression) {
+        typecheck(type, 'String');
+        typecheck(expression, 'Expression');
         return is_inverse(type, expression)? inverse(type, expression) : expression;
     }
 
     function combine(type, left, right) {
+        typecheck(type, 'String');
+        typecheck(left, 'Expression');
+        typecheck(right, 'Expression');
         const ringlike = ringlike_for_tag[type];
         return ringlike && ringlike.combine(left, right);
     }
 
     function left_distribute(type, parent, left, right) {
+        typecheck(type, 'String');
+        typecheck(parent, 'Expression');
+        typecheck(left, 'Expression');
+        typecheck(right, 'Expression');
         const ringlike = ringlike_for_tag[type];
         return ringlike && ringlike.left_distribute(parent, left, right);
     }
 
     function right_distribute(type, parent, left, right) {
+        typecheck(type, 'String');
+        typecheck(parent, 'Expression');
+        typecheck(left, 'Expression');
+        typecheck(right, 'Expression');
         const ringlike = ringlike_for_tag[type];
         return ringlike && ringlike.right_distribute(parent, left, right);
     }

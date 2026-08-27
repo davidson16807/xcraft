@@ -17,6 +17,7 @@ const ExpressionCaveats = (expression_shape, orderlikes) => {
     }
 
     function unique(caveats) {
+        typecheck(caveats, 'Array');
         const by_shape = new Map();
         for (const caveat of caveats) {
             if (!(caveat instanceof Expression)) continue;
@@ -29,6 +30,7 @@ const ExpressionCaveats = (expression_shape, orderlikes) => {
     }
 
     function gather(...expressions) {
+        typecheck(expressions, 'Array');
         const caveats = [];
         const collect = expression => {
             if (!(expression instanceof Expression)) return;

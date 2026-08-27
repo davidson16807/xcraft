@@ -3,6 +3,9 @@
 
 class Power {
     constructor(base, power, key) {
+        typecheck(base, 'Expression');
+        typecheck(power, 'Number');
+        typecheck(key, 'String');
         this.base = base;
         this.power = power;
         this.key = key;

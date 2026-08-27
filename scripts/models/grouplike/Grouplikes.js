@@ -58,18 +58,25 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
     }
 
     function simplify(expression) {
+        typecheck(expression, 'Expression');
         const structure = grouplike_expressions_for_tag[expression.type];
         if (structure == null) return expression;
         return structure.simplify(expression, simplify, evaluate, _constant_result);
     }
 
     function append(type, left, right) {
+        typecheck(type, 'String');
+        typecheck(left, 'Expression');
+        typecheck(right, 'Expression');
         const structure = grouplike_expressions_for_tag[type];
         if (structure == null) return left;
         return structure.append(left, right);
     }
 
     function combine(type, left, right) {
+        typecheck(type, 'String');
+        typecheck(left, 'Expression');
+        typecheck(right, 'Expression');
         const structure = grouplike_expressions_for_tag[type];
         if (structure == null) return null;
 
@@ -82,18 +89,27 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
     }
 
     function commute(expression, index1, index2) {
+        typecheck(expression, 'Expression');
+        typecheck(index1, 'Number');
+        typecheck(index2, 'Number');
         const structure = grouplike_expressions_for_tag[expression.type];
         if (structure == null) return expression;
         return structure.commute(expression, index1, index2);
     }
 
     function cancel(expression, index) {
+        typecheck(expression, 'Expression');
+        typecheck(index, 'Number');
         const structure = grouplike_expressions_for_tag[expression.type];
         if (structure == null) return expression;
         return structure.cancel(expression, index);
     }
 
     function collapse(expression, index1, index2, replacement) {
+        typecheck(expression, 'Expression');
+        typecheck(index1, 'Number');
+        typecheck(index2, 'Number');
+        typecheck(replacement, 'Expression');
         const structure = grouplike_expressions_for_tag[expression.type];
         if (structure == null) return expression;
         const lo = Math.min(index1, index2);
@@ -115,7 +131,10 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         }
     }
 
-    const evaluate = (expression, variables) => evaluator(variables)(expression);
+    const evaluate = (expression, variables) => {
+        typecheck(expression, 'Expression+Relation+Equation');
+        return evaluator(variables)(expression);
+    };
 
     return Object.freeze({
         types,

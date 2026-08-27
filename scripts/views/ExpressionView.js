@@ -9,6 +9,7 @@ function ExpressionView(dependencies) {
     const render = dependencies.render;
     const precedence_for_tag = dependencies.precedence_for_tag;
 
+    const root = '';
     const empty_paths = new Set();
 
     function math(latex, class_name) {
@@ -33,7 +34,7 @@ function ExpressionView(dependencies) {
         const attrs = {
             class: 'expression-node ' + (classes || ''),
         };
-        if (path == null) return attrs;
+        if (path === root) return attrs;
 
         attrs['data-path'] = path;
         attrs['data-drop-key'] = path;
@@ -200,8 +201,6 @@ function ExpressionView(dependencies) {
     }
 
     function _draw(expression, path, draggable_paths, valid_targets, parent_precedence, is_power_base) {
-        draggable_paths = draggable_paths || empty_paths;
-        valid_targets = valid_targets || empty_paths;
         let node;
 
         switch (expression.type) {
@@ -328,13 +327,25 @@ function ExpressionView(dependencies) {
         return node;
     }
 
-    function draw(expression, path, draggable_paths, valid_targets, parent_precedence, is_power_base)
-    {
+    function draw(
+        expression,
+        path = root,
+        draggable_paths = empty_paths,
+        valid_targets = empty_paths,
+        parent_precedence = 0,
+        is_power_base = false
+    ) {
+        typecheck(expression, 'Expression');
+        typecheck(path, 'String');
+        typecheck(draggable_paths, 'Set');
+        typecheck(valid_targets, 'Set');
+        typecheck(parent_precedence, 'Number');
+        typecheck(is_power_base, 'Boolean');
         return maybe_parenthesize(
             _draw(expression, path, draggable_paths, valid_targets, parent_precedence, is_power_base),
             expression,
-            parent_precedence == null? 0 : parent_precedence,
-            !!is_power_base
+            parent_precedence,
+            is_power_base
         );
     }
 

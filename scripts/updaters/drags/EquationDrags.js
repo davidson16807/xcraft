@@ -14,6 +14,10 @@ function EquationDrags(equations) {
 
     return Object.freeze({
         symbol: function(equation, source_path, start, drag_options) {
+            typecheck(equation, 'Equation');
+            typecheck(source_path, 'String');
+            typecheck(start, 'Object');
+            typecheck(drag_options, 'Object');
             return Object.freeze({
                 id: DragState.symbol,
                 initialize: () => drag_value(

@@ -12,11 +12,16 @@ class PowerTriangle extends Array {
     static get [Symbol.species]() { return Array; }
 
     constructor(base, exponent, result) {
+        typecheck(base, 'Expression+1');
+        typecheck(exponent, 'Expression+1');
+        typecheck(result, 'Expression+1');
         super(base, exponent, result);
         Object.freeze(this);
     }
 
     with(vertex, value) {
+        typecheck(vertex, 'Number');
+        typecheck(value, 'Expression+1');
         const values = [...this];
         values[vertex] = value;
         return new PowerTriangle(...values);

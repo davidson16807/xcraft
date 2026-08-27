@@ -6,6 +6,7 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 [
+    'scripts/typecheck.js',
     'scripts/models/expression/Expression.js',
     'scripts/models/expression/ExpressionShape.js',
     'scripts/models/expression/ExpressionCaveats.js',
@@ -687,6 +688,14 @@ function relationalExpressions() {
         paths.resolve(equation, '1/0') === two,
         'relations: numeric paths should distinguish side nodes from their contents'
     );
+    assert(
+        paths.resolve(equation, '') === equation &&
+        paths.parent('0') === '' &&
+        paths.nary('', 0) === '0' &&
+        paths.root('0/0') === '0' &&
+        paths.is_ancestor('', '0/0'),
+        'relations: the empty string should address the root expression'
+    );
 
     const equality = Orderlike('eq', {
         is_reflexive: true,
@@ -694,7 +703,7 @@ function relationalExpressions() {
         is_transitive: true,
         is_antisymmetric: true,
         converse: 'eq',
-    });
+    }, comparable((left, right) => left === right));
     assert(
         equality.is_reflexive && equality.is_symmetric &&
         equality.is_transitive && equality.is_antisymmetric,
@@ -706,12 +715,12 @@ function relationalExpressions() {
             is_transitive: true,
             is_asymmetric: true,
             converse: 'gt',
-        }),
+        }, comparable((left, right) => left < right)),
         gt: Orderlike('gt', {
             is_transitive: true,
             is_asymmetric: true,
             converse: 'lt',
-        }),
+        }, comparable((left, right) => left > right)),
     });
     const less_than = new Relation('lt', x, two);
     const greater_than = order.swap(less_than);

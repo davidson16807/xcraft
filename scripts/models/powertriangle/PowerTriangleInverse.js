@@ -12,6 +12,8 @@ const PowerTriangleInverse = (triangles, expression_shape) => {
     const shape = expression_shape;
 
     function cancel(parent, source) {
+        typecheck(parent, 'Expression');
+        typecheck(source, 'Expression');
         const triangle = triangles.from_expression(parent, false);
         if (triangle == null) return null;
 
@@ -23,6 +25,9 @@ const PowerTriangleInverse = (triangles, expression_shape) => {
     }
 
     function append(parent, source, target) {
+        typecheck(parent, 'Expression');
+        typecheck(source, 'Expression');
+        typecheck(target, 'Expression');
         const triangle = triangles.from_expression(parent, false);
         if (triangle == null) return null;
 
@@ -37,6 +42,10 @@ const PowerTriangleInverse = (triangles, expression_shape) => {
     }
 
     function strip(outer_expression, inner_expression, outer_fixed_expression, inner_fixed_expression) {
+        typecheck(outer_expression, 'Expression');
+        typecheck(inner_expression, 'Expression');
+        typecheck(outer_fixed_expression, 'Expression');
+        typecheck(inner_fixed_expression, 'Expression');
         const outer = triangles.from_expression(outer_expression);
         const inner = triangles.from_expression(inner_expression);
         if (outer == null || inner == null) return null;

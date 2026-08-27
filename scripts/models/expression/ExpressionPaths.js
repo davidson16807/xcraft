@@ -2,36 +2,45 @@
 // HUMAN VETTED
 
 /*
-Addresses every non-root Expression by its contents indexes.
-For a Relation, 0 and 1 are its side nodes; 0/0 and 1/0 are the expressions
-occupying those sides. There is one path language and no separate path domain.
+Addresses Expressions by their contents indexes. The empty string addresses the
+root Expression. For a Relation, 0 and 1 are its side nodes; 0/0 and 1/0 are
+the expressions occupying those sides. There is one path language and no
+separate path domain.
 */
 const ExpressionPaths = (grouplikes) => {
 
+    const _root = '';
+
     function nary(path, index) {
-        return path == null? String(index) : `${path}/${index}`;
+        typecheck(path, 'String');
+        typecheck(index, 'Number+String');
+        return path === _root? String(index) : `${path}/${index}`;
     }
 
     function base(path) {
+        typecheck(path, 'String');
         return nary(path, 0);
     }
 
     function exponent(path) {
+        typecheck(path, 'String');
         return nary(path, 1);
     }
 
     function root(path) {
-        if (path == null) return null;
+        typecheck(path, 'String');
         const i = path.indexOf('/');
         return i < 0? path : path.slice(0, i);
     }
 
     function parent(path) {
+        typecheck(path, 'String');
         const i = path.lastIndexOf('/');
-        return i < 0? null : path.slice(0, i);
+        return i < 0? _root : path.slice(0, i);
     }
 
     function segment(path) {
+        typecheck(path, 'String');
         const i = path.lastIndexOf('/');
         return i < 0? path : path.slice(i+1);
     }
@@ -45,7 +54,9 @@ const ExpressionPaths = (grouplikes) => {
     }
 
     function resolve(expression, path) {
-        if (path == null) return expression;
+        typecheck(expression, 'Expression+Relation+Equation');
+        typecheck(path, 'String');
+        if (path === _root) return expression;
         return path.split('/').reduce((node, segment) =>
             node == null? undefined : _child(node, segment),
             expression
@@ -71,11 +82,15 @@ const ExpressionPaths = (grouplikes) => {
     }
 
     function replace(expression, path, replacement) {
-        if (path == null) return replacement;
+        typecheck(expression, 'Expression+Relation+Equation');
+        typecheck(path, 'String');
+        typecheck(replacement, 'Expression+Relation+Equation');
+        if (path === _root) return replacement;
         return _replace(expression, path.split('/'), replacement);
     }
 
     function all(expression) {
+        typecheck(expression, 'Expression+Relation+Equation');
         const output = [];
         function visit(node, path) {
             _children(node).forEach(segment => {
@@ -84,12 +99,14 @@ const ExpressionPaths = (grouplikes) => {
                 visit(_child(node, segment), child_path);
             });
         }
-        visit(expression, null);
+        visit(expression, _root);
         return output;
     }
 
     function is_ancestor(ancestor, descendant) {
-        return descendant.startsWith(ancestor + '/');
+        typecheck(ancestor, 'String');
+        typecheck(descendant, 'String');
+        return ancestor === _root? descendant !== _root : descendant.startsWith(ancestor + '/');
     }
 
     return Object.freeze({

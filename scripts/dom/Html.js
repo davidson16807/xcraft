@@ -9,9 +9,14 @@ Functions construct their HTML element given only attributes and children as par
 */
 
 function Html(dom){
+    typecheck(dom, 'HTMLDocument+Document+1');
     const document_io = dom || document;
 
     function node(tag, attributes, children, textContent){
+        typecheck(tag, 'String');
+        typecheck(attributes, 'Object+1');
+        typecheck(children, 'Array+1');
+        typecheck(textContent, 'String+Number+1');
         attributes = attributes ?? {};
         children = children ?? [];
         const result = dom.createElement(tag);
@@ -34,7 +39,12 @@ function Html(dom){
     const tags = ['body','div','span','button','input','img','h1','h2','h3','h4','h5',];
     const namespace = {node:node};
     for(let tag of tags){
-        namespace[tag] = (attributes, children, textContent) => node(tag, attributes, children, textContent)
+        namespace[tag] = (attributes, children, textContent) => {
+            typecheck(attributes, 'Object+1');
+            typecheck(children, 'Array+1');
+            typecheck(textContent, 'String+Number+1');
+            return node(tag, attributes, children, textContent);
+        }
     }
 
     return namespace;

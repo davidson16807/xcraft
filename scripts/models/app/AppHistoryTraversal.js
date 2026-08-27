@@ -2,9 +2,12 @@
 // HUMAN VETTED
 
 function AppHistoryTraversal(max_history_size) {
+    typecheck(max_history_size, 'Number');
 
     return Object.freeze({
         do: function(app, equation) {
+            typecheck(app, 'AppState');
+            typecheck(equation, 'Equation');
             if (equation === app.equation) return app;
             const undo = [...app.undo_history, app.equation];
             if (undo.length > max_history_size) undo.shift();
@@ -16,6 +19,7 @@ function AppHistoryTraversal(max_history_size) {
         },
 
         undo: function(app) {
+            typecheck(app, 'AppState');
             if (app.undo_history.length === 0) return app;
             const undo = app.undo_history.slice();
             const previous = undo.pop();
@@ -27,6 +31,7 @@ function AppHistoryTraversal(max_history_size) {
         },
 
         redo: function(app) {
+            typecheck(app, 'AppState');
             if (app.redo_history.length === 0) return app;
             const redo = app.redo_history.slice();
             const next = redo.pop();
@@ -38,6 +43,8 @@ function AppHistoryTraversal(max_history_size) {
         },
 
         rollback: function(app, index) {
+            typecheck(app, 'AppState');
+            typecheck(index, 'Number');
             const previous = app.undo_history[index];
             return app.with({
                 equation: previous,

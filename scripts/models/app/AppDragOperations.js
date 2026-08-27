@@ -13,12 +13,18 @@ function AppDragOperations(drags, history) {
     }
 
     function choose(app, index) {
+        typecheck(app, 'AppState');
+        typecheck(index, 'Number');
         const choice = app.drag_choices[index];
         if (choice == null) return app;
         return released(history.do(app, choice.equation), []);
     }
 
     function start (app, source_path, x,y) {
+        typecheck(app, 'AppState');
+        typecheck(source_path, 'String');
+        typecheck(x, 'Number');
+        typecheck(y, 'Number');
         const drag_type = drags.symbol(
             app.equation,
             source_path,
@@ -35,6 +41,10 @@ function AppDragOperations(drags, history) {
     }
 
     function move (app, x,y, target_key) {
+        typecheck(app, 'AppState');
+        typecheck(x, 'Number');
+        typecheck(y, 'Number');
+        typecheck(target_key, 'String+1');
         if (app.drag_type.id === DragState.released) return app;
         const drag_state = app.drag_type.move(
             app.drag_state,
@@ -49,6 +59,8 @@ function AppDragOperations(drags, history) {
     }
 
     function drop (app, target_key) {
+        typecheck(app, 'AppState');
+        typecheck(target_key, 'String+1');
         if (app.drag_type.id === DragState.released) return app;
         const drag_choices = target_key == null? [] :
             app.drag_type.choices(app.drag_state, target_key);
@@ -60,6 +72,7 @@ function AppDragOperations(drags, history) {
 
 
     function cancel (app) {
+        typecheck(app, 'AppState');
         if (
             app.drag_type.id === DragState.released &&
             app.drag_choices.length === 0

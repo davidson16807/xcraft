@@ -10,6 +10,7 @@ const Scales = (grouplikes, expression_shape) => {
     const shape = expression_shape;
 
     function from_expression(expression) {
+        typecheck(expression, 'Expression');
         switch(expression.type){
         case 'constant':
             return new Scale(expression.contents, null, '1');
@@ -32,6 +33,7 @@ const Scales = (grouplikes, expression_shape) => {
     }
 
     function to_expression(scale) {
+        typecheck(scale, 'Scale');
         if (scale.basis == null) return grouplikes.constant(scale.coefficient);
         if (scale.coefficient === 0) return grouplikes.constant(0);
         if (scale.coefficient === 1) return scale.basis;
@@ -42,10 +44,13 @@ const Scales = (grouplikes, expression_shape) => {
     }
 
     function invert(scale) {
+        typecheck(scale, 'Scale');
         return new Scale(-scale.coefficient, scale.basis, scale.key);
     }
 
     function combine(scale1, scale2) {
+        typecheck(scale1, 'Scale');
+        typecheck(scale2, 'Scale');
         if (scale1.key !== scale2.key) return null;
         return new Scale(
             scale1.coefficient + scale2.coefficient,

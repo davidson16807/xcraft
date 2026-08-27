@@ -12,10 +12,12 @@ function EquationPathOperations(dependencies) {
 
     const freeze = Object.freeze;
     const noop = freeze([]);
+    const root = '';
 
     function balance(equation, source_path, target_side) {
-        if (source_path == null || target_side == null) return noop;
-
+        typecheck(equation, 'Equation');
+        typecheck(source_path, 'String');
+        typecheck(target_side, 'String');
         const source_side = paths.root(source_path);
         if (source_side === target_side) return noop;
         // nothing to balance? no-op
@@ -34,8 +36,11 @@ function EquationPathOperations(dependencies) {
     }
 
     function swap(equation, path1, path2) {
-        if (path1 == null || path2 == null || path1 === path2) return noop;
-        if (paths.parent(path1) != null || paths.parent(path2) != null) return noop;
+        typecheck(equation, 'Equation');
+        typecheck(path1, 'String');
+        typecheck(path2, 'String');
+        if (path1 === path2) return noop;
+        if (paths.parent(path1) !== root || paths.parent(path2) !== root) return noop;
         // relation swapping only applies to the two top-level side nodes
 
         const side1 = paths.resolve(equation, path1);
@@ -50,7 +55,7 @@ function EquationPathOperations(dependencies) {
         return freeze(equations.swap(equation).map(replacement =>
             new EquationDragChoice(
                 expression1,
-                null,
+                '',
                 replacement,
                 path2,
                 'swap'
@@ -59,11 +64,14 @@ function EquationPathOperations(dependencies) {
     }
 
     function commute(equation, path1, path2) {
-        if (path1 == null || path2 == null || path1 === path2) return noop;
+        typecheck(equation, 'Equation');
+        typecheck(path1, 'String');
+        typecheck(path2, 'String');
+        if (path1 === path2) return noop;
         // nothing to swap? no-op
 
         const parent_path = paths.parent(path1);
-        if (parent_path == null || parent_path !== paths.parent(path2)) return noop;
+        if (parent_path === root || parent_path !== paths.parent(path2)) return noop;
         // don't share the same parent? no-op
 
         const parent = paths.resolve(equation, parent_path);
@@ -80,7 +88,7 @@ function EquationPathOperations(dependencies) {
                 .map(replacement =>
                     new EquationDragChoice(
                         replacement,
-                        null,
+                        '',
                         paths.replace(equation, parent_path, replacement),
                         paths.root(path2),
                         'commute'
@@ -90,9 +98,12 @@ function EquationPathOperations(dependencies) {
     }
 
     function strip(equation, path1, path2) {
+        typecheck(equation, 'Equation');
+        typecheck(path1, 'String');
+        typecheck(path2, 'String');
         const parent_path1 = paths.parent(path1);
         const parent_path2 = paths.parent(path2);
-        if (parent_path1 == null || parent_path2 == null || parent_path1 === parent_path2) {
+        if (parent_path1 === root || parent_path2 === root || parent_path1 === parent_path2) {
             return noop;
         }
         // strip only applies across nested parents
@@ -122,7 +133,7 @@ function EquationPathOperations(dependencies) {
             equations.strip(outer_parent, inner_parent, outer, inner)
                 .map(replacement => new EquationDragChoice(
                     replacement,
-                    null,
+                    '',
                     paths.replace(equation, outer_parent_path, replacement),
                     paths.root(path2),
                     'strip'
@@ -131,8 +142,11 @@ function EquationPathOperations(dependencies) {
     }
 
     function combine(equation, path1, path2) {
+        typecheck(equation, 'Equation');
+        typecheck(path1, 'String');
+        typecheck(path2, 'String');
         const parent_path1 = paths.parent(path1);
-        if (parent_path1 == null || paths.parent(path2) == null) return noop;
+        if (parent_path1 === root || paths.parent(path2) === root) return noop;
         // invalid parents? no-op
 
         const parent = paths.resolve(equation, parent_path1);
@@ -147,7 +161,7 @@ function EquationPathOperations(dependencies) {
         return freeze(equations.combine(parent, index1, index2).map(replacement =>
             new EquationDragChoice(
                 replacement,
-                null,
+                '',
                 paths.replace(equation, parent_path1, replacement),
                 paths.root(path2),
                 'combine'
@@ -156,8 +170,11 @@ function EquationPathOperations(dependencies) {
     }
 
     function distribute(equation, source_path, target_path) {
+        typecheck(equation, 'Equation');
+        typecheck(source_path, 'String');
+        typecheck(target_path, 'String');
         const parent_path = paths.parent(source_path);
-        if (parent_path == null || parent_path !== paths.parent(target_path)) return noop;
+        if (parent_path === root || parent_path !== paths.parent(target_path)) return noop;
         // source and target do not share the same parent? no-op
 
         const parent = paths.resolve(equation, parent_path);
@@ -174,7 +191,7 @@ function EquationPathOperations(dependencies) {
                 .map(replacement =>
                     new EquationDragChoice(
                         replacement,
-                        null,
+                        '',
                         paths.replace(equation, parent_path, replacement),
                         paths.root(target_path),
                         'distribute'

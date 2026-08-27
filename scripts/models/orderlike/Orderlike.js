@@ -7,6 +7,9 @@ properties of that structure; callers request an operation rather than inspect
 those properties to determine applicability.
 */
 const Orderlike = (label, properties, evaluator) => {
+    typecheck(label, 'String');
+    typecheck(properties, 'Object');
+    typecheck(evaluator, 'Function');
     const is_reflexive = !!properties.is_reflexive;
     const is_symmetric = !!properties.is_symmetric;
     const is_transitive = !!properties.is_transitive;
@@ -15,6 +18,7 @@ const Orderlike = (label, properties, evaluator) => {
     const converse = properties.converse;
 
     function swap(relation) {
+        typecheck(relation, 'Relation+Equation');
         if (relation.type !== label || converse == null) return relation;
         return relation.with({
             type: converse,

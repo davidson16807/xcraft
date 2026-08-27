@@ -9,6 +9,10 @@ expressions occupying them.
 */
 class Relation extends Expression {
     constructor(type, left, right, caveats) {
+        typecheck(type, 'String');
+        typecheck(left, 'Expression');
+        typecheck(right, 'Expression');
+        typecheck(caveats, 'Array+1');
         super(type, Object.freeze([
             Relation.side(left),
             Relation.side(right),
@@ -16,12 +20,14 @@ class Relation extends Expression {
     }
 
     static side(expression) {
-        return expression != null && expression.type === 'side'?
+        typecheck(expression, 'Expression');
+        return expression.type === 'side'?
             expression : new Expression('side', Object.freeze([expression]));
     }
 
     static content(side) {
-        return side != null && side.type === 'side' && Array.isArray(side.contents)?
+        typecheck(side, 'Expression');
+        return side.type === 'side' && Array.isArray(side.contents)?
             side.contents[0] : side;
     }
 

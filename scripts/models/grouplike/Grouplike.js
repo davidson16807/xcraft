@@ -18,6 +18,10 @@ evaluator       (Expression->T) -> (Expression->T)
                 e.g. subevaluate => expression => expression.contents.reduce((accumulator, item) => accumulator + subevaluate(item, variables), 0)
 */
 const Grouplike = (label, identity, properties, evaluator) => {
+    typecheck(label, 'String');
+    typecheck(identity, 'Expression+1');
+    typecheck(properties, 'Object');
+    typecheck(evaluator, 'Function');
 
     const is_commutative = properties.is_commutative;
     const is_associative = properties.is_associative;
@@ -26,6 +30,7 @@ const Grouplike = (label, identity, properties, evaluator) => {
     const is_right_cancellative = properties.is_right_cancellative;
 
     function create(contents) {
+        typecheck(contents, 'Array');
         let formatted = [];
         if (!is_associative) {
             formatted = contents;
@@ -43,7 +48,7 @@ const Grouplike = (label, identity, properties, evaluator) => {
         formatted = formatted.map(item => 
             item instanceof Expression? item : new Expression('constant', item));
         if (formatted.length === 0) {
-            return identity != null && identity != null? identity : null;
+            return identity != null? identity : null;
         }
         if (formatted.length === 1) return formatted[0];
         else return new Expression(label, Object.freeze(formatted));
@@ -58,6 +63,10 @@ const Grouplike = (label, identity, properties, evaluator) => {
     }
 
     function simplify(expression, simplify, evaluate, constant_result) {
+        typecheck(expression, 'Expression');
+        typecheck(simplify, 'Function');
+        typecheck(evaluate, 'Function');
+        typecheck(constant_result, 'Function');
         const simplified_constant = constant_result(expression);
         if (simplified_constant != null) return simplified_constant;
         if (!Array.isArray(expression.contents)) return expression;
@@ -98,18 +107,25 @@ const Grouplike = (label, identity, properties, evaluator) => {
     }
 
     function append(left, right) {
+        typecheck(left, 'Expression');
+        typecheck(right, 'Expression');
         return left.type === label && is_associative? 
             create([...left.contents, right]) 
           : create([left, right]);
     }
 
     function combine(left, right) {
+        typecheck(left, 'Expression');
+        typecheck(right, 'Expression');
         if (_is_identity(left) && is_left_cancellative) return right;
         if (_is_identity(right) && is_right_cancellative) return left;
         return null;
     }
 
     function commute(expression, index1, index2) {
+        typecheck(expression, 'Expression');
+        typecheck(index1, 'Number');
+        typecheck(index2, 'Number');
         if (!is_commutative) return expression;
         const contents = expression.contents.slice();
         [contents[index1], contents[index2]] = [contents[index2], contents[index1]];
@@ -117,6 +133,8 @@ const Grouplike = (label, identity, properties, evaluator) => {
     }
 
     function cancel(expression, index) {
+        typecheck(expression, 'Expression');
+        typecheck(index, 'Number');
         if (!is_invertible) return expression;
         const contents = expression.contents.slice();
         contents.splice(index, 1);

@@ -4,6 +4,9 @@
 /* Equality is the `eq` special case of a general relational Expression. */
 class Equation extends Relation {
     constructor(left, right, caveats) {
+        typecheck(left, 'Expression');
+        typecheck(right, 'Expression');
+        typecheck(caveats, 'Array+1');
         super('eq', left, right, caveats);
     }
 

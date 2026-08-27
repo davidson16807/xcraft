@@ -19,6 +19,17 @@ class AppState {
         drag_options,
         history_visible
     ) {
+        typecheck(levels, 'Array+1');
+        typecheck(level_index, 'Number');
+        typecheck(equation, 'Equation');
+        typecheck(drag_type, 'Object');
+        typecheck(drag_state, 'Object');
+        typecheck(drag_choices, 'Array+1');
+        typecheck(undo_history, 'Array+1');
+        typecheck(redo_history, 'Array+1');
+        typecheck(theme, 'String+1');
+        typecheck(drag_options, 'Object+1');
+        typecheck(history_visible, 'Boolean+1');
         this.levels = Object.freeze([...(levels || [])]);
         this.level_index = level_index;
         this.equation = equation;

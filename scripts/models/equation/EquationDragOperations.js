@@ -43,9 +43,10 @@ function EquationDragOperations(dependencies) {
     }
 
     function choices(equation, source_path, target_path, drag_options) {
-        if (source_path == null || target_path == null) return freeze([]);
-        // no paths? no-op
-
+        typecheck(equation, 'Equation');
+        typecheck(source_path, 'String');
+        typecheck(target_path, 'String');
+        typecheck(drag_options, 'Object');
         const source = paths.resolve(equation, source_path);
         const target = paths.resolve(equation, target_path);
         if (source == null || target == null) return freeze([]);
@@ -82,6 +83,9 @@ function EquationDragOperations(dependencies) {
     }
 
     function moves_for_source(equation, source_path, drag_options) {
+        typecheck(equation, 'Equation');
+        typecheck(source_path, 'String');
+        typecheck(drag_options, 'Object');
         if (paths.resolve(equation, source_path) == null) return freeze([]);
         return freeze(paths.all(equation).filter(target_path =>
             choices(equation, source_path, target_path, drag_options).length > 0
@@ -89,6 +93,8 @@ function EquationDragOperations(dependencies) {
     }
 
     function draggable_paths(equation, drag_options) {
+        typecheck(equation, 'Equation');
+        typecheck(drag_options, 'Object');
         return freeze(paths.all(equation).filter(path =>
             moves_for_source(equation, path, drag_options).length > 0
         ));

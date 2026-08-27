@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 Composition of a power-triangle projection with itself.
@@ -40,6 +39,9 @@ const PowerTriangleComposition = (triangles, grouplikes) => {
     const computed_for_operation = Object.freeze({ root:0, pow:2 });
 
     function combine(type, left, right) {
+        typecheck(type, 'String');
+        typecheck(left, 'Expression');
+        typecheck(right, 'Expression');
         const computed = computed_for_operation[type];
         if (computed == null) return null;
 
@@ -77,10 +79,16 @@ const PowerTriangleComposition = (triangles, grouplikes) => {
     }
 
     function left_distribute(parent, left, right) {
+        typecheck(parent, 'Expression');
+        typecheck(left, 'Expression');
+        typecheck(right, 'Expression');
         return _distribute(parent, left, right);
     }
 
     function right_distribute(parent, left, right) {
+        typecheck(parent, 'Expression');
+        typecheck(left, 'Expression');
+        typecheck(right, 'Expression');
         return _distribute(parent, right, left);
     }
 

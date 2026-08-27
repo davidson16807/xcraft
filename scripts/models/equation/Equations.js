@@ -68,6 +68,10 @@ function Equations(dependencies) {
     Otherwise it identifies a direct child of the source-side root.
     */
     function balance(equation, source_side, source_index, target_side) {
+        typecheck(equation, 'Equation');
+        typecheck(source_side, 'String+Number');
+        typecheck(source_index, 'Number+1');
+        typecheck(target_side, 'String+Number');
         if (source_side === target_side) return noop;
         // nothing to balance? no-op
 
@@ -102,7 +106,7 @@ function Equations(dependencies) {
                         new_source,
                         new_target,
                         preview,
-                        null
+                        ''
                     );
                     return choice == null? null : [key, choice];
                 }).filter(choice => choice != null)
@@ -114,7 +118,7 @@ function Equations(dependencies) {
                 const new_source = grouplikes.cancel(source_root, source_index);
                 if (new_source != null && new_source !== source_root) {
                     const new_target = grouplikes.append(operation, target_root, inverse);
-                    const operator = ringlikes.is_inverse(operation, inverse)? null : operation;
+                    const operator = ringlikes.is_inverse(operation, inverse)? '' : operation;
                     const choice = _balance_choice(
                         equation,
                         target_side,
@@ -132,16 +136,15 @@ function Equations(dependencies) {
         } else {
 
             grouplikes.types.forEach(operation => {
-                const create = grouplikes[operation];
-                if (create == null) return;
-                const identity = create([]);
-                if (identity == null) return;
-
                 const inverse = ringlikes.inverse(operation, source_root);
                 if (inverse == null) return;
 
+                const create = grouplikes[operation];
+                const identity = create([]);
+                if (identity == null) return;
+
                 const new_target = grouplikes.append(operation, target_root, inverse);
-                const operator = ringlikes.is_inverse(operation, inverse)? null : operation;
+                const operator = ringlikes.is_inverse(operation, inverse)? '' : operation;
                 const choice = _balance_choice(
                     equation,
                     target_side,
@@ -161,6 +164,10 @@ function Equations(dependencies) {
     /*Strips an outer expression that has been wrapped in its inverse.
     This function no-ops if the expression is non-invertible.*/
     function strip(outer, inner, outer_fixed, inner_fixed) {
+        typecheck(outer, 'Expression');
+        typecheck(inner, 'Expression');
+        typecheck(outer_fixed, 'Expression');
+        typecheck(inner_fixed, 'Expression');
         return _distinct(invertibles.map(invertible => {
             const replacement = invertible.strip(
                 outer,
@@ -179,6 +186,9 @@ function Equations(dependencies) {
     or a applying the inverse operation of distribute(…) where
     an equivalence law dictates that several expressions can be combined into one.*/
     function combine(parent, index1, index2) {
+        typecheck(parent, 'Expression');
+        typecheck(index1, 'Number');
+        typecheck(index2, 'Number');
         if (!Array.isArray(parent.contents) || index1 === index2) return noop;
         // indexes match or parent is singleton? no-op
 
@@ -209,6 +219,9 @@ function Equations(dependencies) {
     or a applying the inverse operation of combine(…) where
     an equivalence law dictates that one expression can become several.*/
     function distribute(parent, source_index, target_index) {
+        typecheck(parent, 'Expression');
+        typecheck(source_index, 'Number');
+        typecheck(target_index, 'Number');
         if (!Array.isArray(parent.contents) || source_index === target_index) return noop;
         // indexes match or parent is singleton? no-op
 
@@ -239,6 +252,7 @@ function Equations(dependencies) {
 
     /*Swaps the two sides of a relation through its converse relation.*/
     function swap(relation) {
+        typecheck(relation, 'Relation+Equation');
         const swapped = orderlikes.swap(relation);
         return swapped === relation? noop : freeze([swapped]);
     }
@@ -246,6 +260,9 @@ function Equations(dependencies) {
     /*Swaps expressions at index1 and index2 of parent.contents.
     This function no-ops if the parent operation is neither commutative nor anti-commutative.*/
     function commute(parent, index1, index2) {
+        typecheck(parent, 'Expression');
+        typecheck(index1, 'Number');
+        typecheck(index2, 'Number');
         if (!Array.isArray(parent.contents) || index1 === index2) return noop;
         // indexes match or parent is singleton? no-op
 
@@ -261,6 +278,7 @@ function Equations(dependencies) {
     }
 
     function simplify(equation) {
+        typecheck(equation, 'Equation');
         const left = grouplikes.simplify(equation.left);
         const right = grouplikes.simplify(equation.right);
         return left === equation.left && right === equation.right? equation :
