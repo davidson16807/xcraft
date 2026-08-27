@@ -18,7 +18,7 @@ const Orderlike = (label, properties, evaluator) => {
     const converse = properties.converse;
 
     function swap(relation) {
-        typecheck(relation, 'Relation+Equation');
+        typecheck(relation, 'Relation');
         if (relation.type !== label || converse == null) return relation;
         return relation.with({
             type: converse,

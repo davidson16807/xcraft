@@ -54,7 +54,7 @@ const ExpressionPaths = (grouplikes) => {
     }
 
     function resolve(expression, path) {
-        typecheck(expression, 'Expression+Relation+Equation');
+        typecheck(expression, 'Expression+Relation');
         typecheck(path, 'String');
         if (path === _root) return expression;
         return path.split('/').reduce((node, segment) =>
@@ -82,15 +82,15 @@ const ExpressionPaths = (grouplikes) => {
     }
 
     function replace(expression, path, replacement) {
-        typecheck(expression, 'Expression+Relation+Equation');
+        typecheck(expression, 'Expression+Relation');
         typecheck(path, 'String');
-        typecheck(replacement, 'Expression+Relation+Equation');
+        typecheck(replacement, 'Expression+Relation');
         if (path === _root) return replacement;
         return _replace(expression, path.split('/'), replacement);
     }
 
     function all(expression) {
-        typecheck(expression, 'Expression+Relation+Equation');
+        typecheck(expression, 'Expression+Relation');
         const output = [];
         function visit(node, path) {
             _children(node).forEach(segment => {

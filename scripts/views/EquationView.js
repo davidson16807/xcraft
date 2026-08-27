@@ -126,7 +126,7 @@ function EquationView(dependencies) {
     return Object.freeze({
 
         draw: function(equation, drag_state, drag_choices, drag_options, div_io) {
-            typecheck(equation, 'Relation+Equation');
+            typecheck(equation, 'Relation');
             typecheck(drag_state, 'Object+1');
             typecheck(drag_choices, 'Array+1');
             typecheck(drag_options, 'Object+1');

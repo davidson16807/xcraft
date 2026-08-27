@@ -5,7 +5,7 @@
 const Orderlikes = (orderlike_for_tag, grouplikes) => {
 
     function swap(relation) {
-        typecheck(relation, 'Relation+Equation');
+        typecheck(relation, 'Relation');
         const structure = orderlike_for_tag[relation.type];
         return structure == null? relation : structure.swap(relation);
     }
@@ -20,7 +20,7 @@ const Orderlikes = (orderlike_for_tag, grouplikes) => {
     };
 
     const evaluate = (expression, variables) => {
-        typecheck(expression, 'Expression+Relation+Equation');
+        typecheck(expression, 'Expression+Relation');
         typecheck(variables, 'Object');
         return evaluator(variables)(expression);
     };

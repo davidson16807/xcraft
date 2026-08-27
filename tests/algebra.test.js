@@ -27,7 +27,6 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/powertriangle/PowerTriangleComposition.js',
     'scripts/models/powertriangle/PowerTriangleInverse.js',
     'scripts/models/ringlike/Ringlikes.js',
-    'scripts/models/equation/Equation.js',
     'scripts/models/equation/EquationDragChoice.js',
     'scripts/models/expression/ExpressionPaths.js',
     'scripts/models/equation/Equations.js',
@@ -537,7 +536,7 @@ other side alone, and is semantically valid throughout the property's domain.
 */
 function assertMoveTransforms(before, source, target, expected, property, context, where, drag_options) {
     const sentinel = grouplikes.constant(17);
-    const equation = new Equation(before, sentinel);
+    const equation = new Relation('eq', before, sentinel);
     const advertised = algebra.moves_for_source(equation, source, drag_options);
 
     assert(
@@ -667,20 +666,20 @@ function forEachTriple(callback) {
 
 function relationalExpressions() {
     const two = grouplikes.constant(2);
-    const equation = new Equation(x, two);
+    const equation = new Relation('eq', x, two);
 
     assert(equation instanceof Expression,
-        'relations: Equation should be an Expression');
+        'relations: equality Relation should be an Expression');
     assert(equation instanceof Relation,
-        'relations: Equation should be a Relation');
+        'relations: equality should be a Relation');
     assert(
         equation.type === 'eq' &&
         equation.contents[0].type === 'side' && equation.contents[0].contents[0] === x &&
         equation.contents[1].type === 'side' && equation.contents[1].contents[0] === two,
-        'relations: Equation should encode equality with unary side expressions'
+        'relations: equality Relation should encode equality with unary side expressions'
     );
     assert(equation.left === x && equation.right === two,
-        'relations: Equation should preserve left/right accessors');
+        'relations: equality Relation should preserve left/right accessors');
     assert(
         paths.resolve(equation, '0') === equation.contents[0] &&
         paths.resolve(equation, '0/0') === x &&
@@ -744,7 +743,7 @@ function relationalExpressions() {
         'relations: dragging one relation-side handle onto the other should advertise swap');
     assertShape(
         side_choices[0].equation,
-        new Equation(two, x),
+        new Relation('eq', two, x),
         'relations: equality swap should exchange equation sides'
     );
     assert(
@@ -789,7 +788,7 @@ function relationalExpressions() {
     );
     assertShape(
         app.drag_choices[0].equation,
-        new Equation(two, x),
+        new Relation('eq', two, x),
         'relations: crossing to the opposite side should expose the swapped equation for preview'
     );
 
@@ -818,7 +817,7 @@ function relationalExpressions() {
     );
     assertShape(
         app.equation,
-        new Equation(two, x),
+        new Relation('eq', two, x),
         'relations: releasing a provisional side swap should keep the swapped equation'
     );
 
@@ -937,7 +936,7 @@ function caveatTracking() {
     const caveated_sum = grouplikes.add([x, two, grouplikes.constant(-1)]).with({
         caveats: Object.freeze([nonzero_x]),
     });
-    const simplified = equations.simplify(new Equation(caveated_sum, zero));
+    const simplified = equations.simplify(new Relation('eq', caveated_sum, zero));
     assert(has(simplified, nonzero_x),
         'caveats: destructive simplification through Equations should preserve caveats');
 
@@ -956,7 +955,7 @@ function caveatTracking() {
         'caveats: replacement during commute should preserve parent caveats');
 
     const balanced = equations.balance(
-        new Equation(caveated_commutative, two), 0, 1, 1
+        new Relation('eq', caveated_commutative, two), 0, 1, 1
     );
     assert(balanced.length > 0 && balanced.every(choice => has(choice.equation, nonzero_x)),
         'caveats: balancing should preserve caveats from the equation it rewrites');
@@ -991,7 +990,7 @@ function dragChoices() {
     const rhs = grouplikes.constant(2);
 
     for (const a of [x, grouplikes.constant(2)]) {
-        const equation = new Equation(a, rhs);
+        const equation = new Relation('eq', a, rhs);
         const context = `lone expression a = ${describeCase(a)}`;
         const choices = algebra.choices(equation, '0/0', '1', manual_drag_options);
 
@@ -1009,7 +1008,7 @@ ${context}`
 
         const keys = new Set(choices.map(choice => expression_shape.encode(choice.equation)));
         assert(
-            keys.has(expression_shape.encode(new Equation(
+            keys.has(expression_shape.encode(new Relation('eq', 
                 zero,
                 grouplikes.add([rhs, ringlikes.inverse('add', a)])
             ))),
@@ -1017,7 +1016,7 @@ ${context}`
 ${context}`
         );
         assert(
-            keys.has(expression_shape.encode(new Equation(
+            keys.has(expression_shape.encode(new Relation('eq', 
                 one,
                 grouplikes.mul([rhs, ringlikes.inverse('mul', a)])
             ))),
@@ -1034,7 +1033,7 @@ ${context}`
         ), 'drag choices: choices should carry expression, operator, target side, and drag type');
     }
 
-    const zero_equation = new Equation(zero, rhs);
+    const zero_equation = new Relation('eq', zero, rhs);
     assert(
         algebra.choices(zero_equation, '0/0', '1', manual_drag_options).length === 1,
         'drag choices: zero should only admit additive lone-side balance'
@@ -1043,7 +1042,7 @@ ${context}`
     // A lone reciprocal must expose multiplication so denominators can move
     // across the equality even when no Add/Multiply mode has been selected.
     const reciprocal_x = ringlikes.inverse('mul', x);
-    const denominator_equation = new Equation(reciprocal_x, rhs);
+    const denominator_equation = new Relation('eq', reciprocal_x, rhs);
     const denominator_choices = algebra.choices(
         denominator_equation,
         '0/0',
@@ -1064,7 +1063,7 @@ ${context}`
     // a visually unchanged commuted fraction.
     const two = grouplikes.constant(2);
     const three = grouplikes.constant(3);
-    const fraction_equation = new Equation(
+    const fraction_equation = new Relation('eq', 
         grouplikes.div(grouplikes.add([x, two]), three),
         rhs
     );
@@ -1080,7 +1079,7 @@ ${context}`
     );
     assertShape(
         fraction_choices[0].equation,
-        new Equation(grouplikes.add([
+        new Relation('eq', grouplikes.add([
             grouplikes.div(x, three),
             grouplikes.div(two, three),
         ]), rhs),
@@ -1091,7 +1090,7 @@ ${context}`
     // substantive combine or distribute operation applies.
     const y = grouplikes.variable('y');
     const commute_only = algebra.choices(
-        new Equation(grouplikes.add([x, y]), rhs),
+        new Relation('eq', grouplikes.add([x, y]), rhs),
         '0/0/0',
         '0/0/1',
         manual_drag_options
@@ -1104,7 +1103,7 @@ ${context}`
     // App state keeps multiple choices after drop, commits only when one is
     // chosen, and does not put the pending-choice state in history.
     const released = equation_drags.release();
-    const original = new Equation(x, rhs);
+    const original = new Relation('eq', x, rhs);
     let app = new AppState(
         levels,
         0,
@@ -1159,7 +1158,7 @@ function automaticSimplification() {
     const unsimplified = grouplikes.add([seven, minus_one]);
 
     const manual = move(
-        new Equation(grouplikes.add([x, one]), seven),
+        new Relation('eq', grouplikes.add([x, one]), seven),
         '0/0/1',
         '1',
         manual_drag_options
@@ -1172,7 +1171,7 @@ function automaticSimplification() {
     );
 
     const automatic = move(
-        new Equation(grouplikes.add([x, one]), seven),
+        new Relation('eq', grouplikes.add([x, one]), seven),
         '0/0/1',
         '1',
         auto_simplify_drag_options
@@ -1184,7 +1183,7 @@ function automaticSimplification() {
         'enabled should fold 7 - 1 after the drag'
     );
 
-    const nested = new Equation(
+    const nested = new Relation('eq', 
         grouplikes.add([
             x,
             grouplikes.mul([
@@ -1204,7 +1203,7 @@ function automaticSimplification() {
         'constant-valued subgrouplikes should fold recursively'
     );
 
-    const flat = new Equation(
+    const flat = new Relation('eq', 
         grouplikes.add([x, grouplikes.constant(7), grouplikes.constant(-1)]),
         zero
     );
@@ -1215,7 +1214,7 @@ function automaticSimplification() {
         'constant-valued siblings should fold within a nonconstant expression'
     );
 
-    const invalid = new Equation(unsimplified, x);
+    const invalid = new Relation('eq', unsimplified, x);
     assert(
         algebra.choices(invalid, '1/0', '1/0', auto_simplify_drag_options).length === 0,
         'automatic simplification: an invalid drag must not simplify unrelated arithmetic'
@@ -1224,7 +1223,7 @@ function automaticSimplification() {
     // A drag commits the already-simplified equation. Undo/redo then traverse
     // those exact historical references without invoking simplification again.
     const released = equation_drags.release();
-    const original_equation = new Equation(grouplikes.add([x, one]), seven);
+    const original_equation = new Relation('eq', grouplikes.add([x, one]), seven);
     let app = new AppState(
         levels,
         0,
@@ -1270,10 +1269,10 @@ function automaticSimplification() {
 
 function historyPresentation() {
     const released = equation_drags.release();
-    const a = new Equation(x, grouplikes.constant(1));
-    const b = new Equation(x, grouplikes.constant(2));
-    const c = new Equation(x, grouplikes.constant(3));
-    const d = new Equation(x, grouplikes.constant(4));
+    const a = new Relation('eq', x, grouplikes.constant(1));
+    const b = new Relation('eq', x, grouplikes.constant(2));
+    const c = new Relation('eq', x, grouplikes.constant(3));
+    const d = new Relation('eq', x, grouplikes.constant(4));
 
     let app = new AppState(
         levels,
@@ -1681,12 +1680,12 @@ function additiveIdentity() {
         );
     }
 
-    const identity_equation = new Equation(zero, x);
+    const identity_equation = new Relation('eq', zero, x);
     assertEquationMoveTransforms(
         identity_equation,
         '0/0',
         '1',
-        new Equation(zero, grouplikes.add([x, zero])),
+        new Relation('eq', zero, grouplikes.add([x, zero])),
         'additive identity',
         'a lone additive identity remains draggable across equality',
         variables => isDefined(x, variables),
@@ -1859,12 +1858,12 @@ function multiplicativeIdentity() {
         );
     }
 
-    const identity_equation = new Equation(one, x);
+    const identity_equation = new Relation('eq', one, x);
     assertEquationMoveTransforms(
         identity_equation,
         '0/0',
         '1',
-        new Equation(one, grouplikes.mul([x, one])),
+        new Relation('eq', one, grouplikes.mul([x, one])),
         'multiplicative identity',
         'a lone multiplicative identity remains draggable across equality',
         variables => isDefined(x, variables),
@@ -1918,7 +1917,7 @@ function powerIdentity() {
     }
 
     const left_identity_candidate = grouplikes.pow(one, x);
-    const equation = new Equation(left_identity_candidate, grouplikes.constant(17));
+    const equation = new Relation('eq', left_identity_candidate, grouplikes.constant(17));
     assert(
         !algebra.moves_for_source(equation, '0/0/0', manual_drag_options).includes('0/0/1') &&
         !algebra.moves_for_source(equation, '0/0/1', manual_drag_options).includes('0/0/0'),
@@ -2090,7 +2089,7 @@ function powerTriangleSameness() {
     );
 
     const duplicate_log_sum = grouplikes.add([log_two_x, log_two_x]);
-    const duplicate_log_equation = new Equation(duplicate_log_sum, zero);
+    const duplicate_log_equation = new Relation('eq', duplicate_log_sum, zero);
     const duplicate_log_choices = algebra.choices(
         duplicate_log_equation,
         '0/0/0',
@@ -2104,7 +2103,7 @@ function powerTriangleSameness() {
 
     const squared = grouplikes.pow(x, grouplikes.constant(2));
     const ambiguous_product = grouplikes.mul([squared, squared]);
-    const ambiguous_equation = new Equation(ambiguous_product, zero);
+    const ambiguous_equation = new Relation('eq', ambiguous_product, zero);
     const ambiguous_choices = algebra.choices(
         ambiguous_equation, '0/0/0', '0/0/1', manual_drag_options
     );
@@ -2186,7 +2185,7 @@ function powerTriangleComposition() {
         manual_drag_options
     );
 
-    const inverse_equation = new Equation(inverse_composed, grouplikes.constant(17));
+    const inverse_equation = new Relation('eq', inverse_composed, grouplikes.constant(17));
     const reduced = move(
         inverse_equation,
         '0/0/1/0',
@@ -2250,7 +2249,7 @@ function powerTriangleRootBalance() {
     const two = grouplikes.constant(2);
     const nine = grouplikes.constant(9);
     const squared = grouplikes.pow(x, two);
-    const equation = new Equation(squared, nine);
+    const equation = new Relation('eq', squared, nine);
     const expected_root = grouplikes.root(two, nine);
 
     const advertised = algebra.moves_for_source(equation, '0/0/1', manual_drag_options);
@@ -2406,24 +2405,24 @@ function powerTriangleRootProjection() {
 
     // The two root-side inverse laws also become ordinary registrations.
 
-    const root_equation = new Equation(grouplikes.root(two, x), three);
+    const root_equation = new Relation('eq', grouplikes.root(two, x), three);
     assertEquationMoveTransforms(
         root_equation,
         '0/0/0',
         '1',
-        new Equation(x, grouplikes.pow(three, two)),
+        new Relation('eq', x, grouplikes.pow(three, two)),
         'power triangle root fixed-exponent inverse balance',
         'root_2(x) = 3 -> x = 3^2',
         variables => variables.x > 0,
         manual_drag_options
     );
 
-    const variable_index_root = new Equation(grouplikes.root(x, eight), two);
+    const variable_index_root = new Relation('eq', grouplikes.root(x, eight), two);
     assertEquationMoveTransforms(
         variable_index_root,
         '0/0/1',
         '1',
-        new Equation(x, grouplikes.log(two, eight)),
+        new Relation('eq', x, grouplikes.log(two, eight)),
         'power triangle root fixed-result inverse balance',
         'root_x(8) = 2 -> x = log_2(8)',
         variables => variables.x > 0,
@@ -2497,8 +2496,8 @@ function powerTriangleLogInverse() {
         'log_2(8) should evaluate to 3'
     );
 
-    const exponential_equation = new Equation(grouplikes.pow(two, x), eight);
-    const logarithmic_solution = new Equation(x, grouplikes.log(two, eight));
+    const exponential_equation = new Relation('eq', grouplikes.pow(two, x), eight);
+    const logarithmic_solution = new Relation('eq', x, grouplikes.log(two, eight));
     assertEquationMoveTransforms(
         exponential_equation,
         '0/0/0',
@@ -2510,8 +2509,8 @@ function powerTriangleLogInverse() {
         manual_drag_options
     );
 
-    const logarithmic_equation = new Equation(grouplikes.log(two, eight), x);
-    const exponential_solution = new Equation(eight, grouplikes.pow(two, x));
+    const logarithmic_equation = new Relation('eq', grouplikes.log(two, eight), x);
+    const exponential_solution = new Relation('eq', eight, grouplikes.pow(two, x));
     assertEquationMoveTransforms(
         logarithmic_equation,
         '0/0/0',
@@ -2538,7 +2537,7 @@ function powerTriangleLogInverse() {
 
     const power_of_log = grouplikes.pow(two, grouplikes.log(two, x));
     const strip_choices = equation_path_operations.strip(
-        new Equation(power_of_log, zero), '0/0/0', '0/0/1/0'
+        new Relation('eq', power_of_log, zero), '0/0/0', '0/0/1/0'
     );
     assert(
         strip_choices.length > 0,
@@ -2585,7 +2584,7 @@ function powerTriangleLogInverse() {
         manual_drag_options
     );
 
-    const variable_base_log = new Equation(grouplikes.log(x, eight), three);
+    const variable_base_log = new Relation('eq', grouplikes.log(x, eight), three);
     const expected_base = grouplikes.root(three, eight);
     const solved_base = move(
         variable_base_log, '0/0/1', '1', manual_drag_options
@@ -2608,7 +2607,7 @@ function powerTriangleLogInverse() {
     );
 
     const mismatched = grouplikes.pow(two, grouplikes.log(three, x));
-    const mismatched_equation = new Equation(mismatched, grouplikes.constant(17));
+    const mismatched_equation = new Relation('eq', mismatched, grouplikes.constant(17));
     assert(
         algebra.choices(
             mismatched_equation,
@@ -2780,11 +2779,11 @@ function multiplicativeBalance() {
         if (!hasAdmissibleAssignment(where)) continue;
 
         const inverse_a = ringlikes.inverse('mul', a);
-        const before = new Equation(
+        const before = new Relation('eq', 
             grouplikes.mul([a, x]),
             b
         );
-        const expected = new Equation(
+        const expected = new Relation('eq', 
             x,
             grouplikes.append('mul', b, inverse_a)
         );
@@ -2810,11 +2809,11 @@ function multiplicativeBalance() {
         }
 
         const reciprocal_factor = ringlikes.inverse('mul', a);
-        const reverse_before = new Equation(
+        const reverse_before = new Relation('eq', 
             grouplikes.mul([x, reciprocal_factor]),
             b
         );
-        const reverse_expected = new Equation(
+        const reverse_expected = new Relation('eq', 
             x,
             grouplikes.append(
                 'mul',

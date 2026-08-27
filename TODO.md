@@ -25,7 +25,7 @@ MAYBE OBTRUSIVE:
 * mode=god, mode=creative, mode=story
 * remove caveats list from level description
 * history needs to start at the bottom and work upward as equations are added
-* merge remove extension classes for Relation and Equation
+* rename: `Equation*`→`Relation*`
 
 OBTRUSIVE:
 * allow inverting fractions on both sides

@@ -68,7 +68,7 @@ function Equations(dependencies) {
     Otherwise it identifies a direct child of the source-side root.
     */
     function balance(equation, source_side, source_index, target_side) {
-        typecheck(equation, 'Equation');
+        typecheck(equation, 'Relation');
         typecheck(source_side, 'String+Number');
         typecheck(source_index, 'Number+1');
         typecheck(target_side, 'String+Number');
@@ -252,7 +252,7 @@ function Equations(dependencies) {
 
     /*Swaps the two sides of a relation through its converse relation.*/
     function swap(relation) {
-        typecheck(relation, 'Relation+Equation');
+        typecheck(relation, 'Relation');
         const swapped = orderlikes.swap(relation);
         return swapped === relation? noop : freeze([swapped]);
     }
@@ -278,7 +278,7 @@ function Equations(dependencies) {
     }
 
     function simplify(equation) {
-        typecheck(equation, 'Equation');
+        typecheck(equation, 'Relation');
         const left = grouplikes.simplify(equation.left);
         const right = grouplikes.simplify(equation.right);
         return left === equation.left && right === equation.right? equation :

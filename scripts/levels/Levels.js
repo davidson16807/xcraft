@@ -13,7 +13,7 @@ function Levels(grouplikes) {
     const harmonic = grouplikes.harmonic;
     const nonzero_context = 'Assume x is nonzero whenever it appears as a divisor.';
     const positive_context = 'Assume variables are positive real numbers.';
-    const e = (left, right) => new Equation(left, right);
+    const e = (left, right) => new Relation('eq', left, right);
     const x = () => v('x');
     const y = () => v('y');
     const av = () => v('a');

@@ -7,7 +7,7 @@ function AppHistoryTraversal(max_history_size) {
     return Object.freeze({
         do: function(app, equation) {
             typecheck(app, 'AppState');
-            typecheck(equation, 'Equation');
+            typecheck(equation, 'Relation');
             if (equation === app.equation) return app;
             const undo = [...app.undo_history, app.equation];
             if (undo.length > max_history_size) undo.shift();

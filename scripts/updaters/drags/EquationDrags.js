@@ -14,7 +14,7 @@ function EquationDrags(equations) {
 
     return Object.freeze({
         symbol: function(equation, source_path, start, drag_options) {
-            typecheck(equation, 'Equation');
+            typecheck(equation, 'Relation');
             typecheck(source_path, 'String');
             typecheck(start, 'Object');
             typecheck(drag_options, 'Object');

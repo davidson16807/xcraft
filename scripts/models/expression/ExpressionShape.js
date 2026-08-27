@@ -3,7 +3,7 @@
 
 const ExpressionShape = () => {
     function encode(expression) {
-        typecheck(expression, 'Expression+Relation+Equation');
+        typecheck(expression, 'Expression+Relation');
         switch (expression.type) {
             case 'constant': return `C(${expression.contents})`;
             case 'variable': return `V(${expression.contents})`;

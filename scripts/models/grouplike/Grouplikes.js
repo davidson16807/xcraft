@@ -132,7 +132,7 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
     }
 
     const evaluate = (expression, variables) => {
-        typecheck(expression, 'Expression+Relation+Equation');
+        typecheck(expression, 'Expression+Relation');
         return evaluator(variables)(expression);
     };
 

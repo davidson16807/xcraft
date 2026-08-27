@@ -5,7 +5,7 @@ class EquationDragChoice {
     constructor(expression, operator, equation, side, type) {
         typecheck(expression, 'Expression');
         typecheck(operator, 'String');
-        typecheck(equation, 'Equation');
+        typecheck(equation, 'Relation');
         typecheck(side, 'String+Number');
         typecheck(type, 'String');
         this.expression = expression;

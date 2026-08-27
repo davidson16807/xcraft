@@ -15,7 +15,7 @@ function EquationPathOperations(dependencies) {
     const root = '';
 
     function balance(equation, source_path, target_side) {
-        typecheck(equation, 'Equation');
+        typecheck(equation, 'Relation');
         typecheck(source_path, 'String');
         typecheck(target_side, 'String');
         const source_side = paths.root(source_path);
@@ -36,7 +36,7 @@ function EquationPathOperations(dependencies) {
     }
 
     function swap(equation, path1, path2) {
-        typecheck(equation, 'Equation');
+        typecheck(equation, 'Relation');
         typecheck(path1, 'String');
         typecheck(path2, 'String');
         if (path1 === path2) return noop;
@@ -64,7 +64,7 @@ function EquationPathOperations(dependencies) {
     }
 
     function commute(equation, path1, path2) {
-        typecheck(equation, 'Equation');
+        typecheck(equation, 'Relation');
         typecheck(path1, 'String');
         typecheck(path2, 'String');
         if (path1 === path2) return noop;
@@ -98,7 +98,7 @@ function EquationPathOperations(dependencies) {
     }
 
     function strip(equation, path1, path2) {
-        typecheck(equation, 'Equation');
+        typecheck(equation, 'Relation');
         typecheck(path1, 'String');
         typecheck(path2, 'String');
         const parent_path1 = paths.parent(path1);
@@ -142,7 +142,7 @@ function EquationPathOperations(dependencies) {
     }
 
     function combine(equation, path1, path2) {
-        typecheck(equation, 'Equation');
+        typecheck(equation, 'Relation');
         typecheck(path1, 'String');
         typecheck(path2, 'String');
         const parent_path1 = paths.parent(path1);
@@ -170,7 +170,7 @@ function EquationPathOperations(dependencies) {
     }
 
     function distribute(equation, source_path, target_path) {
-        typecheck(equation, 'Equation');
+        typecheck(equation, 'Relation');
         typecheck(source_path, 'String');
         typecheck(target_path, 'String');
         const parent_path = paths.parent(source_path);

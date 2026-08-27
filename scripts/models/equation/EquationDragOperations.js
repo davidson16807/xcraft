@@ -43,7 +43,7 @@ function EquationDragOperations(dependencies) {
     }
 
     function choices(equation, source_path, target_path, drag_options) {
-        typecheck(equation, 'Equation');
+        typecheck(equation, 'Relation');
         typecheck(source_path, 'String');
         typecheck(target_path, 'String');
         typecheck(drag_options, 'Object');
@@ -83,7 +83,7 @@ function EquationDragOperations(dependencies) {
     }
 
     function moves_for_source(equation, source_path, drag_options) {
-        typecheck(equation, 'Equation');
+        typecheck(equation, 'Relation');
         typecheck(source_path, 'String');
         typecheck(drag_options, 'Object');
         if (paths.resolve(equation, source_path) == null) return freeze([]);
@@ -93,7 +93,7 @@ function EquationDragOperations(dependencies) {
     }
 
     function draggable_paths(equation, drag_options) {
-        typecheck(equation, 'Equation');
+        typecheck(equation, 'Relation');
         typecheck(drag_options, 'Object');
         return freeze(paths.all(equation).filter(path =>
             moves_for_source(equation, path, drag_options).length > 0

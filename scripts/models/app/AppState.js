@@ -21,7 +21,7 @@ class AppState {
     ) {
         typecheck(levels, 'Array+1');
         typecheck(level_index, 'Number');
-        typecheck(equation, 'Equation');
+        typecheck(equation, 'Relation');
         typecheck(drag_type, 'Object');
         typecheck(drag_state, 'Object');
         typecheck(drag_choices, 'Array+1');
