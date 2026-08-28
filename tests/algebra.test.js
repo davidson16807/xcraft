@@ -27,16 +27,16 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/powertriangle/PowerTriangleComposition.js',
     'scripts/models/powertriangle/PowerTriangleInverse.js',
     'scripts/models/ringlike/Ringlikes.js',
-    'scripts/models/equation/EquationDragChoice.js',
+    'scripts/models/equation/RelationDragChoice.js',
     'scripts/models/expression/ExpressionPaths.js',
-    'scripts/models/equation/Equations.js',
-    'scripts/models/equation/EquationPathOperations.js',
-    'scripts/models/equation/EquationDragOperations.js',
+    'scripts/models/equation/Relations.js',
+    'scripts/models/equation/RelationPathOperations.js',
+    'scripts/models/equation/RelationDragOperations.js',
     'scripts/models/app/AppState.js',
     'scripts/models/app/AppHistoryTraversal.js',
     'scripts/models/app/AppDragOperations.js',
     'scripts/updaters/drags/DragState.js',
-    'scripts/updaters/drags/EquationDrags.js',
+    'scripts/updaters/drags/RelationDrags.js',
     'scripts/updaters/AppUpdater.js',
     'scripts/levels/Levels.js',
 ].forEach(file => {
@@ -171,7 +171,7 @@ const ringlikes = Ringlikes({
     mul: PowerExpressions(grouplikes, powers),
 });
 const paths = ExpressionPaths(grouplikes);
-const equations = Equations({
+const equations = Relations({
     grouplikes: grouplikes,
     ringlikes: ringlikes,
     orderlikes: orderlikes,
@@ -185,11 +185,11 @@ const equations = Equations({
         triangle_composition,
     ]),
 });
-const equation_path_operations = EquationPathOperations({
+const equation_path_operations = RelationPathOperations({
     expression_paths: paths,
     equations: equations,
 });
-const algebra = EquationDragOperations({
+const algebra = RelationDragOperations({
     expression_paths: paths,
     expression_shape: expression_shape,
     equations: equations,
@@ -197,7 +197,7 @@ const algebra = EquationDragOperations({
 });
 const levels = Levels(grouplikes);
 const history = AppHistoryTraversal(Infinity);
-const equation_drags = EquationDrags(algebra);
+const equation_drags = RelationDrags(algebra);
 const app_updater = AppUpdater({
     app_history_traversal: history,
     drag_ops: AppDragOperations(equation_drags, history),
@@ -938,14 +938,14 @@ function caveatTracking() {
     });
     const simplified = equations.simplify(new Relation('eq', caveated_sum, zero));
     assert(has(simplified, nonzero_x),
-        'caveats: destructive simplification through Equations should preserve caveats');
+        'caveats: destructive simplification through Relations should preserve caveats');
 
     const caveated_pair = grouplikes.add([x, x]).with({
         caveats: Object.freeze([nonzero_x]),
     });
     const combined = equations.combine(caveated_pair, 0, 1);
     assert(combined.length > 0 && combined.every(result => has(result, nonzero_x)),
-        'caveats: destructive combination through Equations should preserve caveats');
+        'caveats: destructive combination through Relations should preserve caveats');
 
     const caveated_commutative = grouplikes.add([x, one]).with({
         caveats: Object.freeze([nonzero_x]),
@@ -971,7 +971,7 @@ function caveatTracking() {
         'scripts/models/powertriangle/PowerTriangleSameness.js',
         'scripts/models/powertriangle/PowerTriangleComposition.js',
         'scripts/models/expression/ExpressionPaths.js',
-        'scripts/models/equation/EquationDragOperations.js',
+        'scripts/models/equation/RelationDragOperations.js',
     ].forEach(file => assert(
         !fs.readFileSync(path.join(root, file), 'utf8').includes('expression_caveats'),
         `caveats: ${file} should not depend on ExpressionCaveats`
@@ -1023,8 +1023,8 @@ ${context}`
             `drag choices: lone expression should include multiplicative balance
 ${context}`
         );
-        assert(choices.every(choice => choice instanceof EquationDragChoice),
-            'drag choices: public choices should be EquationDragChoice values');
+        assert(choices.every(choice => choice instanceof RelationDragChoice),
+            'drag choices: public choices should be RelationDragChoice values');
         assert(choices.every(choice =>
             choice.expression != null &&
             Object.prototype.hasOwnProperty.call(choice, 'operator') &&
@@ -2541,12 +2541,12 @@ function powerTriangleLogInverse() {
     );
     assert(
         strip_choices.length > 0,
-        'EquationPathOperations.strip should expose nested inverse cancellation'
+        'RelationPathOperations.strip should expose nested inverse cancellation'
     );
     assertSameExpression(
         strip_choices[0].equation.left,
         x,
-        'EquationPathOperations.strip',
+        'RelationPathOperations.strip',
         '2^log_2(x) -> x'
     );
 

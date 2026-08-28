@@ -2,14 +2,14 @@
 // HUMAN VETTED
 
 /*
-`Equations` manages user-facing operation at the scale of expressions and equations.
+`Relations` manages user-facing operation at the scale of expressions and equations.
 It aggregates mathematical structures and laws.
 Expression addressing and navigation belong elsewhere.
 
 User-facing operations can be ambiguous, so operations return lists of valid
 interpretations. Unsupported operations return an empty list.
 */
-function Equations(dependencies) {
+function Relations(dependencies) {
     const shape = dependencies.expression_shape;
 
     const grouplikes = dependencies.grouplikes;
@@ -51,7 +51,7 @@ function Equations(dependencies) {
             .with({ left:left_right[0], right:left_right[1] })
             .caveat(...gathered);
 
-        return new EquationDragChoice(
+        return new RelationDragChoice(
             expression,
             operator,
             replacement,

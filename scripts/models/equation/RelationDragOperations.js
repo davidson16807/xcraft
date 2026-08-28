@@ -2,7 +2,7 @@
 // HUMAN VETTED
 
 /*
-`EquationDragOperations.choices` is the single entry point for user drag behavior.
+`RelationDragOperations.choices` is the single entry point for user drag behavior.
 It addresses concerns regarding how user drags correspond to operations on equations.
 
 All drag sources and targets are ordinary Expression paths. Relation side nodes
@@ -11,7 +11,7 @@ are distinguished structurally by `type === 'side'`, not by a separate path doma
 It returns every distinct equation that the source/target drag can
 legally produce. Ambiguity is preserved for the application layer to resolve.
 */
-function EquationDragOperations(dependencies) {
+function RelationDragOperations(dependencies) {
     const paths = dependencies.expression_paths;
     const equations = dependencies.equations;
     const path_operations = dependencies.equation_path_operations;
@@ -29,7 +29,7 @@ function EquationDragOperations(dependencies) {
                     const equation = drag_options.auto_simplify?
                         equations.simplify(choice.equation) : choice.equation;
                     const normalized = equation === choice.equation? choice :
-                        new EquationDragChoice(
+                        new RelationDragChoice(
                             choice.expression,
                             choice.operator,
                             equation,

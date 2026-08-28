@@ -1,7 +1,7 @@
 'use strict';
 // HUMAN VETTED
 
-class EquationDragChoice {
+class RelationDragChoice {
     constructor(expression, operator, equation, side, type) {
         typecheck(expression, 'Expression');
         typecheck(operator, 'String');

@@ -2,11 +2,11 @@
 // HUMAN VETTED
 
 /*
-`EquationPathOperations` translates path-addressed equation operations into the
-path-free algebra exposed by `Equations`. It owns path validation, resolution,
+`RelationPathOperations` translates path-addressed equation operations into the
+path-free algebra exposed by `Relations`. It owns path validation, resolution,
 ancestry, replacement, and target-side placement; it owns no algebraic laws.
 */
-function EquationPathOperations(dependencies) {
+function RelationPathOperations(dependencies) {
     const paths = dependencies.expression_paths;
     const equations = dependencies.equations;
 
@@ -53,7 +53,7 @@ function EquationPathOperations(dependencies) {
         if (expression1 == null) return noop;
 
         return freeze(equations.swap(equation).map(replacement =>
-            new EquationDragChoice(
+            new RelationDragChoice(
                 expression1,
                 '',
                 replacement,
@@ -86,7 +86,7 @@ function EquationPathOperations(dependencies) {
         return freeze(
             equations.commute(parent, index1, index2)
                 .map(replacement =>
-                    new EquationDragChoice(
+                    new RelationDragChoice(
                         replacement,
                         '',
                         paths.replace(equation, parent_path, replacement),
@@ -131,7 +131,7 @@ function EquationPathOperations(dependencies) {
 
         return freeze(
             equations.strip(outer_parent, inner_parent, outer, inner)
-                .map(replacement => new EquationDragChoice(
+                .map(replacement => new RelationDragChoice(
                     replacement,
                     '',
                     paths.replace(equation, outer_parent_path, replacement),
@@ -159,7 +159,7 @@ function EquationPathOperations(dependencies) {
         // invalid indices? no-op
 
         return freeze(equations.combine(parent, index1, index2).map(replacement =>
-            new EquationDragChoice(
+            new RelationDragChoice(
                 replacement,
                 '',
                 paths.replace(equation, parent_path1, replacement),
@@ -189,7 +189,7 @@ function EquationPathOperations(dependencies) {
         return freeze(
             equations.distribute(parent, source_index, target_index)
                 .map(replacement =>
-                    new EquationDragChoice(
+                    new RelationDragChoice(
                         replacement,
                         '',
                         paths.replace(equation, parent_path, replacement),

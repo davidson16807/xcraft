@@ -1,7 +1,7 @@
 'use strict';
 // HUMAN VETTED
 
-function EquationView(dependencies) {
+function RelationView(dependencies) {
 
     const html = dependencies.html;
     const equation_drag_ops = dependencies.equation_drag_operations;

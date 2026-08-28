@@ -1,7 +1,7 @@
 'use strict';
 // HUMAN VETTED
 
-function EquationDrags(equations) {
+function RelationDrags(equations) {
     function drag_value(source_path, start, current, candidates, target_key) {
         return Object.freeze({
             source_path: source_path,

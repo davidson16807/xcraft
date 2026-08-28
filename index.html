@@ -35,18 +35,18 @@
     <script src="./scripts/models/powertriangle/PowerTriangleComposition.js"></script>
     <script src="./scripts/models/powertriangle/PowerTriangleInverse.js"></script>
     <script src="./scripts/models/ringlike/Ringlikes.js"></script>
-    <script src="./scripts/models/equation/EquationDragChoice.js"></script>
-    <script src="./scripts/models/equation/Equations.js"></script>
-    <script src="./scripts/models/equation/EquationPathOperations.js"></script>
-    <script src="./scripts/models/equation/EquationDragOperations.js"></script>
+    <script src="./scripts/models/equation/RelationDragChoice.js"></script>
+    <script src="./scripts/models/equation/Relations.js"></script>
+    <script src="./scripts/models/equation/RelationPathOperations.js"></script>
+    <script src="./scripts/models/equation/RelationDragOperations.js"></script>
     <script src="./scripts/models/app/AppState.js"></script>
     <script src="./scripts/models/app/AppHistoryTraversal.js"></script>
     <script src="./scripts/models/app/AppDragOperations.js"></script>
     <script src="./scripts/updaters/drags/DragState.js"></script>
-    <script src="./scripts/updaters/drags/EquationDrags.js"></script>
+    <script src="./scripts/updaters/drags/RelationDrags.js"></script>
     <script src="./scripts/updaters/AppUpdater.js"></script>
     <script src="./scripts/views/ExpressionView.js"></script>
-    <script src="./scripts/views/EquationView.js"></script>
+    <script src="./scripts/views/RelationView.js"></script>
     <script src="./scripts/views/AppView.js"></script>
     <script src="./scripts/levels/Levels.js"></script>
 </head>
@@ -261,7 +261,7 @@
     });
     const power_triangles = PowerTriangles(grouplikes, expression_shape);
 
-    const equations = Equations({
+    const equations = Relations({
         expression_shape: expression_shape,
         grouplikes: grouplikes,
         ringlikes: ringlikes,
@@ -277,11 +277,11 @@
     });
 
     const expression_paths = ExpressionPaths(grouplikes);
-    const equation_drag_ops = EquationDragOperations({
+    const equation_drag_ops = RelationDragOperations({
         expression_paths: expression_paths,
         expression_shape: expression_shape,
         equations: equations,
-        equation_path_operations: EquationPathOperations({
+        equation_path_operations: RelationPathOperations({
             expression_paths: expression_paths,
             equations: equations,
         }),
@@ -289,7 +289,7 @@
 
     const history = AppHistoryTraversal(Infinity);
 
-    const equation_drags = EquationDrags(equation_drag_ops);
+    const equation_drags = RelationDrags(equation_drag_ops);
     const app_updater = AppUpdater({
         app_history_traversal: history,
         drag_ops: AppDragOperations(equation_drags, history),
@@ -318,7 +318,7 @@
         }
     });
 
-    const equation_view = EquationView({
+    const equation_view = RelationView({
         html: html,
         render: katex.render,
         equation_drag_operations: equation_drag_ops,

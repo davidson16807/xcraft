@@ -48,7 +48,7 @@ The page loads KaTeX and Bootstrap from jsDelivr, so those two assets require ne
 
 ## Architecture
 
-If software is implemented correctly, every drag choice in this application produces an equation that logically follows from the starting equation. `EquationDragOperations.choices()` is the single model entry point for drag behavior: invalid drops return no choices, unique drops commit immediately, and ambiguous drops remain as explicit `EquationDragChoice` values until the user chooses or cancels.
+If software is implemented correctly, every drag choice in this application produces an equation that logically follows from the starting equation. `RelationDragOperations.choices()` is the single model entry point for drag behavior: invalid drops return no choices, unique drops commit immediately, and ambiguous drops remain as explicit `RelationDragChoice` values until the user chooses or cancels.
 
 ```text
 scripts/
