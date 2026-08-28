@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 `AppState` contains all application state. Model values are immutable so the
@@ -17,7 +16,9 @@ class AppState {
         redo_history,
         theme,
         drag_options,
-        history_visible
+        history_visible,
+        editing,
+        edit_state
     ) {
         typecheck(levels, 'Array+1');
         typecheck(level_index, 'Number');
@@ -30,6 +31,8 @@ class AppState {
         typecheck(theme, 'String+1');
         typecheck(drag_options, 'Object+1');
         typecheck(history_visible, 'Boolean+1');
+        typecheck(editing, 'Boolean+1');
+        typecheck(edit_state, 'ExpressionEditState+1');
         this.levels = Object.freeze([...(levels || [])]);
         this.level_index = level_index;
         this.equation = equation;
@@ -43,6 +46,8 @@ class AppState {
             drag_options || { auto_simplify:false }
         );
         this.history_visible = !!history_visible;
+        this.editing = !!editing;
+        this.edit_state = edit_state || null;
         Object.freeze(this);
     }
 
@@ -59,6 +64,8 @@ class AppState {
             attributes.theme         != null? attributes.theme            : this.theme,
             attributes.drag_options  != null? attributes.drag_options     : this.drag_options,
             attributes.history_visible != null? attributes.history_visible : this.history_visible,
+            attributes.editing        != null? attributes.editing        : this.editing,
+            attributes.edit_state     !== undefined? attributes.edit_state : this.edit_state,
         );
     }
 }

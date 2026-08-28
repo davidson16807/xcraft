@@ -1,11 +1,11 @@
 'use strict';
-// HUMAN VETTED
 
 function RelationView(dependencies) {
 
     const html = dependencies.html;
     const equation_drag_ops = dependencies.equation_drag_operations;
     const expression_view = dependencies.expression_view;
+    const expression_edit_view = dependencies.expression_edit_view;
     const caveats = dependencies.expression_caveats;
     const render = dependencies.render;
 
@@ -110,26 +110,38 @@ function RelationView(dependencies) {
         draggable_paths,
         valid_targets,
         drag_choices,
-        pending
+        pending,
+        edit_state,
+        editing
     ) {
+        const expression_node = expression_view.draw(
+            side_expression,
+            side,
+            draggable_paths,
+            valid_targets
+        );
+        expression_edit_view.decorate(
+            side_expression,
+            side,
+            expression_node,
+            edit_state,
+            editing
+        );
         return html.div({ class:`equation-column equation-column-${side === '0'? 'left' : 'right'}` }, [
-            expression_view.draw(
-                side_expression,
-                side,
-                draggable_paths,
-                valid_targets
-            ),
+            expression_node,
             draw_choice_row(side, drag_choices, pending),
         ]);
     }
 
     return Object.freeze({
 
-        draw: function(equation, drag_state, drag_choices, drag_options, div_io) {
+        draw: function(equation, drag_state, drag_choices, drag_options, edit_state, editing, div_io) {
             typecheck(equation, 'Relation');
             typecheck(drag_state, 'Object+1');
             typecheck(drag_choices, 'Array+1');
             typecheck(drag_options, 'Object+1');
+            typecheck(edit_state, 'ExpressionEditState+1');
+            typecheck(editing, 'Boolean+1');
             typecheck(div_io, 'HTMLElement+HTMLDivElement');
             drag_choices = drag_choices || [];
             const provisional_choice = drag_state != null && drag_choices.length === 1 &&
@@ -152,7 +164,9 @@ function RelationView(dependencies) {
                             draggable_paths,
                             valid_targets,
                             choices,
-                            pending
+                            pending,
+                            edit_state,
+                            !!editing
                         ),
                         html.span({ class:'equals-sign' }, [math(relation_symbol(provisional.type), 'math-equals')]),
                         draw_column(
@@ -161,7 +175,9 @@ function RelationView(dependencies) {
                             draggable_paths,
                             valid_targets,
                             choices,
-                            pending
+                            pending,
+                            edit_state,
+                            !!editing
                         ),
                     ]),
                     ...(equation_caveats.length === 0? [] : [

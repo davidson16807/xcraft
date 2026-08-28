@@ -706,3 +706,44 @@ button.drag-ghost:focus-visible {
         flex-direction: column;
     }
 }
+
+/* Structural equation editing ------------------------------------------------ */
+#equation.editing .edit-selectable {
+    cursor: text;
+    border-radius: 0.12em;
+}
+
+#equation.editing .edit-selectable:hover:not(:has(.edit-selectable:hover)) {
+    background: var(--offpaper);
+}
+
+#equation.editing .edit-selected {
+    background: var(--target);
+    outline: 1px solid var(--hairline);
+    outline-offset: 2px;
+}
+
+#equation.editing .edit-current {
+    background: color-mix(in srgb, var(--target) 35%, transparent);
+}
+
+.expression-caret {
+    display: inline-block;
+    align-self: stretch;
+    min-height: 1em;
+    width: 0;
+    margin: 0 0.02em;
+    border-left: max(1px, 0.035em) solid currentColor;
+    animation: expression-caret-blink 1s steps(1) infinite;
+}
+
+@keyframes expression-caret-blink {
+    0%, 55% { opacity: 1; }
+    56%, 100% { opacity: 0; }
+}
+
+.edit-glyph {
+    min-width: 1.7em;
+    font-weight: 700;
+    line-height: 1;
+}

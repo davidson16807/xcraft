@@ -1,10 +1,10 @@
 'use strict';
-// HUMAN VETTED
 
 function AppView(dependencies, app_updater) {
     const html = dependencies.html;
     const equation_view = dependencies.equation_view;
     const expression_shape = dependencies.expression_shape;
+    const editing_allowed = !!dependencies.editing_allowed;
 
     function draw(app, dom_io) {
         typecheck(app, 'AppState');
@@ -26,12 +26,15 @@ function AppView(dependencies, app_updater) {
         const auto_simplify_indicator = dom_io.getElementById('auto-simplify-indicator');
         const history_button = dom_io.getElementById('history-toggle');
         const history_indicator = dom_io.getElementById('history-indicator');
+        const edit_button = dom_io.getElementById('edit-toggle');
+        const edit_indicator = dom_io.getElementById('edit-indicator');
         const level_menu = dom_io.getElementById('level-menu');
         const solved_mark = dom_io.getElementById('solved-mark');
 
         const level = app.levels[app.level_index];
         const solved = expression_shape.encode(app.equation) === expression_shape.encode(level.goal);
         app_element.setAttribute('data-theme', app.theme);
+        equation_element.classList.toggle('editing', app.editing);
 
         level_title.textContent = level.title;
         level_concept.textContent = level.concept;
@@ -47,13 +50,16 @@ function AppView(dependencies, app_updater) {
         auto_simplify_indicator.textContent = app.drag_options.auto_simplify? 'On' : 'Off';
         history_button.setAttribute('aria-pressed', String(app.history_visible));
         history_indicator.textContent = app.history_visible? 'On' : 'Off';
+        edit_button.hidden = !editing_allowed;
+        edit_button.setAttribute('aria-pressed', String(app.editing));
+        edit_indicator.textContent = app.editing? 'On' : 'Off';
         solved_mark.classList.toggle('visible', solved);
 
         history_element.hidden = !app.history_visible;
         history_element.replaceChildren(
             ...(app.history_visible? app.undo_history.map((equation, index) => {
                 const equation_node = html.div({ class:'history-equation' }, []);
-                equation_view.draw(equation, null, [], null, equation_node);
+                equation_view.draw(equation, null, [], null, null, false, equation_node);
                 return html.button({
                     type: 'button',
                     class: 'history-item',
@@ -80,7 +86,9 @@ function AppView(dependencies, app_updater) {
             app.equation,
             app.drag_type.id === DragState.symbol? app.drag_state : null,
             app.drag_choices,
-            app.drag_options,
+            app.editing? null : app.drag_options,
+            app.edit_state,
+            app.editing,
             equation_element,
         );
     }
@@ -100,6 +108,7 @@ function AppView(dependencies, app_updater) {
         const theme_button = dom_io.getElementById('theme');
         const auto_simplify_button = dom_io.getElementById('auto-simplify');
         const history_button = dom_io.getElementById('history-toggle');
+        const edit_button = dom_io.getElementById('edit-toggle');
         const level_menu = dom_io.getElementById('level-menu');
 
         function dispatch(updated) {
@@ -116,6 +125,7 @@ function AppView(dependencies, app_updater) {
         }
 
         equation_element.addEventListener('pointerdown', event => {
+            if (app.editing) return;
             if (event.pointerType === 'mouse' && event.button !== 0) return;
             if (event.target.closest('[data-drag-choice], [data-drag-choices-cancel]')) return;
             const source = event.target.closest('[data-draggable="1"]');
@@ -130,7 +140,7 @@ function AppView(dependencies, app_updater) {
         });
 
         dom_io.addEventListener('pointermove', event => {
-            if (app.drag_type.id === DragState.released) return;
+            if (app.editing || app.drag_type.id === DragState.released) return;
             const under_pointer = dom_io.elementFromPoint(event.clientX, event.clientY);
             const target = under_pointer && under_pointer.closest('[data-valid-drop="1"]');
             dispatch(app_updater.drag_move(
@@ -142,7 +152,7 @@ function AppView(dependencies, app_updater) {
         }, { passive:true });
 
         dom_io.addEventListener('pointerup', event => {
-            if (app.drag_type.id === DragState.released) return;
+            if (app.editing || app.drag_type.id === DragState.released) return;
             const under_pointer = dom_io.elementFromPoint(event.clientX, event.clientY);
             const target = under_pointer && under_pointer.closest('[data-valid-drop="1"]');
             dispatch(target?
@@ -156,6 +166,17 @@ function AppView(dependencies, app_updater) {
         });
 
         equation_element.addEventListener('click', event => {
+            if (app.editing) {
+                const expression = event.target.closest('[data-edit-path]');
+                if (expression && equation_element.contains(expression)) {
+                    dispatch(app_updater.edit_select(
+                        app,
+                        expression.getAttribute('data-edit-path')
+                    ));
+                }
+                return;
+            }
+
             const cancel = event.target.closest('[data-drag-choices-cancel]');
             if (cancel) {
                 dispatch(app_updater.drag_cancel(app));
@@ -199,6 +220,9 @@ function AppView(dependencies, app_updater) {
         theme_button.addEventListener('click', () => dispatch(app_updater.toggle_theme(app)));
         auto_simplify_button.addEventListener('click', () => dispatch(app_updater.toggle_auto_simplify(app)));
         history_button.addEventListener('click', () => dispatch(app_updater.toggle_history(app)));
+        edit_button.addEventListener('click', () => {
+            if (editing_allowed) dispatch(app_updater.toggle_edit(app));
+        });
 
         history_element.addEventListener('click', event => {
             const item = event.target.closest('[data-history-index]');
@@ -219,15 +243,45 @@ function AppView(dependencies, app_updater) {
             if ((event.ctrlKey || event.metaKey) && key === 'z' && !event.shiftKey) {
                 event.preventDefault();
                 dispatch(app_updater.undo(app));
-            } else if (
+                return;
+            }
+            if (
                 (event.ctrlKey || event.metaKey) &&
                 (key === 'y' || (key === 'z' && event.shiftKey))
             ) {
                 event.preventDefault();
                 dispatch(app_updater.redo(app));
-            } else if (key === 'escape') {
-                dispatch(app_updater.drag_cancel(app));
+                return;
             }
+
+            if (app.editing) {
+                if (key === 'escape') {
+                    event.preventDefault();
+                    dispatch(app_updater.edit_clear(app));
+                } else if (event.key === 'ArrowLeft') {
+                    event.preventDefault();
+                    dispatch(app_updater.edit_left(app));
+                } else if (event.key === 'ArrowRight') {
+                    event.preventDefault();
+                    dispatch(app_updater.edit_right(app));
+                } else if (event.key === 'Backspace') {
+                    event.preventDefault();
+                    dispatch(app_updater.edit_backspace(app));
+                } else if (event.key === 'Delete') {
+                    event.preventDefault();
+                    dispatch(app_updater.edit_delete(app));
+                } else if (
+                    app.edit_state != null &&
+                    event.key.length === 1 &&
+                    !event.ctrlKey && !event.metaKey && !event.altKey
+                ) {
+                    event.preventDefault();
+                    dispatch(app_updater.edit_input(app, event.key));
+                }
+                return;
+            }
+
+            if (key === 'escape') dispatch(app_updater.drag_cancel(app));
         });
     }
 

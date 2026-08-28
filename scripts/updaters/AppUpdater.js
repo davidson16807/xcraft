@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 `AppUpdater` is the update function in the Model-View-Updater architecture.
@@ -9,6 +8,7 @@ function AppUpdater(dependencies) {
     const history = dependencies.app_history_traversal;
     const drag_ops = dependencies.drag_ops;
     const drags = dependencies.equation_drags;
+    const editor = dependencies.expression_editor;
     const expression_shape = dependencies.expression_shape;
 
     // this function exists for future reference to allow level unlocking behavior
@@ -29,6 +29,7 @@ function AppUpdater(dependencies) {
             drag_choices: [],
             undo_history: [],
             redo_history: [],
+            edit_state: null,
         });
     }
 
@@ -41,15 +42,30 @@ function AppUpdater(dependencies) {
         });
     }
 
+    function clear_edit(app) {
+        return app.edit_state == null? app : app.with({ edit_state:null });
+    }
+
+    function edit_result(app, result) {
+        if (result == null) return app;
+        const changed = result.expression !== app.equation;
+        const updated = changed? history.do(app, result.expression) : app;
+        return updated.with({ edit_state:result.state });
+    }
+
     return Object.freeze({
-        drag_start: (app, source_path, x,y) => drag_ops.start(app, source_path, x,y),
-        drag_move: (app, x,y, target_key) => drag_ops.move(app, x,y, target_key),
-        drag_drop: (app, target_key) => drag_ops.drop(app, target_key),
-        drag_choose: (app, index) => drag_ops.choose(app, index),
+        drag_start: (app, source_path, x,y) => app.editing?
+            app : drag_ops.start(app, source_path, x,y),
+        drag_move: (app, x,y, target_key) => app.editing?
+            app : drag_ops.move(app, x,y, target_key),
+        drag_drop: (app, target_key) => app.editing?
+            app : drag_ops.drop(app, target_key),
+        drag_choose: (app, index) => app.editing?
+            app : drag_ops.choose(app, index),
         drag_cancel: (app) => drag_ops.cancel(app),
-        undo: (app) => release(history.undo(app)),
-        redo: (app) => release(history.redo(app)),
-        rollback: (app, index) => release(history.rollback(app, index)),
+        undo: (app) => clear_edit(release(history.undo(app))),
+        redo: (app) => clear_edit(release(history.redo(app))),
+        rollback: (app, index) => clear_edit(release(history.rollback(app, index))),
         restart: (app) => release(load_level(app, app.level_index)),
         last_level: (app) => release(load_level(app, app.level_index-1)),
         next_level: (app) => release(load_level(app, app.level_index+1)),
@@ -62,5 +78,25 @@ function AppUpdater(dependencies) {
                 auto_simplify: !app.drag_options.auto_simplify,
             },
         })),
+        toggle_edit: (app) => release(app.with({
+            editing: !app.editing,
+            edit_state: null,
+        })),
+        edit_select: (app, path) => {
+            if (!app.editing) return app;
+            const state = editor.select(app.equation, path);
+            return state == null? app : app.with({ edit_state:state });
+        },
+        edit_clear: (app) => app.editing? clear_edit(app) : app,
+        edit_left: (app) => !app.editing || app.edit_state == null?
+            app : app.with({ edit_state:editor.left(app.equation, app.edit_state) }),
+        edit_right: (app) => !app.editing || app.edit_state == null?
+            app : app.with({ edit_state:editor.right(app.equation, app.edit_state) }),
+        edit_input: (app, character) => !app.editing || app.edit_state == null?
+            app : edit_result(app, editor.input(app.equation, app.edit_state, character)),
+        edit_backspace: (app) => !app.editing || app.edit_state == null?
+            app : edit_result(app, editor.backspace(app.equation, app.edit_state)),
+        edit_delete: (app) => !app.editing || app.edit_state == null?
+            app : edit_result(app, editor.remove(app.equation, app.edit_state)),
     });
 }

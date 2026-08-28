@@ -18,6 +18,8 @@
     <script src="./scripts/models/expression/ExpressionShape.js"></script>
     <script src="./scripts/models/expression/ExpressionCaveats.js"></script>
     <script src="./scripts/models/expression/ExpressionPaths.js"></script>
+    <script src="./scripts/models/expression/ExpressionEditState.js"></script>
+    <script src="./scripts/models/expression/ExpressionEditor.js"></script>
     <script src="./scripts/models/relation/Relation.js"></script>
     <script src="./scripts/models/orderlike/Orderlike.js"></script>
     <script src="./scripts/models/orderlike/Orderlikes.js"></script>
@@ -46,6 +48,7 @@
     <script src="./scripts/updaters/drags/RelationDrags.js"></script>
     <script src="./scripts/updaters/AppUpdater.js"></script>
     <script src="./scripts/views/ExpressionView.js"></script>
+    <script src="./scripts/views/ExpressionEditView.js"></script>
     <script src="./scripts/views/RelationView.js"></script>
     <script src="./scripts/views/AppView.js"></script>
     <script src="./scripts/levels/Levels.js"></script>
@@ -85,6 +88,12 @@
                 <div>History</div>
                 <img src="icons/history.svg"/>
                 <div id="history-indicator">Off</div>
+            </button>
+
+            <button id="edit-toggle" type="button" class="btn operation-toggle" aria-pressed="false" hidden>
+                <div>Edit</div>
+                <div class="edit-glyph" aria-hidden="true">Aa</div>
+                <div id="edit-indicator">Off</div>
             </button>
 
             <button id="auto-simplify" type="button" class="btn operation-toggle" aria-pressed="true">
@@ -266,6 +275,7 @@
     });
 
     const expression_paths = ExpressionPaths(grouplikes);
+    const expression_editor = ExpressionEditor(expression_paths, grouplikes);
     const equation_drag_ops = RelationDragOperations({
         expression_paths: expression_paths,
         expression_shape: expression_shape,
@@ -283,6 +293,7 @@
         app_history_traversal: history,
         drag_ops: AppDragOperations(equation_drags, history),
         equation_drags: equation_drags,
+        expression_editor: expression_editor,
         expression_shape: expression_shape
     });
 
@@ -307,19 +318,30 @@
         }
     });
 
+    const expression_edit_view = ExpressionEditView({
+        html: html,
+        render: katex.render,
+        expression_paths: expression_paths,
+    });
+
     const equation_view = RelationView({
         html: html,
         render: katex.render,
         equation_drag_operations: equation_drag_ops,
         expression_view: expression_view,
+        expression_edit_view: expression_edit_view,
         expression_caveats: expression_caveats,
     });
+
+    const mode = new URLSearchParams(window.location.search).get('mode');
+    const editing_allowed = ['god', 'sandbox'].includes(mode);
 
     const app_view = AppView({
         html: html,
         render: katex.render,
         equation_view: equation_view,
         expression_shape: expression_shape,
+        editing_allowed: editing_allowed,
     }, app_updater);
 
     const released = equation_drags.release();

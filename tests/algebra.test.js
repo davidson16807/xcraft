@@ -29,6 +29,8 @@ const root = path.resolve(__dirname, '..');
     'scripts/models/ringlike/Ringlikes.js',
     'scripts/models/relation/RelationDragChoice.js',
     'scripts/models/expression/ExpressionPaths.js',
+    'scripts/models/expression/ExpressionEditState.js',
+    'scripts/models/expression/ExpressionEditor.js',
     'scripts/models/relation/Relations.js',
     'scripts/models/relation/RelationPathOperations.js',
     'scripts/models/relation/RelationDragOperations.js',
@@ -150,6 +152,7 @@ const ringlikes = Ringlikes({
     mul: PowerExpressions(grouplikes, powers),
 });
 const paths = ExpressionPaths(grouplikes);
+const expression_editor = ExpressionEditor(paths, grouplikes);
 const equations = Relations({
     grouplikes: grouplikes,
     ringlikes: ringlikes,
@@ -181,6 +184,7 @@ const app_updater = AppUpdater({
     app_history_traversal: history,
     drag_ops: AppDragOperations(equation_drags, history),
     equation_drags: equation_drags,
+    expression_editor: expression_editor,
     expression_shape: expression_shape,
 });
 
@@ -950,6 +954,8 @@ function caveatTracking() {
         'scripts/models/powertriangle/PowerTriangleSameness.js',
         'scripts/models/powertriangle/PowerTriangleComposition.js',
         'scripts/models/expression/ExpressionPaths.js',
+        'scripts/models/expression/ExpressionEditState.js',
+        'scripts/models/expression/ExpressionEditor.js',
         'scripts/models/relation/RelationDragOperations.js',
     ].forEach(file => assert(
         !fs.readFileSync(path.join(root, file), 'utf8').includes('expression_caveats'),
@@ -963,6 +969,155 @@ function caveatTracking() {
         !fs.readFileSync(path.join(root, file), 'utf8').includes('orderlikes'),
         `caveats: ${file} should not depend on Orderlikes`
     ));
+}
+
+
+function expressionEditing() {
+    const two = grouplikes.constant(2);
+    const three = grouplikes.constant(3);
+    const ten = grouplikes.constant(10);
+    const y = grouplikes.variable('y');
+
+    let relation = new Relation('eq', x, y);
+    let state = expression_editor.select(relation, '0/0');
+    assert(state != null && state.selected && state.path === '0/0',
+        'editing: selecting an expression should select its path');
+
+    let result = expression_editor.input(relation, state, 's');
+    relation = result.expression; state = result.state;
+    result = expression_editor.input(relation, state, 'q');
+    relation = result.expression; state = result.state;
+    result = expression_editor.input(relation, state, 'r');
+    relation = result.expression; state = result.state;
+    result = expression_editor.input(relation, state, 't');
+    relation = result.expression; state = result.state;
+    assertShape(
+        relation.left,
+        grouplikes.root(two, new Expression('slot')),
+        'editing: sqrt should create a root expression'
+    );
+    assert(state.path === '0/0/1' && state.offset === 0,
+        'editing: sqrt should enter the radicand');
+
+    relation = new Relation('eq', x, y);
+    state = expression_editor.select(relation, '0/0');
+    for (const character of 'log') {
+        result = expression_editor.input(relation, state, character);
+        relation = result.expression; state = result.state;
+    }
+    assertShape(
+        relation.left,
+        grouplikes.log(ten, new Expression('slot')),
+        'editing: log should create a base-ten logarithm expression'
+    );
+    assert(state.path === '0/0/1',
+        'editing: log should enter its argument');
+
+    relation = new Relation('eq', x, y);
+    state = expression_editor.select(relation, '0/0');
+    result = expression_editor.input(relation, state, '+');
+    assertShape(
+        result.expression.left,
+        new Expression('add', Object.freeze([x, new Expression('slot')])),
+        'editing: plus should create a following addend'
+    );
+    assert(result.state.path === '0/0/1',
+        'editing: plus should enter the following addend');
+
+    relation = new Relation('eq', x, y);
+    state = expression_editor.select(relation, '0/0');
+    result = expression_editor.input(relation, state, '*');
+    assertShape(
+        result.expression.left,
+        new Expression('mul', Object.freeze([x, new Expression('slot')])),
+        'editing: multiplication should create a following factor'
+    );
+
+    relation = new Relation('eq', x, y);
+    state = expression_editor.select(relation, '0/0');
+    result = expression_editor.input(relation, state, '/');
+    assertShape(
+        result.expression.left,
+        grouplikes.div(x, new Expression('slot')),
+        'editing: slash should create a reciprocal denominator'
+    );
+    assert(result.state.path === '0/0/1/0',
+        'editing: slash should enter the denominator');
+
+    relation = new Relation('eq', x, y);
+    state = expression_editor.select(relation, '0/0');
+    result = expression_editor.input(relation, state, '^');
+    assertShape(
+        result.expression.left,
+        grouplikes.pow(x, new Expression('slot')),
+        'editing: caret should create a power expression'
+    );
+    assert(result.state.path === '0/0/1',
+        'editing: caret should enter the exponent');
+
+    relation = new Relation('eq', x, y);
+    state = expression_editor.select(relation, '0/0');
+    result = expression_editor.input(relation, state, '-');
+    assertShape(
+        result.expression.left,
+        new Expression('add', Object.freeze([
+            x,
+            new Expression('mul', Object.freeze([
+                grouplikes.constant(-1),
+                new Expression('slot'),
+            ])),
+        ])),
+        'editing: minus should create a negative following addend'
+    );
+
+    relation = new Relation('eq', grouplikes.add([two, three]), y);
+    state = expression_editor.select(relation, '0/0');
+    state = expression_editor.left(relation, state);
+    assert(!state.selected && state.offset === 0,
+        'editing: left from a selection should collapse to its beginning');
+    state = expression_editor.right(relation, state);
+    assert(state.path === '0/0/0' && state.offset === 0,
+        'editing: right across a compound boundary should enter its first child');
+    state = expression_editor.right(relation, state);
+    assert(state.path === '0/0/0' && state.offset === 1,
+        'editing: right should move through atomic text');
+    state = expression_editor.right(relation, state);
+    assert(state.path === '0/0' && state.offset === 1,
+        'editing: right past atomic text should exit into the parent');
+    state = expression_editor.right(relation, state);
+    assert(state.path === '0/0/1' && state.offset === 0,
+        'editing: right from a parent boundary should enter the next expression');
+
+    result = expression_editor.input(relation, state, ')');
+    assert(result.state.path === '0/0' && result.state.offset === 2,
+        'editing: close parenthesis should exit after the current expression');
+
+    relation = new Relation('eq', x, y);
+    state = expression_editor.select(relation, '0/0');
+    result = expression_editor.input(relation, state, '4');
+    assertShape(result.expression.left, grouplikes.constant(4),
+        'editing: ordinary typing should replace a selected expression');
+
+    state = result.state;
+    result = expression_editor.backspace(result.expression, state);
+    assert(result.expression.left.type === 'slot',
+        'editing: deleting the last atomic character should leave an editable slot');
+
+    const released = equation_drags.release();
+    let app = new AppState(
+        levels, 0, levels[0].equation,
+        released, released.initialize(), [], [], [],
+        'day', manual_drag_options, false, false, null
+    );
+    app = app_updater.toggle_edit(app);
+    assert(app.editing && app.drag_type.id === DragState.released,
+        'editing: toggling edit mode on should release dragging');
+    const selected = app_updater.edit_select(app, '0/0');
+    assert(selected.edit_state != null,
+        'editing: AppUpdater should retain a selected edit state');
+    const drag_attempt = app_updater.drag_start(selected, '0/0', 0, 0);
+    assert(drag_attempt === selected,
+        'editing: drag starts should be disabled while edit mode is on');
 }
 
 function dragChoices() {
@@ -2946,6 +3101,7 @@ function distributivity() {
 [
     relationalExpressions,
     caveatTracking,
+    expressionEditing,
     dragChoices,
     automaticSimplification,
     historyPresentation,
