@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- HUMAN VETTED -->
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -162,16 +163,47 @@
     ];
     document.getElementById('subtitle').replaceChildren(subtitles[Math.floor(Math.random()*subtitles.length)]);
 
+    const freeze = Object.freeze;
+
+    const zero = new Expression('constant', 0);
+    const one = new Expression('constant', 1);
+    const minus_one = new Expression('constant', -1);
+
+    const additive_divide = divisor => expression => {
+        const inverse = new Expression(
+            'mul',
+            divisor.type === 'mul'?
+                [minus_one, ...divisor.contents]
+              : [minus_one, divisor]
+        )
+        const contents = expression.type === 'add'? [...expression.contents] : [expression];
+        const index = contents.indexOf(divisor);
+        contents.splice(index < 0? contents.length : index + 1, 0, inverse);
+        return new Expression('add', contents)
+    };
+
+    const multiplicative_divide = divisor => expression => {
+        let inverse = new Expression('pow', [divisor, minus_one]).caveat(new Relation('neq', divisor, zero));
+        if (divisor.type === 'pow' && divisor.contents.length === 2 &&
+            divisor.contents[1].type === 'constant'
+        ) {
+            if (divisor.contents[1].contents === -1) inverse = divisor.contents[0];
+        }
+        const contents = expression.type === 'mul'? [...expression.contents] : [expression];
+        const index = contents.indexOf(divisor);
+        contents.splice(index < 0? contents.length : index + 1, 0, inverse);
+        return new Expression('mul', contents);
+    };
 
     const grouplikes = Grouplikes({
         'add': Grouplike('add',
             {
                 is_commutative: true,
                 is_associative: true,
-                has_left_divide: true,
-                has_right_divide: true,
-                left_identity: new Expression('constant', 0),
-                right_identity: new Expression('constant', 0),
+                left_identity: zero,
+                right_identity: zero,
+                right_divide: additive_divide,
+                left_divide: additive_divide,
             },
             items => items.reduce((accumulator, item) => accumulator + item, 0)
         ),
@@ -179,18 +211,18 @@
             {
                 is_commutative: true,
                 is_associative: true,
-                has_left_divide: true,
-                has_right_divide: true,
-                left_identity: new Expression('constant', 1),
-                right_identity: new Expression('constant', 1),
-                left_annihilator: new Expression('constant', 0),
-                right_annihilator: new Expression('constant', 0),
+                left_identity: one,
+                right_identity: one,
+                left_annihilator: zero,
+                right_annihilator: zero,
+                right_divide: multiplicative_divide,
+                left_divide: multiplicative_divide,
             },
             items => items.reduce((accumulator, item) => accumulator * item, 1)
         ),
         'pow': Grouplike('pow',
             {
-                right_identity: new Expression('constant', 1),
+                right_identity: one,
             },
             items => Math.pow(...items)
         ),
@@ -260,10 +292,10 @@
         ringlikes: ringlikes,
         orderlikes: orderlikes,
         expression_caveats: expression_caveats,
-        invertibles: Object.freeze([
+        invertibles: freeze([
             PowerTriangleInverse(power_triangles, expression_shape),
         ]),
-        equivalences: Object.freeze([
+        equivalences: freeze([
             PowerTriangleSameness(power_triangles, grouplikes),
             PowerTriangleComposition(power_triangles, grouplikes),
         ]),

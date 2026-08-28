@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 `Grouplike` manages operations for a single algebraic operation.
@@ -22,19 +23,19 @@ const Grouplike = (label, properties, evaluatable) => {
 
     typecheck(properties.is_commutative, 'Boolean+1');
     typecheck(properties.is_associative, 'Boolean+1');
-    typecheck(properties.has_left_divide, 'Boolean+1');
-    typecheck(properties.has_right_divide, 'Boolean+1');
+    typecheck(properties.left_divide, 'Function+1');
+    typecheck(properties.right_divide, 'Function+1');
     typecheck(properties.is_idempotent, 'Boolean+1');
 
     const is_commutative = !!properties.is_commutative;
     const is_associative = !!properties.is_associative;
-    let has_left_divide = !!properties.has_left_divide;
-    let has_right_divide = !!properties.has_right_divide;
+    const left_division = properties.left_divide;
+    const right_division = properties.right_divide;
 
-    let left_identity = properties.left_identity;
-    let right_identity = properties.right_identity;
-    let left_annihilator = properties.left_annihilator;
-    let right_annihilator = properties.right_annihilator;
+    const left_identity = properties.left_identity;
+    const right_identity = properties.right_identity;
+    const left_annihilator = properties.left_annihilator;
+    const right_annihilator = properties.right_annihilator;
 
     const is_idempotent = !!properties.is_idempotent;
     const self_combination = properties.self_combination;
@@ -71,7 +72,7 @@ const Grouplike = (label, properties, evaluatable) => {
     }
 
     function require_same_optionals(left, right, message) {
-        return(left == null || right == null || same(left, right), message);
+        require(left == null || right == null || same(left, right), message);
     }
 
     require_same_optionals(left_identity, right_identity, 'left and right identities must match');
@@ -80,9 +81,9 @@ const Grouplike = (label, properties, evaluatable) => {
     require_different(right_identity,right_annihilator,'the same Expression cannot be both right identity and right annihilator');
 
     if (is_commutative) {
-        require(has_left_divide === has_right_divide, `commutativity left and right division must match`);
         require_same_optionals(left_identity, right_identity, `commutative left and right identity must match`);
         require_same_optionals(left_annihilator, right_annihilator, `commutative left and right annihilator must match`);
+        require((left_division != null) == (right_division != null), `left and right division must exist together`);
     }
 
     if (self_combination != null) {
@@ -195,52 +196,31 @@ const Grouplike = (label, properties, evaluatable) => {
         return create(contents);
     }
 
-    function _divide(dividend, divisor, inverse, index, side) {
-        typecheck(dividend, 'Expression');
-        typecheck(divisor, 'Expression');
-        typecheck(inverse, 'Expression');
-        typecheck(index, 'Number+1');
+    /*
+    Division-capable structures share the same interface:
+        divide(parent, source) -> (Expression -> Expression) | null
 
-        const enabled = side === 'left'? has_left_divide : has_right_divide;
-        if (!enabled) return null;
-
-        // A supplied index argument requests source-side reduction. A Number
-        // identifies a direct operand; explicit null means the whole source.
-        // An omitted index applies division without prematurely simplifying the target.
-        const reduce = index !== undefined;
-        if (reduce && index != null) {
-            if (dividend.type !== label || !Array.isArray(dividend.contents)) return null;
-            if (index < 0 || index >= dividend.contents.length) return null;
-            if (!same(dividend.contents[index], divisor)) return null;
-            if (!is_commutative) {
-                if (side === 'left' && index !== 0) return null;
-                if (side === 'right' && index !== dividend.contents.length - 1) return null;
-            }
-            const contents = dividend.contents.slice();
-            contents.splice(index, 1);
-            return create(contents);
-        }
-
-        // Explicit null is the lone-source case: divide the source by itself.
-        if (reduce && index == null && same(dividend, divisor)) {
-            const identity = side === 'left'? right_identity : left_identity;
-            if (identity != null) return identity;
-        }
-
-        // A commutative operation has no meaningful left/right presentation.
-        // Keep one canonical ordering so balance does not reshuffle paths.
-        if (is_commutative) return append(dividend, inverse);
-
-        return side === 'left'?
-            create([inverse, dividend]) : create([dividend, inverse]);
+    Grouplike only needs `source` to construct its configured division form.
+    `parent` identifies the operation when the source is embedded and is null
+    for a lone source. Keeping it in the signature lets callers treat Grouplike
+    and contextual inverse structures identically.
+    */
+    function _divide(parent, source, definition) {
+        typecheck(parent, 'Expression+1');
+        typecheck(source, 'Expression');
+        if (parent != null && parent.type !== label) return null;
+        if (definition == null) return null;
+        const divide = definition(source);
+        typecheck(divide, 'Function+1');
+        return divide;
     }
 
-    function left_divide(dividend, divisor, inverse, index) {
-        return _divide(dividend, divisor, inverse, index, 'left');
+    function left_divide(parent, source) {
+        return _divide(parent, source, left_division);
     }
 
-    function right_divide(dividend, divisor, inverse, index) {
-        return _divide(dividend, divisor, inverse, index, 'right');
+    function right_divide(parent, source) {
+        return _divide(parent, source, right_division);
     }
 
     return freeze({

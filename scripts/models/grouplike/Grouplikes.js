@@ -14,6 +14,7 @@ All functions are pure.
 const Grouplikes = (grouplike_expressions_for_tag) => {
 
     const types = Object.freeze(Object.keys(grouplike_expressions_for_tag));
+    const structures = Object.freeze(Object.values(grouplike_expressions_for_tag));
 
     const constant = value => new Expression('constant', Number(value));
     const variable = name => new Expression('variable', String(name));
@@ -97,26 +98,20 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         return structure.commute(expression, index1, index2);
     }
 
-    function left_divide(type, dividend, divisor, inverse, index) {
-        typecheck(type, 'String');
-        typecheck(dividend, 'Expression');
-        typecheck(divisor, 'Expression');
-        typecheck(inverse, 'Expression');
-        typecheck(index, 'Number+1');
-        const structure = grouplike_expressions_for_tag[type];
-        return structure == null? null :
-            structure.left_divide(dividend, divisor, inverse, index);
+    function _divide(parent, source, direction) {
+        typecheck(parent, 'Expression+1');
+        typecheck(source, 'Expression');
+        if (parent == null) return null;
+        const structure = grouplike_expressions_for_tag[parent.type];
+        return structure == null? null : structure[direction](parent, source);
     }
 
-    function right_divide(type, dividend, divisor, inverse, index) {
-        typecheck(type, 'String');
-        typecheck(dividend, 'Expression');
-        typecheck(divisor, 'Expression');
-        typecheck(inverse, 'Expression');
-        typecheck(index, 'Number+1');
-        const structure = grouplike_expressions_for_tag[type];
-        return structure == null? null :
-            structure.right_divide(dividend, divisor, inverse, index);
+    function left_divide(parent, source) {
+        return _divide(parent, source, 'left_divide');
+    }
+
+    function right_divide(parent, source) {
+        return _divide(parent, source, 'right_divide');
     }
 
     function collapse(expression, index1, index2, replacement) {
@@ -152,6 +147,7 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
 
     return Object.freeze({
         types,
+        structures,
         constant,
         variable,
         add,

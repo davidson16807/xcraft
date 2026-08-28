@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 `PowerTriangleInverse` handles nested inverse relationships and balancing one
@@ -11,9 +10,10 @@ so one instance handles all six inverse/co-inverse orientations.
 const PowerTriangleInverse = (triangles, expression_shape) => {
     const shape = expression_shape;
 
-    function cancel(parent, source) {
-        typecheck(parent, 'Expression');
+    function divide(parent, source) {
+        typecheck(parent, 'Expression+1');
         typecheck(source, 'Expression');
+        if (parent == null) return null;
         const triangle = triangles.from_expression(parent, false);
         if (triangle == null) return null;
 
@@ -21,24 +21,21 @@ const PowerTriangleInverse = (triangles, expression_shape) => {
         const fixed = triangle.indexOf(source);
         if (computed == null || fixed < 0) return null;
 
-        return triangle[triangles.other(fixed, computed)];
+        return target => {
+            typecheck(target, 'Expression');
+            const values = [null, null, null];
+            values[fixed] = source;
+            values[computed] = target;
+            return triangles.to_expression(new PowerTriangle(...values));
+        };
     }
 
-    function append(parent, source, target) {
-        typecheck(parent, 'Expression');
-        typecheck(source, 'Expression');
-        typecheck(target, 'Expression');
-        const triangle = triangles.from_expression(parent, false);
-        if (triangle == null) return null;
+    function left_divide(parent, source) {
+        return divide(parent, source);
+    }
 
-        const computed = triangles.computed(triangle);
-        const fixed = triangle.indexOf(source);
-        if (computed == null || fixed < 0) return null;
-
-        const values = [null, null, null];
-        values[fixed] = source;
-        values[computed] = target;
-        return triangles.to_expression(new PowerTriangle(...values));
+    function right_divide(parent, source) {
+        return divide(parent, source);
     }
 
     function strip(outer_expression, inner_expression, outer_fixed_expression, inner_fixed_expression) {
@@ -70,8 +67,8 @@ const PowerTriangleInverse = (triangles, expression_shape) => {
     }
 
     return Object.freeze({
-        cancel,
-        append,
+        left_divide,
+        right_divide,
         strip,
     });
 

@@ -7,7 +7,7 @@ class Expression {
         typecheck(contents, 'Array+Number+String+1');
         typecheck(caveats, 'Array+1');
         this.type = type;
-        this.contents = contents;
+        this.contents = Object.freeze(contents);
         this.caveats = Object.freeze([...(caveats || [])]);
         Object.freeze(this);
     }

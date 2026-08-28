@@ -47,14 +47,47 @@ const root = path.resolve(__dirname, '..');
 });
 
 const expression_shape = ExpressionShape();
+const division_constant = value => new Expression('constant', value);
+const division_append = (type, expression, divisor, inverse) => {
+    if (expression.type !== type || expression === divisor) {
+        return new Expression(type, Object.freeze([expression, inverse]));
+    }
+    const contents = [...expression.contents];
+    const index = contents.indexOf(divisor);
+    contents.splice(index < 0? contents.length : index + 1, 0, inverse);
+    return new Expression(type, Object.freeze(contents));
+};
+const additive_inverse = expression => new Expression(
+    'mul',
+    Object.freeze(
+        expression.type === 'mul'?
+            [division_constant(-1), ...expression.contents]
+          : [division_constant(-1), expression]
+    )
+);
+const multiplicative_inverse = expression => {
+    if (
+        expression.type === 'pow' && expression.contents.length === 2 &&
+        expression.contents[1].type === 'constant' && expression.contents[1].contents === -1
+    ) return expression.contents[0];
+    return new Expression(
+        'pow',
+        Object.freeze([expression, division_constant(-1)])
+    ).caveat(new Relation('neq', expression, division_constant(0)));
+};
+const divide_by_inverse = (type, inverse) => divisor => expression =>
+    division_append(type, expression, divisor, inverse(divisor));
+const additive_divide = divide_by_inverse('add', additive_inverse);
+const multiplicative_divide = divide_by_inverse('mul', multiplicative_inverse);
+
 const grouplikes = Grouplikes({
     'add': Grouplike(
         'add',
         {
             is_commutative: true,
             is_associative: true,
-            has_left_divide: true,
-            has_right_divide: true,
+            right_divide: additive_divide,
+            left_divide: additive_divide,
             left_identity: new Expression('constant', 0),
             right_identity: new Expression('constant', 0),
         },
@@ -65,8 +98,8 @@ const grouplikes = Grouplikes({
         {
             is_commutative: true,
             is_associative: true,
-            has_left_divide: true,
-            has_right_divide: true,
+            right_divide: multiplicative_divide,
+            left_divide: multiplicative_divide,
             left_identity: new Expression('constant', 1),
             right_identity: new Expression('constant', 1),
             left_annihilator: new Expression('constant', 0),
@@ -197,48 +230,41 @@ function move(equation, source, target, drag_options) {
 
 function solveLevel1() {
     let q = levels[0].equation;
-    q = move(q, '0/0/1', '1', manual_drag_options);
-    q = move(q, '1/0/1', '1/0/0', manual_drag_options);
+    q = move(q, '0/0/1', '1', auto_simplify_drag_options);
     assertShape(q, levels[0].goal, 'level 1');
 }
 
 function solveLevel2() {
     let q = levels[1].equation;
-    q = move(q, '0/0/1', '1', manual_drag_options);
-    q = move(q, '1/0/1', '1/0/0', manual_drag_options);
+    q = move(q, '0/0/1', '1', auto_simplify_drag_options);
     assertShape(q, levels[1].goal, 'level 2');
 }
 
 function solveLevel3() {
     let q = levels[2].equation;
-    q = move(q, '0/0/0', '1', manual_drag_options);
-    q = move(q, '1/0/1', '1/0/0', manual_drag_options);
+    q = move(q, '0/0/0', '1', auto_simplify_drag_options);
     assertShape(q, levels[2].goal, 'level 3');
 }
 
 function solveLevel4() {
     let q = levels[3].equation;
-    q = move(q, '0/0/1', '1', manual_drag_options);
-    q = move(q, '1/0/1', '1/0/0', manual_drag_options);
+    q = move(q, '0/0/1', '1', auto_simplify_drag_options);
     assertShape(q, levels[3].goal, 'level 4');
 }
 
 function solveLevel5() {
     let q = levels[4].equation;
     q = move(q, '0/0/0', '0/0/1', manual_drag_options);
-    q = move(q, '0/0/0', '1', manual_drag_options);
-    q = move(q, '1/0/1', '1/0/0', manual_drag_options);
+    q = move(q, '0/0/0', '1', auto_simplify_drag_options);
     assertShape(q, levels[4].goal, 'level 5');
 }
 
 function solveLevel6() {
     let q = levels[5].equation;
-    q = move(q, '1/0/0', '0', manual_drag_options);
+    q = move(q, '1/0/0', '0', auto_simplify_drag_options);
     q = move(q, '0/0/0', '0/0/2', manual_drag_options);
-    q = move(q, '0/0/1', '1', manual_drag_options);
-    q = move(q, '1/0/1', '1/0/0', manual_drag_options);
-    q = move(q, '0/0/0', '1', manual_drag_options);
-    q = move(q, '1/0/1', '1/0/0', manual_drag_options);
+    q = move(q, '0/0/1', '1', auto_simplify_drag_options);
+    q = move(q, '0/0/0', '1', auto_simplify_drag_options);
     assertShape(q, levels[5].goal, 'level 6');
 }
 
@@ -252,58 +278,54 @@ function solveLevel7() {
 function solveLevel8() {
     let q = levels[7].equation;
     q = move(q, '0/0/0/0', '0/0/0/1', manual_drag_options);
-    q = move(q, '0/0/1', '1', manual_drag_options);
-    q = move(q, '1/0/1', '1/0/0', manual_drag_options);
-    q = move(q, '0/0/1', '1', manual_drag_options);
-    q = move(q, '1/0/1', '1/0/0', manual_drag_options);
-    q = move(q, '0/0/0', '1', manual_drag_options);
-    q = move(q, '1/0/1', '1/0/0', manual_drag_options);
+    q = move(q, '0/0/1', '1', auto_simplify_drag_options);
+    q = move(q, '0/0/1', '1', auto_simplify_drag_options);
+    q = move(q, '0/0/0', '1', auto_simplify_drag_options);
     assertShape(q, levels[7].goal, 'level 8');
 }
 
 function solveLevel9() {
     let q = levels[8].equation;
-    q = move(q, '0/0/1', '1', manual_drag_options);
-    q = move(q, '1/0/1', '1/0/0', manual_drag_options);
-    q = move(q, '0/0/1', '1', manual_drag_options);
-    q = move(q, '1/0/1', '1/0/0', manual_drag_options);
+    q = move(q, '0/0/1', '1', auto_simplify_drag_options);
+    q = move(q, '0/0/1', '1', auto_simplify_drag_options);
     assertShape(q, levels[8].goal, 'level 9');
 }
 
 function solveLevel10() {
     let q = levels[9].equation;
     q = move(q, '0/0/0/0', '0/0/0/1', manual_drag_options);
-    q = move(q, '0/0/1', '1', manual_drag_options);
-    q = move(q, '1/0/1', '0', manual_drag_options);
+    q = move(q, '0/0/1', '1', auto_simplify_drag_options);
+    q = move(q, '1/0/1', '0', auto_simplify_drag_options);
     q = move(q, '0/0/0', '0/0/2', manual_drag_options);
-    q = move(q, '0/0/1', '1', manual_drag_options);
-    q = move(q, '1/0/1', '1/0/0', manual_drag_options);
-    q = move(q, '0/0/0', '1', manual_drag_options);
-    q = move(q, '1/0/1', '1/0/0', manual_drag_options);
+    q = move(q, '0/0/1', '1', auto_simplify_drag_options);
+    q = move(q, '0/0/0', '1', auto_simplify_drag_options);
     assertShape(q, levels[9].goal, 'level 10');
 }
 
 
 function solvePowerTriangleLevels() {
     const cases = [
-        [26, '0/0/0', '1'],                 // 2^x = 8 -> x = log_2(8)
-        [27, '0/0/0', '1'],                 // log_2(x) = 3 -> x = 2^3
-        [28, '0/0/0', '0/0/1/0'],             // 2^log_2(x) -> x
-        [29, '0/0/0', '0/0/1/0'],             // log_2(2^x) -> x
-        [30, '0/0/0', '0/0/1'],               // sqrt(x)sqrt(y) -> sqrt(xy)
-        [31, '0/0/0', '0/0/1'],               // a^(1/x)a^(1/y) -> a^(1/x+1/y)
-        [32, '0/0/0', '0/0/1'],               // log_2(x)+log_2(y) -> log_2(xy)
-        [33, '0/0/0', '0/0/1'],               // log_2(xy) -> log_2(x)+log_2(y)
-        [34, '0/0/1', '1'],                  // log_x(8)=3 -> x=8^(1/3)
-        [35, '0/0/0', '0/0/1'],               // log_x(a)||log_y(a) -> log_(xy)(a)
-        [36, '0/0/1', '0/0/0'],               // log_(xy)(a) -> log_x(a)||log_y(a)
-        [37, '0/0/0', '0/0/1'],               // root_3(root_2(x)) -> root_6(x)
-        [38, '0/0/1', '0/0/0'],               // root_6(x) -> root_3(root_2(x))
-        [39, '0/0/1', '0/0/0'],               // root_(2*3*a)(x) -> root_(3*a)(root_2(x))
+        [26, [['0/0/0', '1'], ['0/0/0', '0/0/1/0']]], // 2^x = 8 -> x = log_2(8)
+        [27, [['0/0/0', '1'], ['0/0/0', '0/0/1/0']]], // log_2(x) = 3 -> x = 2^3
+        [28, [['0/0/0', '0/0/1/0']]],                 // 2^log_2(x) -> x
+        [29, [['0/0/0', '0/0/1/0']]],                 // log_2(2^x) -> x
+        [30, [['0/0/0', '0/0/1']]],                   // sqrt(x)sqrt(y) -> sqrt(xy)
+        [31, [['0/0/0', '0/0/1']]],                   // a^(1/x)a^(1/y) -> a^(1/x+1/y)
+        [32, [['0/0/0', '0/0/1']]],                   // log_2(x)+log_2(y) -> log_2(xy)
+        [33, [['0/0/0', '0/0/1']]],                   // log_2(xy) -> log_2(x)+log_2(y)
+        [34, [['0/0/1', '1'], ['0/0/1', '0/0/0/1']]], // log_x(8)=3 -> x=8^(1/3)
+        [35, [['0/0/0', '0/0/1']]],                   // log_x(a)||log_y(a) -> log_(xy)(a)
+        [36, [['0/0/1', '0/0/0']]],                   // log_(xy)(a) -> log_x(a)||log_y(a)
+        [37, [['0/0/0', '0/0/1']]],                   // root_3(root_2(x)) -> root_6(x)
+        [38, [['0/0/1', '0/0/0']]],                   // root_6(x) -> root_3(root_2(x))
+        [39, [['0/0/1', '0/0/0']]],                   // root_(2*3*a)(x) -> root_(3*a)(root_2(x))
     ];
 
-    cases.forEach(([index, source, target]) => {
-        const q = move(levels[index].equation, source, target, manual_drag_options);
+    cases.forEach(([index, moves]) => {
+        let q = levels[index].equation;
+        moves.forEach(([source, target]) => {
+            q = move(q, source, target, manual_drag_options);
+        });
         assertShape(q, levels[index].goal, `level ${index+1}: ${levels[index].title}`);
     });
 }
@@ -972,19 +994,19 @@ ${context}`
 
         const keys = new Set(choices.map(choice => expression_shape.encode(choice.equation)));
         assert(
-            keys.has(expression_shape.encode(new Relation('eq', 
-                zero,
-                grouplikes.add([rhs, ringlikes.inverse('add', a)])
+            keys.has(expression_shape.encode(new Relation('eq',
+                additive_divide(a)(a),
+                additive_divide(a)(rhs)
             ))),
-            `drag choices: lone expression should include additive balance
+            `drag choices: lone expression should include additive division
 ${context}`
         );
         assert(
-            keys.has(expression_shape.encode(new Relation('eq', 
-                one,
-                grouplikes.mul([rhs, ringlikes.inverse('mul', a)])
+            keys.has(expression_shape.encode(new Relation('eq',
+                multiplicative_divide(a)(a),
+                multiplicative_divide(a)(rhs)
             ))),
-            `drag choices: lone expression should include multiplicative balance
+            `drag choices: lone expression should include multiplicative division
 ${context}`
         );
         assert(choices.every(choice => choice instanceof RelationDragChoice),
@@ -1015,11 +1037,12 @@ ${context}`
     );
     assert(
         denominator_choices.some(choice =>
-            orderedExpressionKey(choice.equation.left) === orderedExpressionKey(one) &&
+            orderedExpressionKey(choice.equation.left) ===
+                orderedExpressionKey(multiplicative_divide(reciprocal_x)(reciprocal_x)) &&
             orderedExpressionKey(choice.equation.right) ===
-                orderedExpressionKey(grouplikes.mul([rhs, x]))
+                orderedExpressionKey(multiplicative_divide(reciprocal_x)(rhs))
         ),
-        'drag choices: a lone denominator should be movable multiplicatively across equality'
+        'drag choices: a lone denominator should expose multiplicative division across equality'
     );
 
     // Substantive algebraic operations take precedence over commutation. In
@@ -1119,7 +1142,7 @@ ${context}`
 function automaticSimplification() {
     const seven = grouplikes.constant(7);
     const minus_one = grouplikes.constant(-1);
-    const unsimplified = grouplikes.add([seven, minus_one]);
+    const unsimplified = additive_divide(one)(seven);
 
     const manual = move(
         new Relation('eq', grouplikes.add([x, one]), seven),
@@ -1649,9 +1672,9 @@ function additiveIdentity() {
         identity_equation,
         '0/0',
         '1',
-        new Relation('eq', zero, grouplikes.add([x, zero])),
+        new Relation('eq', additive_divide(zero)(zero), additive_divide(zero)(x)),
         'additive identity',
-        'a lone additive identity remains draggable across equality',
+        'a lone additive identity remains divisible across equality',
         variables => isDefined(x, variables),
         manual_drag_options
     );
@@ -1827,9 +1850,9 @@ function multiplicativeIdentity() {
         identity_equation,
         '0/0',
         '1',
-        new Relation('eq', one, grouplikes.mul([x, one])),
+        new Relation('eq', multiplicative_divide(one)(one), multiplicative_divide(one)(x)),
         'multiplicative identity',
-        'a lone multiplicative identity remains draggable across equality',
+        'a lone multiplicative identity remains divisible across equality',
         variables => isDefined(x, variables),
         manual_drag_options
     );
@@ -2229,9 +2252,9 @@ function powerTriangleRootBalance() {
     );
     assertSameExpression(
         solved.left,
-        x,
+        grouplikes.root(two, squared),
         'power triangle root balance',
-        'cancel the fixed exponent from x^2'
+        'represent root_2(x^2) before inverse simplification'
     );
     assertSameExpression(
         solved.right,
@@ -2374,9 +2397,12 @@ function powerTriangleRootProjection() {
         root_equation,
         '0/0/0',
         '1',
-        new Relation('eq', x, grouplikes.pow(three, two)),
+        new Relation('eq',
+            grouplikes.pow(grouplikes.root(two, x), two),
+            grouplikes.pow(three, two)
+        ),
         'power triangle root fixed-exponent inverse balance',
-        'root_2(x) = 3 -> x = 3^2',
+        'root_2(x) = 3 -> (root_2(x))^2 = 3^2',
         variables => variables.x > 0,
         manual_drag_options
     );
@@ -2386,9 +2412,12 @@ function powerTriangleRootProjection() {
         variable_index_root,
         '0/0/1',
         '1',
-        new Relation('eq', x, grouplikes.log(two, eight)),
+        new Relation('eq',
+            grouplikes.log(grouplikes.root(x, eight), eight),
+            grouplikes.log(two, eight)
+        ),
         'power triangle root fixed-result inverse balance',
-        'root_x(8) = 2 -> x = log_2(8)',
+        'root_x(8) = 2 -> log_(root_x(8))(8) = log_2(8)',
         variables => variables.x > 0,
         manual_drag_options
     );
@@ -2461,27 +2490,33 @@ function powerTriangleLogInverse() {
     );
 
     const exponential_equation = new Relation('eq', grouplikes.pow(two, x), eight);
-    const logarithmic_solution = new Relation('eq', x, grouplikes.log(two, eight));
+    const logarithmic_solution = new Relation('eq',
+        grouplikes.log(two, grouplikes.pow(two, x)),
+        grouplikes.log(two, eight)
+    );
     assertEquationMoveTransforms(
         exponential_equation,
         '0/0/0',
         '1',
         logarithmic_solution,
         'power triangle fixed-base inverse balance',
-        '2^x = 8 -> x = log_2(8)',
+        '2^x = 8 -> log_2(2^x) = log_2(8)',
         () => true,
         manual_drag_options
     );
 
     const logarithmic_equation = new Relation('eq', grouplikes.log(two, eight), x);
-    const exponential_solution = new Relation('eq', eight, grouplikes.pow(two, x));
+    const exponential_solution = new Relation('eq',
+        grouplikes.pow(two, grouplikes.log(two, eight)),
+        grouplikes.pow(two, x)
+    );
     assertEquationMoveTransforms(
         logarithmic_equation,
         '0/0/0',
         '1',
         exponential_solution,
         'power triangle mirrored fixed-base inverse balance',
-        'log_2(8) = x -> 8 = 2^x',
+        'log_2(8) = x -> 2^log_2(8) = 2^x',
         () => true,
         manual_drag_options
     );
@@ -2559,9 +2594,9 @@ function powerTriangleLogInverse() {
     );
     assertSameExpression(
         solved_base.left,
-        x,
+        grouplikes.root(grouplikes.log(x, eight), eight),
         'power triangle fixed-result inverse balance',
-        'cancel the fixed result from log_x(8)'
+        'represent root_(log_x(8))(8) before inverse simplification'
     );
     assertSameExpression(
         solved_base.right,
@@ -2704,6 +2739,59 @@ function multiplicativeCancellation() {
 }
 
 // -----------------------------------------------------------------------------
+// Division structure interface
+// Grouplike and contextual inverse structures use the same contract:
+// divide(parent, source) -> (Expression -> Expression) | null
+// -----------------------------------------------------------------------------
+
+function divisionStructureInterface() {
+    assert(grouplikes.left_divide.length === 2,
+        'division interface: Grouplikes.left_divide should accept parent and source');
+    assert(grouplikes.right_divide.length === 2,
+        'division interface: Grouplikes.right_divide should accept parent and source');
+    assert(triangle_inverse.left_divide.length === 2,
+        'division interface: PowerTriangleInverse.left_divide should accept parent and source');
+    assert(triangle_inverse.right_divide.length === 2,
+        'division interface: PowerTriangleInverse.right_divide should accept parent and source');
+
+    const division = divisor => expression =>
+        new Expression('test_division', Object.freeze([expression, divisor]));
+    const structure = Grouplike(
+        'test_division',
+        { right_divide:division },
+        () => NaN
+    );
+    const sample = grouplikes.constant(2);
+    const parent = new Expression('test_division', Object.freeze([x, sample]));
+
+    assert(structure.left_divide(parent, x) == null,
+        'division interface: absent division direction should return null');
+
+    const embedded = structure.right_divide(parent, x);
+    const lone = structure.right_divide(null, x);
+    assert(typeof embedded === 'function',
+        'division interface: embedded Grouplike division should return an operation');
+    assert(typeof lone === 'function',
+        'division interface: lone Grouplike division should use the same signature');
+    assertShape(
+        embedded(sample),
+        new Expression('test_division', Object.freeze([sample, x])),
+        'division interface: embedded division operation'
+    );
+    assertShape(
+        lone(sample),
+        new Expression('test_division', Object.freeze([sample, x])),
+        'division interface: lone division operation'
+    );
+
+    const wrong_parent = new Expression('other', Object.freeze([x, sample]));
+    assert(structure.right_divide(wrong_parent, x) == null,
+        'division interface: Grouplike should reject an unrelated parent operation');
+    assert(triangle_inverse.right_divide(null, x) == null,
+        'division interface: contextual inverse should reject a missing parent');
+}
+
+// -----------------------------------------------------------------------------
 // Division definition
 // a / b = a * b^-1, for b != 0
 // -----------------------------------------------------------------------------
@@ -2742,14 +2830,13 @@ function multiplicativeBalance() {
             isDefinedNonzero(a, variables) && isDefined(b, variables);
         if (!hasAdmissibleAssignment(where)) continue;
 
-        const inverse_a = ringlikes.inverse('mul', a);
-        const before = new Relation('eq', 
+        const before = new Relation('eq',
             grouplikes.mul([a, x]),
             b
         );
-        const expected = new Relation('eq', 
-            x,
-            grouplikes.append('mul', b, inverse_a)
+        const expected = new Relation('eq',
+            multiplicative_divide(a)(before.left),
+            multiplicative_divide(a)(b)
         );
         const context = `a = ${describeCase(a)}\nb = ${describeCase(b)}`;
 
@@ -2777,13 +2864,9 @@ function multiplicativeBalance() {
             grouplikes.mul([x, reciprocal_factor]),
             b
         );
-        const reverse_expected = new Relation('eq', 
-            x,
-            grouplikes.append(
-                'mul',
-                b,
-                ringlikes.inverse('mul', reciprocal_factor)
-            )
+        const reverse_expected = new Relation('eq',
+            multiplicative_divide(reciprocal_factor)(reverse_before.left),
+            multiplicative_divide(reciprocal_factor)(b)
         );
 
         if (
@@ -2955,6 +3038,7 @@ function distributivity() {
     doubleReciprocal,
     inverseOfProduct,
     multiplicativeCancellation,
+    divisionStructureInterface,
     divisionDefinition,
     multiplicativeBalance,
     distributivity,

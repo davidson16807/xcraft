@@ -1,4 +1,5 @@
 'use strict';
+// HUMAN VETTED
 
 /*
 `Relations` manages user-facing operation at the scale of expressions and equations.
@@ -60,9 +61,9 @@ function Relations(dependencies) {
     }
 
     /*
-    Divides both sides by the selected source. A directional division is only
-    offered when that same direction can cancel the selected source operand.
-    The target side then receives that exact division direction.
+    Balancing applies one division operation to both sides. Embedded sources
+    discover division from their parent Grouplike and other division-capable
+    structures. Lone sources have no parent, so they try each Grouplike.
     */
     function balance(equation, source_side, source_index, target_side) {
         typecheck(equation, 'Relation');
@@ -80,76 +81,43 @@ function Relations(dependencies) {
             Array.isArray(source_root.contents)? source_root.contents[source_index] : null;
         if (source == null) return noop;
 
-        const choices = [];
-
+        let divisions = [];
         if (!is_alone) {
-            const operation = source_root.type;
-
-            const invertible_choices = new Map(
-                invertibles.map(invertible => {
-                    const new_source = invertible.cancel(source_root, source);
-                    if (new_source == null) return null;
-                    const new_target = invertible.append(source_root, source, target_root);
-                    if (new_target == null) return null;
-                    const preview = invertible.append(source_root, source, new Expression('slot'));
-                    if (preview == null) return null;
-                    const key = `${shape.encode(new_source)}=${shape.encode(new_target)}`;
-                    const choice = _balance_choice(equation,target_side,new_source,new_target,preview,'');
-                    return choice == null? null : [key, choice];
-                }).filter(choice => choice != null)
-            );
-            choices.push(...invertible_choices.values());
-
-            const inverse = ringlikes.inverse(operation, source);
-            if (inverse != null) {
-                const operator = ringlikes.is_inverse(operation, inverse)? '' : operation;
-                const division_choices = new Map(
-                    [grouplikes.left_divide, grouplikes.right_divide].map(divide => {
-                        const new_source = divide(operation, source_root, source, inverse, source_index);
-                        if (new_source == null) return null;
-                        const new_target = divide(operation, target_root, source, inverse);
-                        if (new_target == null) return null;
-                        const choice = _balance_choice(equation,target_side,new_source,new_target,inverse,operator);
-                        if (choice == null) return null;
-
-                        const key = shape.encode(choice.equation);
-                        return [key, choice];
-                    }).filter(pair => pair != null)
-                );
-                choices.push(...division_choices.values());
-            }
-
-            return freeze(choices);
-
-        } else {
-
-            // A lone side has no parent operation, so try each algebraic operation
-            // that can actually divide the expression by itself. Left/right results
-            // remain distinct only when the algebra makes them distinct.
-            const division_choices = new Map();
-            grouplikes.types.forEach(operation => {
-                const inverse = ringlikes.inverse(operation, source_root);
-                if (inverse == null) return;
-                const operator = ringlikes.is_inverse(operation, inverse)? '' : operation;
-
-                [grouplikes.left_divide, grouplikes.right_divide].forEach(divide => {
-                    const new_source = divide(operation, source_root, source_root, inverse, null);
-                    if (new_source == null) return;
-                    const new_target = divide(operation, target_root, source_root, inverse);
-                    if (new_target == null) return;
-                    const choice = _balance_choice(equation,target_side,new_source,new_target,inverse,operator);
-                    if (choice == null) return;
-
-                    const key = shape.encode(choice.equation);
-                    if (!division_choices.has(key)) division_choices.set(key, choice);
+            divisions = [grouplikes, ...invertibles].flatMap(structure => {
+                return [structure.left_divide, structure.right_divide].map(operation => {
+                    return operation(source_root, source);
                 });
             });
-
-            choices.push(...division_choices.values());
-            return freeze(choices);
-
+        } else {
+            divisions = grouplikes.structures.flatMap(structure => {
+                return [structure.left_divide, structure.right_divide].map(operation => {
+                    return operation(null, source_root);
+                });
+            });
         }
 
+        const choices = new Map(divisions
+            .map(divide => {
+                if(divide==null) return;
+                const new_source = divide(source_root);
+                const new_target = divide(target_root);
+                const preview = divide(new Expression('slot'));
+                if (new_source == null || new_target == null || preview == null) return;
+                const choice = _balance_choice(
+                    equation,
+                    target_side,
+                    new_source,
+                    new_target,
+                    preview,
+                    ''
+                );
+                if (choice == null) return;
+                const key = shape.encode(choice.equation);
+                return [key, choice];
+            }).filter(pair => pair!=null)
+        );
+
+        return freeze([...choices.values()]);
     }
 
     /*Strips an outer expression that has been wrapped in its inverse.
@@ -268,10 +236,77 @@ function Relations(dependencies) {
         return gathered == null? noop : freeze([commuted.caveat(...gathered)]);
     }
 
+    function _simplify_inverse(expression) {
+        if (!Array.isArray(expression.contents)) return null;
+
+        for (let inner_index = 0; inner_index < expression.contents.length; ++inner_index) {
+            const inner = expression.contents[inner_index];
+            if (!(inner instanceof Expression) || !Array.isArray(inner.contents)) continue;
+
+            for (let outer_index = 0; outer_index < expression.contents.length; ++outer_index) {
+                if (outer_index === inner_index) continue;
+                const outer_fixed = expression.contents[outer_index];
+
+                for (const inner_fixed of inner.contents) {
+                    for (const invertible of invertibles) {
+                        const replacement = invertible.strip(expression, inner, outer_fixed, inner_fixed );
+                        if (replacement == null) continue;
+                        const gathered = caveats.gather(expression, replacement);
+                        if (gathered == null) continue;
+                        return replacement.caveat(...gathered);
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    function _simplify_expression(expression) {
+        typecheck(expression, 'Expression');
+
+        let current = expression;
+        if (Array.isArray(current.contents)) {
+            const contents = current.contents.map(_simplify_expression);
+            if (contents.some((item, index) => item !== current.contents[index])) {
+                current = current.with({ contents:freeze(contents) });
+            }
+        }
+
+        current = grouplikes.simplify(current);
+
+        const stripped = _simplify_inverse(current);
+        if (stripped != null) return _simplify_expression(stripped);
+
+        if (!Array.isArray(current.contents) || current.contents.length < 2) return current;
+
+        for (let index = 0; index < current.contents.length - 1; ++index) {
+            const left = current.contents[index];
+            const right = current.contents[index + 1];
+            let replacement = grouplikes.combine(current.type, left, right);
+
+            if (
+                replacement == null &&
+                (ringlikes.is_inverse(current.type, left) || ringlikes.is_inverse(current.type, right))
+            ) {
+                replacement = ringlikes.combine(current.type, left, right);
+            }
+            if (replacement == null) continue;
+
+            const gathered = caveats.gather(current, replacement);
+            if (gathered == null) continue;
+            const collapsed = grouplikes.collapse(current, index, index + 1, replacement)
+                .caveat(...gathered);
+            return _simplify_expression(collapsed);
+        }
+
+        return current;
+    }
+
     function simplify(equation) {
         typecheck(equation, 'Relation');
-        const left = grouplikes.simplify(equation.left);
-        const right = grouplikes.simplify(equation.right);
+        const left = _simplify_expression(equation.left);
+        const right = _simplify_expression(equation.right);
         return left === equation.left && right === equation.right? equation :
             equation.with({ left:left, right:right });
     }
