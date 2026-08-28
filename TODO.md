@@ -18,13 +18,6 @@ UNOBTRUSIVE:
 * large expressions like the denominator of "1 / x/14 + 3/14" can't be dragged - division is treated as a "pow" expression so it has no handle
 * track the highest level completed and disable progression beyond it until it is solved
 
-MAYBE OBTRUSIVE:
-* allow representing other algebras: set notation, boolean algebra
-* courses
-* "techtree" of operations
-* mode=god, mode=creative, mode=story
-* expand target side width to prevent sides rapidly switching back and forth
-
 OBTRUSIVE:
 * allow inverting fractions on both sides
 * allow applying the opposite of a term to both sides of a fraction
@@ -32,6 +25,11 @@ OBTRUSIVE:
 * ability to write your own equations
 * decouple essential EquationsView logic from logic that formats element visuals (e.g. showing × vs ⋅ for arithmetic, color dots like 🔴)
 * export to latex, python, javascript, etc.
+* allow representing other algebras: set notation, boolean algebra
+* courses
+* "techtree" of operations
+* mode=god, mode=creative, mode=story
+* expand target side width to prevent sides rapidly switching back and forth
 
 * traverse through GRE workbook and find properties to implement in code or demonstrate through levels
 
