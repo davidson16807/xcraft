@@ -97,12 +97,26 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         return structure.commute(expression, index1, index2);
     }
 
-    function cancel(expression, index) {
-        typecheck(expression, 'Expression');
-        typecheck(index, 'Number');
-        const structure = grouplike_expressions_for_tag[expression.type];
-        if (structure == null) return expression;
-        return structure.cancel(expression, index);
+    function left_divide(type, dividend, divisor, inverse, index) {
+        typecheck(type, 'String');
+        typecheck(dividend, 'Expression');
+        typecheck(divisor, 'Expression');
+        typecheck(inverse, 'Expression');
+        typecheck(index, 'Number+1');
+        const structure = grouplike_expressions_for_tag[type];
+        return structure == null? null :
+            structure.left_divide(dividend, divisor, inverse, index);
+    }
+
+    function right_divide(type, dividend, divisor, inverse, index) {
+        typecheck(type, 'String');
+        typecheck(dividend, 'Expression');
+        typecheck(divisor, 'Expression');
+        typecheck(inverse, 'Expression');
+        typecheck(index, 'Number+1');
+        const structure = grouplike_expressions_for_tag[type];
+        return structure == null? null :
+            structure.right_divide(dividend, divisor, inverse, index);
     }
 
     function collapse(expression, index1, index2, replacement) {
@@ -150,7 +164,8 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         append,
         combine,
         commute,
-        cancel,
+        left_divide,
+        right_divide,
         collapse,
         simplify,
         evaluate,

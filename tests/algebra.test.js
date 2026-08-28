@@ -50,55 +50,40 @@ const expression_shape = ExpressionShape();
 const grouplikes = Grouplikes({
     'add': Grouplike(
         'add',
-        new Expression('constant', 0),
         {
             is_commutative: true,
             is_associative: true,
-            is_invertible: true,
-            is_left_cancellative: true,
-            is_right_cancellative: true,
+            has_left_divide: true,
+            has_right_divide: true,
+            left_identity: new Expression('constant', 0),
+            right_identity: new Expression('constant', 0),
         },
         items => items.reduce((accumulator, item) => accumulator + item, 0)
     ),
     'mul': Grouplike(
         'mul',
-        new Expression('constant', 1),
         {
             is_commutative: true,
             is_associative: true,
-            is_invertible: true,
-            is_left_cancellative: true,
-            is_right_cancellative: true,
+            has_left_divide: true,
+            has_right_divide: true,
+            left_identity: new Expression('constant', 1),
+            right_identity: new Expression('constant', 1),
+            left_annihilator: new Expression('constant', 0),
+            right_annihilator: new Expression('constant', 0),
         },
         items => items.reduce((accumulator, item) => accumulator * item, 1)
     ),
     'pow': Grouplike(
         'pow',
-        new Expression('constant', 1),
-        {
-            is_right_cancellative: true,
-        },
+        { right_identity:new Expression('constant', 1) },
         items => Math.pow(...items)
     ),
-    'log': Grouplike(
-        'log',
-        undefined,
-        {},
-        items => Math.log(items[1]) / Math.log(items[0])
-    ),
-    'root': Grouplike(
-        'root',
-        undefined,
-        {},
-        items => Math.pow(items[1], 1 / items[0])
-    ),
+    'log': Grouplike('log', {}, items => Math.log(items[1]) / Math.log(items[0])),
+    'root': Grouplike('root', {}, items => Math.pow(items[1], 1 / items[0])),
     'harmonic': Grouplike(
         'harmonic',
-        undefined,
-        {
-            is_commutative: true,
-            is_associative: true,
-        },
+        { is_commutative:true, is_associative:true },
         items => 1 / items.reduce((sum, item) => sum + 1 / item, 0)
     ),
 });

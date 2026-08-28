@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 `Relations` manages user-facing operation at the scale of expressions and equations.
@@ -61,11 +60,9 @@ function Relations(dependencies) {
     }
 
     /*
-    Applies the inverse of the source expression to both sides
-    This removes the source expression from its side and appends its inverse to the other side.
-    This function no-ops if the source expression is non-invertible.
-    `source_index == null` means the whole source side is being moved.
-    Otherwise it identifies a direct child of the source-side root.
+    Divides both sides by the selected source. A directional division is only
+    offered when that same direction can cancel the selected source operand.
+    The target side then receives that exact division direction.
     */
     function balance(equation, source_side, source_index, target_side) {
         typecheck(equation, 'Relation');
@@ -73,18 +70,15 @@ function Relations(dependencies) {
         typecheck(source_index, 'Number+1');
         typecheck(target_side, 'String+Number');
         if (source_side === target_side) return noop;
-        // nothing to balance? no-op
 
         const source_root = _side(equation, source_side);
         const target_root = _side(equation, target_side);
         if (source_root == null || target_root == null) return noop;
-        // non-existant root? your app is broken - no-op
 
         const is_alone = source_index == null;
         const source = is_alone? source_root :
             Array.isArray(source_root.contents)? source_root.contents[source_index] : null;
         if (source == null) return noop;
-        // non-existant source? no-op
 
         const choices = [];
 
@@ -100,14 +94,7 @@ function Relations(dependencies) {
                     const preview = invertible.append(source_root, source, new Expression('slot'));
                     if (preview == null) return null;
                     const key = `${shape.encode(new_source)}=${shape.encode(new_target)}`;
-                    const choice = _balance_choice(
-                        equation,
-                        target_side,
-                        new_source,
-                        new_target,
-                        preview,
-                        ''
-                    );
+                    const choice = _balance_choice(equation,target_side,new_source,new_target,preview,'');
                     return choice == null? null : [key, choice];
                 }).filter(choice => choice != null)
             );
@@ -115,48 +102,52 @@ function Relations(dependencies) {
 
             const inverse = ringlikes.inverse(operation, source);
             if (inverse != null) {
-                const new_source = grouplikes.cancel(source_root, source_index);
-                if (new_source != null && new_source !== source_root) {
-                    const new_target = grouplikes.append(operation, target_root, inverse);
-                    const operator = ringlikes.is_inverse(operation, inverse)? '' : operation;
-                    const choice = _balance_choice(
-                        equation,
-                        target_side,
-                        new_source,
-                        new_target,
-                        inverse,
-                        operator
-                    );
-                    if (choice != null) choices.push(choice);
-                }
+                const operator = ringlikes.is_inverse(operation, inverse)? '' : operation;
+                const division_choices = new Map(
+                    [grouplikes.left_divide, grouplikes.right_divide].map(divide => {
+                        const new_source = divide(operation, source_root, source, inverse, source_index);
+                        if (new_source == null) return null;
+                        const new_target = divide(operation, target_root, source, inverse);
+                        if (new_target == null) return null;
+                        const choice = _balance_choice(equation,target_side,new_source,new_target,inverse,operator);
+                        if (choice == null) return null;
+
+                        const key = shape.encode(choice.equation);
+                        return [key, choice];
+                    }).filter(pair => pair != null)
+                );
+                choices.push(...division_choices.values());
             }
 
             return freeze(choices);
 
         } else {
 
+            // A lone side has no parent operation, so try each algebraic operation
+            // that can actually divide the expression by itself. Left/right results
+            // remain distinct only when the algebra makes them distinct.
+            const division_choices = new Map();
             grouplikes.types.forEach(operation => {
                 const inverse = ringlikes.inverse(operation, source_root);
                 if (inverse == null) return;
-
-                const create = grouplikes[operation];
-                const identity = create([]);
-                if (identity == null) return;
-
-                const new_target = grouplikes.append(operation, target_root, inverse);
                 const operator = ringlikes.is_inverse(operation, inverse)? '' : operation;
-                const choice = _balance_choice(
-                    equation,
-                    target_side,
-                    identity,
-                    new_target,
-                    inverse,
-                    operator
-                );
-                if (choice != null) choices.push(choice);
+
+                [grouplikes.left_divide, grouplikes.right_divide].forEach(divide => {
+                    const new_source = divide(operation, source_root, source_root, inverse, null);
+                    if (new_source == null) return;
+                    const new_target = divide(operation, target_root, source_root, inverse);
+                    if (new_target == null) return;
+                    const choice = _balance_choice(equation,target_side,new_source,new_target,inverse,operator);
+                    if (choice == null) return;
+
+                    const key = shape.encode(choice.equation);
+                    if (!division_choices.has(key)) division_choices.set(key, choice);
+                });
             });
 
+            choices.push(...division_choices.values());
             return freeze(choices);
+
         }
 
     }

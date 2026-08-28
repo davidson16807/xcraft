@@ -18,6 +18,10 @@ UNOBTRUSIVE:
 * large expressions like the denominator of "1 / x/14 + 3/14" can't be dragged - division is treated as a "pow" expression so it has no handle
 * track the highest level completed and disable progression beyond it until it is solved
 
+MAYBE OBTRUSIVE:
+* ExpressionShape should only sort arguments for commutative and associative expressions
+* rename: self_combination→reflexive?
+
 OBTRUSIVE:
 * allow inverting fractions on both sides
 * allow applying the opposite of a term to both sides of a fraction
