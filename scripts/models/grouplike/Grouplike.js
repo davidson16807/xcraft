@@ -17,17 +17,21 @@ is_commutative  Boolean
 evaluator       (Expression->T) -> (Expression->T)
                 e.g. subevaluate => expression => expression.contents.reduce((accumulator, item) => accumulator + subevaluate(item, variables), 0)
 */
-const Grouplike = (label, identity, properties, evaluator) => {
+const Grouplike = (label, identity, properties, evaluatable) => {
     typecheck(label, 'String');
     typecheck(identity, 'Expression+1');
     typecheck(properties, 'Object');
-    typecheck(evaluator, 'Function');
+    typecheck(evaluatable, 'Function');
 
     const is_commutative = properties.is_commutative;
     const is_associative = properties.is_associative;
     const is_invertible = properties.is_invertible;
     const is_left_cancellative = properties.is_left_cancellative;
     const is_right_cancellative = properties.is_right_cancellative;
+
+    const evaluator = evaluate => expression => {
+        return evaluatable(expression.contents.map(item => evaluate(item)));
+    };
 
     function create(contents) {
         typecheck(contents, 'Array');

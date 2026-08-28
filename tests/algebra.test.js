@@ -58,10 +58,7 @@ const grouplikes = Grouplikes({
             is_left_cancellative: true,
             is_right_cancellative: true,
         },
-        evaluate => expression => expression.contents.reduce(
-            (accumulator, item) => accumulator + evaluate(item),
-            0
-        )
+        items => items.reduce((accumulator, item) => accumulator + item, 0)
     ),
     'mul': Grouplike(
         'mul',
@@ -73,10 +70,7 @@ const grouplikes = Grouplikes({
             is_left_cancellative: true,
             is_right_cancellative: true,
         },
-        evaluate => expression => expression.contents.reduce(
-            (accumulator, item) => accumulator * evaluate(item),
-            1
-        )
+        items => items.reduce((accumulator, item) => accumulator * item, 1)
     ),
     'pow': Grouplike(
         'pow',
@@ -84,26 +78,19 @@ const grouplikes = Grouplikes({
         {
             is_right_cancellative: true,
         },
-        evaluate => expression => Math.pow(
-            evaluate(expression.contents[0]),
-            evaluate(expression.contents[1])
-        )
+        items => Math.pow(...items)
     ),
     'log': Grouplike(
         'log',
         undefined,
         {},
-        evaluate => expression => Math.log(evaluate(expression.contents[1])) /
-            Math.log(evaluate(expression.contents[0]))
+        items => Math.log(items[1]) / Math.log(items[0])
     ),
     'root': Grouplike(
         'root',
         undefined,
         {},
-        evaluate => expression => Math.pow(
-            evaluate(expression.contents[1]),
-            1 / evaluate(expression.contents[0])
-        )
+        items => Math.pow(items[1], 1 / items[0])
     ),
     'harmonic': Grouplike(
         'harmonic',
@@ -112,17 +99,9 @@ const grouplikes = Grouplikes({
             is_commutative: true,
             is_associative: true,
         },
-        evaluate => expression => 1 / expression.contents.reduce(
-            (sum, item) => sum + 1 / evaluate(item),
-            0
-        )
+        items => 1 / items.reduce((sum, item) => sum + 1 / item, 0)
     ),
 });
-const comparable = comparison => evaluate => relation => {
-    const left = evaluate(relation.left);
-    const right = evaluate(relation.right);
-    return Number.isFinite(left) && Number.isFinite(right)? comparison(left, right) : undefined;
-};
 const orderlikes = Orderlikes({
     eq: Orderlike('eq', {
         is_reflexive: true,
@@ -130,33 +109,33 @@ const orderlikes = Orderlikes({
         is_transitive: true,
         is_antisymmetric: true,
         converse: 'eq',
-    }, comparable((left, right) => left === right)),
+    }, (left, right) => left === right),
     neq: Orderlike('neq', {
         is_symmetric: true,
         converse: 'neq',
-    }, comparable((left, right) => left !== right)),
+    }, (left, right) => left !== right),
     lt: Orderlike('lt', {
         is_transitive: true,
         is_asymmetric: true,
         converse: 'gt',
-    }, comparable((left, right) => left < right)),
+    }, (left, right) => left < right),
     lte: Orderlike('lte', {
         is_reflexive: true,
         is_transitive: true,
         is_antisymmetric: true,
         converse: 'gte',
-    }, comparable((left, right) => left <= right)),
+    }, (left, right) => left <= right),
     gt: Orderlike('gt', {
         is_transitive: true,
         is_asymmetric: true,
         converse: 'lt',
-    }, comparable((left, right) => left > right)),
+    }, (left, right) => left > right),
     gte: Orderlike('gte', {
         is_reflexive: true,
         is_transitive: true,
         is_antisymmetric: true,
         converse: 'lte',
-    }, comparable((left, right) => left >= right)),
+    }, (left, right) => left >= right),
 }, grouplikes);
 const expression_caveats = ExpressionCaveats(expression_shape, orderlikes);
 const scales = Scales(grouplikes, expression_shape);
@@ -702,7 +681,7 @@ function relationalExpressions() {
         is_transitive: true,
         is_antisymmetric: true,
         converse: 'eq',
-    }, comparable((left, right) => left === right));
+    }, (left, right) => left === right);
     assert(
         equality.is_reflexive && equality.is_symmetric &&
         equality.is_transitive && equality.is_antisymmetric,
@@ -714,12 +693,12 @@ function relationalExpressions() {
             is_transitive: true,
             is_asymmetric: true,
             converse: 'gt',
-        }, comparable((left, right) => left < right)),
+        }, (left, right) => left < right),
         gt: Orderlike('gt', {
             is_transitive: true,
             is_asymmetric: true,
             converse: 'lt',
-        }, comparable((left, right) => left > right)),
+        }, (left, right) => left > right),
     });
     const less_than = new Relation('lt', x, two);
     const greater_than = order.swap(less_than);

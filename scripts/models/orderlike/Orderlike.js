@@ -6,16 +6,22 @@
 properties of that structure; callers request an operation rather than inspect
 those properties to determine applicability.
 */
-const Orderlike = (label, properties, evaluator) => {
+const Orderlike = (label, properties, evaluatable) => {
     typecheck(label, 'String');
     typecheck(properties, 'Object');
-    typecheck(evaluator, 'Function');
+    typecheck(evaluatable, 'Function');
     const is_reflexive = !!properties.is_reflexive;
     const is_symmetric = !!properties.is_symmetric;
     const is_transitive = !!properties.is_transitive;
     const is_antisymmetric = !!properties.is_antisymmetric;
     const is_asymmetric = !!properties.is_asymmetric;
     const converse = properties.converse;
+
+    const evaluator = evaluate => relation => {
+        const left = evaluate(relation.left);
+        const right = evaluate(relation.right);
+        return Number.isFinite(left) && Number.isFinite(right)? evaluatable(left, right) : undefined;
+    };
 
     function swap(relation) {
         typecheck(relation, 'Relation');

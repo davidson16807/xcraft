@@ -23,15 +23,15 @@ MAYBE OBTRUSIVE:
 * courses
 * "techtree" of operations
 * mode=god, mode=creative, mode=story
-* remove caveats list from level description
 * expand target side width to prevent sides rapidly switching back and forth
-* rename: `Equation*`→`Relation*`
 
 OBTRUSIVE:
 * allow inverting fractions on both sides
 * allow applying the opposite of a term to both sides of a fraction
+* allow dragging equations within systems of equations
 * ability to write your own equations
 * decouple essential EquationsView logic from logic that formats element visuals (e.g. showing × vs ⋅ for arithmetic, color dots like 🔴)
+* export to latex, python, javascript, etc.
 
 * traverse through GRE workbook and find properties to implement in code or demonstrate through levels
 
