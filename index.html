@@ -169,13 +169,11 @@
     const one = new Expression('constant', 1);
     const minus_one = new Expression('constant', -1);
 
-    const inverse_divide = (type, inverse) => divisor => expression => {
-        const contents = expression.type === type && expression !== divisor?
-            [...expression.contents] : [expression];
-        const index = contents.indexOf(divisor);
-        contents.splice(index < 0? contents.length : index + 1, 0, inverse(divisor));
-        return new Expression(type, contents);
-    };
+    const left_inverse_divide = (type, inverse) => divisor => expression =>
+        new Expression(type, [inverse(divisor), expression]);
+
+    const right_inverse_divide = (type, inverse) => divisor => expression =>
+        new Expression(type, [expression, inverse(divisor)]);
 
     const additive_inverse = divisor => {
         return new Expression(

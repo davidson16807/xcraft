@@ -202,22 +202,43 @@ const Grouplike = (label, properties, evaluatable) => {
     for a lone source. Keeping it in the signature lets callers treat Grouplike
     and contextual inverse structures identically.
     */
-    function _divide(parent, source, definition) {
+    function _divide(parent, source, definition, is_left) {
         typecheck(parent, 'Expression+1');
         typecheck(source, 'Expression');
         if (parent != null && parent.type !== label) return null;
         if (definition == null) return null;
+
+        if (parent != null && !is_commutative) {
+            if (!Array.isArray(parent.contents)) return null;
+            const source_index = parent.contents.indexOf(source);
+            if (source_index < 0) return null;
+            if (is_left && source_index !== 0) return null;
+            if (!is_left && source_index !== parent.contents.length - 1) return null;
+        }
+
         const divide = definition(source);
         typecheck(divide, 'Function+1');
-        return divide;
+        if (divide == null) return null;
+
+        return expression => {
+            typecheck(expression, 'Expression');
+            const divided = divide(expression);
+            typecheck(divided, 'Expression+1');
+            if (
+                divided == null || expression === source ||
+                divided.type !== label || !Array.isArray(divided.contents)
+            ) return divided;
+            const normalized = create(divided.contents);
+            return normalized == null? divided : normalized.caveat(...divided.caveats);
+        };
     }
 
     function left_divide(parent, source) {
-        return _divide(parent, source, left_division);
+        return _divide(parent, source, left_division, true);
     }
 
     function right_divide(parent, source) {
-        return _divide(parent, source, right_division);
+        return _divide(parent, source, right_division, false);
     }
 
     return freeze({

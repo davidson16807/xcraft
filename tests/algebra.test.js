@@ -1075,6 +1075,12 @@ ${context}`
         !expression_view_source.includes("ringlikes.absolute('add', term)"),
         'expression view: signed addends must preserve the original AST paths'
     );
+    assert(
+        expression_view_source.includes('function draw_leading_negative') &&
+        expression_view_source.includes("items[0].factor.type === 'constant'") &&
+        expression_view_source.includes('items[0].factor.contents === -1'),
+        'expression view: unary minus shorthand should apply only to a leading -1 factor'
+    );
 
     const zero_equation = new Relation('eq', zero, rhs);
     assert(
@@ -2882,23 +2888,25 @@ function divisionStructureInterface() {
     const sample = grouplikes.constant(2);
     const parent = new Expression('test_division', Object.freeze([x, sample]));
 
-    assert(structure.left_divide(parent, x) == null,
+    assert(structure.left_divide(parent, sample) == null,
         'division interface: absent division direction should return null');
+    assert(structure.right_divide(parent, x) == null,
+        'division interface: right division should reject a non-rightmost embedded source');
 
-    const embedded = structure.right_divide(parent, x);
-    const lone = structure.right_divide(null, x);
+    const embedded = structure.right_divide(parent, sample);
+    const lone = structure.right_divide(null, sample);
     assert(typeof embedded === 'function',
         'division interface: embedded Grouplike division should return an operation');
     assert(typeof lone === 'function',
         'division interface: lone Grouplike division should use the same signature');
     assertShape(
-        embedded(sample),
-        new Expression('test_division', Object.freeze([sample, x])),
+        embedded(x),
+        new Expression('test_division', Object.freeze([x, sample])),
         'division interface: embedded division operation'
     );
     assertShape(
-        lone(sample),
-        new Expression('test_division', Object.freeze([sample, x])),
+        lone(x),
+        new Expression('test_division', Object.freeze([x, sample])),
         'division interface: lone division operation'
     );
 
