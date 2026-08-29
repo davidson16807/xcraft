@@ -1,14 +1,17 @@
 'use strict';
 // HUMAN VETTED
 
-const ExpressionShape = () => {
+const ExpressionShape = grouplikes => {
     function encode(expression) {
         typecheck(expression, 'Expression+Relation');
         switch (expression.type) {
             case 'slot': return `slot`;
             case 'constant': return `C(${expression.contents})`;
             case 'variable': return `V(${expression.contents})`;
-            default: return `${expression.type}(${expression.contents.map(encode).sort().join(',')})`;
+            default: {
+                const contents = expression.contents.map(encode);
+                return `${expression.type}(${grouplikes.canonicalize(expression.type, contents).join(',')})`;
+            }
         }
     }
     return Object.freeze({encode});

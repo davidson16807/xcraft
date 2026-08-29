@@ -46,7 +46,6 @@ const root = path.resolve(__dirname, '..');
     );
 });
 
-const expression_shape = ExpressionShape();
 const division_constant = value => new Expression('constant', value);
 const division_append = (type, expression, divisor, inverse) => {
     if (expression.type !== type || expression === divisor) {
@@ -120,6 +119,7 @@ const grouplikes = Grouplikes({
         items => 1 / items.reduce((sum, item) => sum + 1 / item, 0)
     ),
 });
+const expression_shape = ExpressionShape(grouplikes);
 const orderlikes = Orderlikes({
     eq: Orderlike('eq', {
         is_reflexive: true,
@@ -1518,6 +1518,61 @@ function ringExpressionInterface() {
         variables => isDefined(x, variables),
         manual_drag_options
     );
+}
+
+// -----------------------------------------------------------------------------
+// Expression shape canonicalization
+// Grouplike owns whether operand order is significant.
+// -----------------------------------------------------------------------------
+
+function expressionShapeCanonicalization() {
+    const unsorted = Object.freeze(['V(z)', 'V(a)']);
+    const canonical_add = grouplikes.canonicalize('add', unsorted);
+    assert(
+        canonical_add.join(',') === 'V(a),V(z)',
+        'expression shape: commutative Grouplike should canonicalize operand order'
+    );
+    assert(
+        unsorted.join(',') === 'V(z),V(a)',
+        'expression shape: canonicalization should not mutate its input'
+    );
+    assert(
+        grouplikes.canonicalize('pow', unsorted) === unsorted,
+        'expression shape: noncommutative Grouplike should preserve operand order'
+    );
+    assert(
+        grouplikes.canonicalize('unknown', unsorted) === unsorted,
+        'expression shape: unknown expression types should preserve operand order'
+    );
+
+    forEachPair((a, b) => {
+        const a_shape = expression_shape.encode(a);
+        const b_shape = expression_shape.encode(b);
+
+        assert(
+            expression_shape.encode(grouplikes.add([a, b])) ===
+            expression_shape.encode(grouplikes.add([b, a])),
+            `expression shape: commutative addition should ignore operand order\n`+
+            `a = ${describeCase(a)}\nb = ${describeCase(b)}`
+        );
+        stats.semantic_cases++;
+
+        if (a_shape === b_shape) return;
+
+        assert(
+            expression_shape.encode(grouplikes.pow(a, b)) !==
+            expression_shape.encode(grouplikes.pow(b, a)),
+            `expression shape: noncommutative power should preserve operand order\n`+
+            `a = ${describeCase(a)}\nb = ${describeCase(b)}`
+        );
+        assert(
+            expression_shape.encode(new Relation('eq', a, b)) !==
+            expression_shape.encode(new Relation('eq', b, a)),
+            `expression shape: non-Grouplike relations should preserve side order\n`+
+            `a = ${describeCase(a)}\nb = ${describeCase(b)}`
+        );
+        stats.semantic_cases += 2;
+    });
 }
 
 // -----------------------------------------------------------------------------
@@ -3688,6 +3743,7 @@ function inverseThroughDivision() {
     historyPresentation,
     fractionPreservation,
     ringExpressionInterface,
+    expressionShapeCanonicalization,
     additiveClosure,
     additiveCommutativity,
     additiveAssociativity,

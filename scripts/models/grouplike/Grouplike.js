@@ -1,5 +1,4 @@
 'use strict';
-// HUMAN VETTED
 
 /*
 `Grouplike` manages operations for a single algebraic operation.
@@ -189,6 +188,11 @@ const Grouplike = (label, properties, evaluatable) => {
         return create(contents);
     }
 
+    function canonicalize(content_shapes) {
+        typecheck(content_shapes, 'Array');
+        return is_commutative? content_shapes.slice().sort() : content_shapes;
+    }
+
     /*
     Division-capable structures share the same interface:
         divide(parent, source) -> (Expression -> Expression) | null
@@ -221,6 +225,7 @@ const Grouplike = (label, properties, evaluatable) => {
         create,
         combine,
         commute,
+        canonicalize,
         left_divide,
         right_divide,
         simplify,

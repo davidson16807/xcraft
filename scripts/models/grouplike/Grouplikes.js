@@ -89,6 +89,13 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         return structure.commute(expression, index1, index2);
     }
 
+    function canonicalize(type, contents) {
+        typecheck(type, 'String');
+        typecheck(contents, 'Array');
+        const structure = grouplike_expressions_for_tag[type];
+        return structure == null? contents : structure.canonicalize(contents);
+    }
+
     function _divide(parent, source, direction) {
         typecheck(parent, 'Expression+1');
         typecheck(source, 'Expression');
@@ -150,6 +157,7 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         div,
         combine,
         commute,
+        canonicalize,
         left_divide,
         right_divide,
         collapse,
