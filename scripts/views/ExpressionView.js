@@ -1,10 +1,10 @@
 'use strict';
-// HUMAN VETTED
 
 function ExpressionView(dependencies) {
 
     const html = dependencies.html;
     const paths = dependencies.expression_paths;
+    const grouplikes = dependencies.grouplikes;
     const ringlikes = dependencies.ringlikes;
     const render = dependencies.render;
     const precedence_for_tag = dependencies.precedence_for_tag;
@@ -114,13 +114,96 @@ function ExpressionView(dependencies) {
         ];
     }
 
+    function may_reorder(type) {
+        const probe = ['1', '0'];
+        const canonical = grouplikes.canonicalize(type, probe);
+        return canonical.length === 2 && canonical[0] === '0' && canonical[1] === '1';
+    }
+
+    function division_parts(type, items) {
+        const is_inverse = item => ringlikes.is_inverse('mul', item.factor);
+
+        if (may_reorder(type)) {
+            return {
+                type:'fraction',
+                numerator:items.filter(item => !is_inverse(item)),
+                denominator:items.filter(is_inverse),
+            };
+        }
+
+        const inverse_indexes = items
+            .map((item, index) => is_inverse(item)? index : -1)
+            .filter(index => index >= 0);
+
+        if (inverse_indexes.length === 1 && items.length > 1) {
+            const index = inverse_indexes[0];
+            if (index === 0) {
+                return {
+                    type:'left',
+                    divisor:items[0],
+                    dividend:items.slice(1),
+                };
+            }
+            if (index === items.length - 1) {
+                return {
+                    type:'right',
+                    dividend:items.slice(0, -1),
+                    divisor:items[items.length - 1],
+                };
+            }
+        }
+
+        return { type:'product', items:items };
+    }
+
+    function draw_directional_division(parts, path, draggable_paths, valid_targets) {
+        const dividend_parent = 2;
+        const dividend_nodes = product_nodes(
+            parts.dividend,
+            draggable_paths,
+            valid_targets,
+            dividend_parent
+        );
+        const divisor_node = draw_reciprocal_factor(
+            parts.divisor.factor,
+            parts.divisor.path,
+            draggable_paths,
+            valid_targets,
+            2
+        );
+
+        return html.span(
+            path_attributes(path, draggable_paths, valid_targets, 'expression-mul expression-division'),
+            parts.type === 'left'?
+                [divisor_node, math('\\backslash', 'math-operator division-operator'), ...dividend_nodes]
+              : [...dividend_nodes, math('/', 'math-operator division-operator'), divisor_node]
+        );
+    }
+
     function draw_mul(expression, path, draggable_paths, valid_targets) {
         const items = expression.contents.map(
             (factor, i) => ({ factor:factor, path:paths.nary(path, i) })
         );
-        const numerator = items.filter(item => !ringlikes.is_inverse('mul', item.factor));
-        const denominator = items.filter(item => ringlikes.is_inverse('mul', item.factor));
+        const parts = division_parts(expression.type, items);
 
+        if (parts.type === 'product') {
+            return html.span(
+                path_attributes(path, draggable_paths, valid_targets, 'expression-mul'),
+                product_nodes(parts.items, draggable_paths, valid_targets, 2)
+            );
+        }
+
+        if (parts.type === 'left' || parts.type === 'right') {
+            return draw_directional_division(
+                parts,
+                path,
+                draggable_paths,
+                valid_targets
+            );
+        }
+
+        const numerator = parts.numerator;
+        const denominator = parts.denominator;
         if (denominator.length === 0) {
             return html.span(
                 path_attributes(path, draggable_paths, valid_targets, 'expression-mul'),

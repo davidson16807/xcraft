@@ -2930,6 +2930,59 @@ function divisionStructureInterface() {
 }
 
 // -----------------------------------------------------------------------------
+// Division rendering order
+// ExpressionView uses Grouplike canonicalization to determine whether reciprocal
+// factors may be reordered for presentation.
+// -----------------------------------------------------------------------------
+
+function divisionRenderingOrder() {
+    const commutative = Grouplike(
+        'commutative_rendering',
+        { is_commutative:true },
+        () => NaN
+    );
+    const ordered = Grouplike(
+        'ordered_rendering',
+        {},
+        () => NaN
+    );
+
+    assert(
+        commutative.canonicalize(['1', '0']).join(',') === '0,1',
+        'division rendering: commutative products should permit presentation reordering'
+    );
+    assert(
+        ordered.canonicalize(['1', '0']).join(',') === '1,0',
+        'division rendering: ordered products should preserve factor order'
+    );
+
+    const expression_view_source = fs.readFileSync(
+        path.join(root, 'scripts/views/ExpressionView.js'),
+        'utf8'
+    );
+    assert(
+        expression_view_source.includes('grouplikes.canonicalize') &&
+        expression_view_source.includes("math('\\backslash'") &&
+        expression_view_source.includes("math('/'"),
+        'division rendering: ExpressionView should derive fraction/directional notation from canonicalization'
+    );
+
+    const grouplike_source = fs.readFileSync(
+        path.join(root, 'scripts/models/grouplike/Grouplike.js'),
+        'utf8'
+    );
+    const grouplikes_source = fs.readFileSync(
+        path.join(root, 'scripts/models/grouplike/Grouplikes.js'),
+        'utf8'
+    );
+    assert(
+        !grouplike_source.includes('division_parts') &&
+        !grouplikes_source.includes('division_parts'),
+        'division rendering: Grouplike should not own presentation-specific division partitioning'
+    );
+}
+
+// -----------------------------------------------------------------------------
 // Division definition
 // a / b = a * b^-1, for b != 0
 // -----------------------------------------------------------------------------
