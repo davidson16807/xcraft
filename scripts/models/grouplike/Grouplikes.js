@@ -97,7 +97,7 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
     }
 
     function rebuild(expression, contents) {
-        typecheck(expression, 'Expression');
+        typecheck(expression, 'Expression+Relation');
         typecheck(contents, 'Array');
         const structure = grouplike_expressions_for_tag[expression.type];
         if (structure == null) return expression.with({ contents:Object.freeze(contents) });
