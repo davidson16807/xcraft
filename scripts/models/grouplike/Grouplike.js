@@ -244,11 +244,11 @@ const Grouplike = (label, properties, evaluatable) => {
     for a lone source. Keeping it in the signature lets callers treat Grouplike
     and contextual inverse structures identically.
     */
-    function _divide(parent, source, definition, is_left) {
+    function _divide(parent, source, division, is_left) {
         typecheck(parent, 'Expression+1');
         typecheck(source, 'Expression');
         if (parent != null && parent.type !== label) return null;
-        if (definition == null) return null;
+        if (division == null) return null;
 
         if (parent != null && !is_commutative) {
             if (!Array.isArray(parent.contents)) return null;
@@ -258,7 +258,7 @@ const Grouplike = (label, properties, evaluatable) => {
             if (!is_left && source_index !== parent.contents.length - 1) return null;
         }
 
-        const divide = definition(source);
+        const divide = division(source);
         typecheck(divide, 'Function+1');
         if (divide == null) return null;
 
@@ -283,26 +283,31 @@ const Grouplike = (label, properties, evaluatable) => {
         return _divide(parent, source, right_division, false);
     }
 
-    /*
-    Division definitions imply their own cancellation law. If applying one of
-    this Grouplike's divisions to `inner` produces `outer`, then the selected
-    operand can be stripped from `inner` without requiring associativity.
-    */
+    function left_inverse(source) {
+        typecheck(source, 'Expression');
+        if (left_identity == null) return null;
+        const divide = right_divide(null, source);
+        return divide == null? null : create(divide(left_identity).contents.slice(1));
+    }
+
+    function right_inverse(source) {
+        typecheck(source, 'Expression');
+        if (right_identity == null) return null;
+        const divide = left_divide(null, source);
+        return divide == null? null : create(divide(right_identity).contents.slice(0,-1));
+    }
+
     function strip(outer, inner, outer_fixed, inner_fixed) {
         typecheck(outer, 'Expression');
         typecheck(inner, 'Expression');
         typecheck(outer_fixed, 'Expression');
         typecheck(inner_fixed, 'Expression');
-        if (outer.type !== label || inner.type !== label || !Array.isArray(inner.contents)) {
-            return null;
-        }
-
+        if (outer.type !== label || inner.type !== label || !Array.isArray(inner.contents)) return null;
         for (const divide of [left_divide, right_divide]) {
             const operation = divide(inner, inner_fixed);
             if (operation == null) continue;
             const divided = operation(inner);
             if (divided == null || !same(divided, outer)) continue;
-
             const index = inner.contents.indexOf(inner_fixed);
             if (index < 0) continue;
             const contents = inner.contents.slice();
@@ -321,6 +326,8 @@ const Grouplike = (label, properties, evaluatable) => {
         collapse,
         left_divide,
         right_divide,
+        left_inverse,
+        right_inverse,
         strip,
         simplify,
         evaluator,

@@ -97,12 +97,10 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
     }
 
     function rebuild(expression, contents) {
-        typecheck(expression, 'Expression+Relation');
+        typecheck(expression, 'Expression');
         typecheck(contents, 'Array');
         const structure = grouplike_expressions_for_tag[expression.type];
-        if (structure == null) {
-            return expression.with({ contents:Object.freeze(contents) });
-        }
+        if (structure == null) return expression.with({ contents:Object.freeze(contents) });
         const rebuilt = structure.create(contents);
         return rebuilt == null? expression.with({ contents:Object.freeze(contents) }) :
             rebuilt.caveat(...expression.caveats);
@@ -124,14 +122,28 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         return _divide(parent, source, 'right_divide');
     }
 
+    function _inverse(type, source, direction) {
+        typecheck(type, 'String');
+        typecheck(source, 'Expression');
+        const structure = grouplike_expressions_for_tag[type];
+        return structure == null? null : structure[direction](source);
+    }
+
+    function left_inverse(type, source) {
+        return _inverse(type, source, 'left_inverse');
+    }
+
+    function right_inverse(type, source) {
+        return _inverse(type, source, 'right_inverse');
+    }
+
     function strip(outer, inner, outer_fixed, inner_fixed) {
         typecheck(outer, 'Expression');
         typecheck(inner, 'Expression');
         typecheck(outer_fixed, 'Expression');
         typecheck(inner_fixed, 'Expression');
         const structure = grouplike_expressions_for_tag[outer.type];
-        return structure == null? null :
-            structure.strip(outer, inner, outer_fixed, inner_fixed);
+        return structure == null? null : structure.strip(outer, inner, outer_fixed, inner_fixed);
     }
 
     function collapse(expression, index1, index2, replacement) {
@@ -140,8 +152,7 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         typecheck(index2, 'Number');
         typecheck(replacement, 'Expression');
         const structure = grouplike_expressions_for_tag[expression.type];
-        return structure == null? null :
-            structure.collapse(expression, index1, index2, replacement);
+        return structure == null? null : structure.collapse(expression, index1, index2, replacement);
     }
 
     const evaluator = variables => expression => {
@@ -178,6 +189,8 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         rebuild,
         left_divide,
         right_divide,
+        left_inverse,
+        right_inverse,
         strip,
         collapse,
         simplify,
