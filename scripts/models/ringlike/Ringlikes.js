@@ -12,13 +12,6 @@ All functions are pure.
 */
 const Ringlikes = ringlike_for_tag => {
 
-    function inverse(type, expression) {
-        typecheck(type, 'String');
-        typecheck(expression, 'Expression');
-        const ringlike = ringlike_for_tag[type];
-        return ringlike && ringlike.inverse(expression);
-    }
-
     function is_inverse(type, expression) {
         typecheck(type, 'String');
         typecheck(expression, 'Expression');
@@ -29,7 +22,8 @@ const Ringlikes = ringlike_for_tag => {
     function absolute(type, expression) {
         typecheck(type, 'String');
         typecheck(expression, 'Expression');
-        return is_inverse(type, expression)? inverse(type, expression) : expression;
+        const ringlike = ringlike_for_tag[type];
+        return ringlike? ringlike.absolute(expression) : expression;
     }
 
     function combine(type, left, right) {
@@ -59,7 +53,6 @@ const Ringlikes = ringlike_for_tag => {
     }
 
     return Object.freeze({
-        inverse,
         is_inverse,
         absolute,
         combine,

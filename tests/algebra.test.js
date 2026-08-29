@@ -338,6 +338,18 @@ const x = grouplikes.variable('x');
 const zero = grouplikes.constant(0);
 const one = grouplikes.constant(1);
 
+function inverseThroughGrouplikeDivision(type, source) {
+    const identity = type === 'add'? zero : one;
+    const structure = grouplikes.structures.find(item => item.label === type);
+    const divide = structure && structure.right_divide(null, source);
+    assert(typeof divide === 'function', `${type}: inverse requires right division`);
+    const represented = divide(identity);
+    return equations.simplify(new Relation('eq', represented, identity)).left;
+}
+
+const additive_group_inverse = source => inverseThroughGrouplikeDivision('add', source);
+const multiplicative_group_inverse = source => inverseThroughGrouplikeDivision('mul', source);
+
 /*
 The ringlikes pool contains grouplikes without division by a variable expression.
 The field pool extends it with reciprocals and negative powers.  Algebraic
@@ -350,7 +362,7 @@ const ring_expression_cases = Object.freeze([
     grouplikes.constant(1),
     grouplikes.constant(2),
     x,
-    ringlikes.inverse('add', x),
+    additive_inverse(x),
     grouplikes.add([x, grouplikes.constant(2)]),
     grouplikes.add([x, grouplikes.constant(-3)]),
     grouplikes.mul([grouplikes.constant(3), x]),
@@ -368,16 +380,16 @@ const ring_expression_cases = Object.freeze([
 
 const field_expression_cases = Object.freeze([
     ...ring_expression_cases,
-    ringlikes.inverse('mul', x),
-    ringlikes.inverse('mul', 
+    multiplicative_inverse(x),
+    multiplicative_inverse(
         grouplikes.add([x, grouplikes.constant(1)])
     ),
-    ringlikes.inverse('mul', 
+    multiplicative_inverse(
         grouplikes.add([x, grouplikes.constant(-2)])
     ),
     grouplikes.mul([
         grouplikes.constant(3),
-        ringlikes.inverse('mul', x),
+        multiplicative_inverse(x),
     ]),
     grouplikes.pow(x, -2),
     grouplikes.div(
@@ -865,16 +877,16 @@ function caveatTracking() {
     assert(orderlikes.evaluate(nonzero_x, {}) === undefined,
         'caveats: orderlike evaluator should leave symbolic relations unresolved');
 
-    const reciprocal_x = ringlikes.inverse('mul', x);
+    const reciprocal_x = multiplicative_group_inverse(x);
     assert(reciprocal_x != null && has(reciprocal_x, nonzero_x),
         'caveats: introducing a reciprocal should require a nonzero denominator');
-    const reciprocal_six = ringlikes.inverse('mul', six);
+    const reciprocal_six = multiplicative_group_inverse(six);
     const accepted_reciprocal_six = expression_caveats.gather(reciprocal_six);
     assert(
         accepted_reciprocal_six != null && accepted_reciprocal_six.length === 0,
         'caveats: true constant reciprocal restrictions should be omitted when indexed'
     );
-    const reciprocal_zero = ringlikes.inverse('mul', zero);
+    const reciprocal_zero = multiplicative_group_inverse(zero);
     assert(reciprocal_zero != null && expression_caveats.gather(reciprocal_zero) == null,
         'caveats: false constant reciprocal restrictions should reject the transformation');
 
@@ -1027,7 +1039,7 @@ ${context}`
 
     // A lone reciprocal must expose multiplication so denominators can move
     // across the equality even when no Add/Multiply mode has been selected.
-    const reciprocal_x = ringlikes.inverse('mul', x);
+    const reciprocal_x = multiplicative_group_inverse(x);
     const denominator_equation = new Relation('eq', reciprocal_x, rhs);
     const denominator_choices = algebra.choices(
         denominator_equation,
@@ -1330,7 +1342,7 @@ function fractionPreservation() {
     const two = grouplikes.constant(2);
     const three = grouplikes.constant(3);
     const six = grouplikes.constant(6);
-    const third = ringlikes.inverse('mul', three);
+    const third = multiplicative_group_inverse(three);
     const one_third = grouplikes.mul([one, third]);
     const six_thirds = grouplikes.mul([six, third]);
 
@@ -1386,72 +1398,48 @@ function fractionPreservation() {
 }
 
 // -----------------------------------------------------------------------------
-// Ring-expression interface
-// additive and multiplicative groups expose inversion polymorphically.
+// Ring-expression representation interface
+// Ringlike recognizes and normalizes inverse-shaped scale/power expressions,
+// but semantic inversion is supplied by Grouplike division definitions.
 // -----------------------------------------------------------------------------
 
 function ringExpressionInterface() {
-    const negative_x = ringlikes.inverse('add', x);
+    const negative_x = additive_inverse(x);
     assert(
         ringlikes.is_inverse('add', negative_x),
-        'Ringlikes: additive inverse should be recognized'
+        'Ringlikes: additive inverse representation should be recognized'
     );
     assert(
         !ringlikes.is_inverse('add', x),
-        'Ringlikes: ordinary additive expression should not be inverse'
+        'Ringlikes: ordinary additive expression should not be inverse-shaped'
     );
-    assertSameExpression(
-        ringlikes.inverse('add', negative_x),
-        x,
-        'Ringlikes',
-        'additive inverse should be involutive'
-    );
-
-    const reciprocal_x = ringlikes.inverse('mul', x);
-    assert(
-        ringlikes.is_inverse('mul', reciprocal_x),
-        'Ringlikes: multiplicative inverse should be recognized'
-    );
-    assert(
-        !ringlikes.is_inverse('mul', x),
-        'Ringlikes: ordinary multiplicative expression should not be inverse'
-    );
-    assertSameExpression(
-        ringlikes.inverse('mul', reciprocal_x),
-        x,
-        'Ringlikes',
-        'multiplicative inverse should be involutive'
-    );
-    const reciprocal_zero = ringlikes.inverse('mul', zero);
-    assert(
-        reciprocal_zero != null && expression_caveats.gather(reciprocal_zero) == null,
-        'Ringlikes: a zero reciprocal candidate should be rejected by caveat validation'
-    );
-    assertSameExpression(
-        ringlikes.inverse('mul', one),
-        one,
-        'Ringlikes',
-        'multiplicative identity should be its own inverse'
-    );
-
-
     assertSameExpression(
         ringlikes.absolute('add', negative_x),
         x,
         'Ringlikes',
-        'absolute should invert an additive inverse'
+        'absolute should remove the additive inverse representation'
     );
     assertSameExpression(
         ringlikes.absolute('add', x),
         x,
         'Ringlikes',
-        'absolute should preserve a non-inverse expression'
+        'absolute should preserve a non-inverse additive expression'
+    );
+
+    const reciprocal_x = multiplicative_inverse(x);
+    assert(
+        ringlikes.is_inverse('mul', reciprocal_x),
+        'Ringlikes: reciprocal representation should be recognized'
+    );
+    assert(
+        !ringlikes.is_inverse('mul', x),
+        'Ringlikes: ordinary multiplicative expression should not be reciprocal-shaped'
     );
     assertSameExpression(
         ringlikes.absolute('mul', reciprocal_x),
         x,
         'Ringlikes',
-        'absolute should invert a multiplicative inverse'
+        'absolute should remove the reciprocal representation'
     );
     assertSameExpression(
         ringlikes.absolute('mul', x),
@@ -1690,7 +1678,7 @@ function additiveInverse() {
         const where = variables => isDefined(a, variables);
         if (!hasAdmissibleAssignment(where)) continue;
 
-        const negative_a = ringlikes.inverse('add', a);
+        const negative_a = additive_group_inverse(a);
         const left = grouplikes.add([a, negative_a]);
         const context = `a = ${describeCase(a)}`;
 
@@ -2047,9 +2035,9 @@ function powerTriangleSameness() {
         manual_drag_options
     );
 
-    const harmonic_desugared = ringlikes.inverse('mul', grouplikes.add([
-        ringlikes.inverse('mul', log_two_x),
-        ringlikes.inverse('mul', log_three_x),
+    const harmonic_desugared = multiplicative_group_inverse(grouplikes.add([
+        multiplicative_group_inverse(log_two_x),
+        multiplicative_group_inverse(log_three_x),
     ]));
     assertExpressionsEquivalent(
         harmonic_logs,
@@ -2112,7 +2100,7 @@ function powerTriangleSameness() {
 function powerTriangleComposition() {
     const two = grouplikes.constant(2);
     const three = grouplikes.constant(3);
-    const reciprocal_x = ringlikes.inverse('mul', x);
+    const reciprocal_x = multiplicative_group_inverse(x);
 
     const nested = grouplikes.pow(grouplikes.pow(x, two), three);
     const combined = grouplikes.pow(x, grouplikes.mul([two, three]));
@@ -2628,7 +2616,7 @@ function multiplicativeInverse() {
         const where = variables => isDefinedNonzero(a, variables);
         if (!hasAdmissibleAssignment(where)) continue;
 
-        const reciprocal_a = ringlikes.inverse('mul', a);
+        const reciprocal_a = multiplicative_inverse(a);
         const product = grouplikes.mul([a, reciprocal_a]);
         const context = `a = ${describeCase(a)}`;
 
@@ -2676,7 +2664,7 @@ function doubleReciprocal() {
         if (!hasAdmissibleAssignment(where)) continue;
 
         assertExpressionsEquivalent(
-            ringlikes.inverse('mul', ringlikes.inverse('mul', a)),
+            multiplicative_group_inverse(multiplicative_group_inverse(a)),
             a,
             'double reciprocal',
             `a = ${describeCase(a)}`,
@@ -2695,10 +2683,10 @@ function inverseOfProduct() {
         const where = variables => allDefinedNonzero([a, b], variables);
         if (!hasAdmissibleAssignment(where)) return;
 
-        const left = ringlikes.inverse('mul', grouplikes.mul([a, b]));
+        const left = multiplicative_group_inverse(grouplikes.mul([a, b]));
         const right = grouplikes.mul([
-            ringlikes.inverse('mul', a),
-            ringlikes.inverse('mul', b),
+            multiplicative_group_inverse(a),
+            multiplicative_group_inverse(b),
         ]);
 
         assertExpressionsEquivalent(
@@ -2725,7 +2713,7 @@ function multiplicativeCancellation() {
         const left = grouplikes.mul([
             a,
             b,
-            ringlikes.inverse('mul', b),
+            multiplicative_group_inverse(b),
         ]);
 
         assertExpressionsEquivalent(
@@ -2804,7 +2792,7 @@ function divisionDefinition() {
 
         assertExpressionsEquivalent(
             grouplikes.div(a, b),
-            grouplikes.mul([a, ringlikes.inverse('mul', b)]),
+            grouplikes.mul([a, multiplicative_group_inverse(b)]),
             'division definition',
             `a = ${describeCase(a)}\nb = ${describeCase(b)}`,
             where
@@ -2859,7 +2847,7 @@ function multiplicativeBalance() {
             );
         }
 
-        const reciprocal_factor = ringlikes.inverse('mul', a);
+        const reciprocal_factor = multiplicative_group_inverse(a);
         const reverse_before = new Relation('eq', 
             grouplikes.mul([x, reciprocal_factor]),
             b
@@ -2939,15 +2927,15 @@ function distributivity() {
         grouplikes.constant(2),
         x,
         grouplikes.pow(x, 2),
-        ringlikes.inverse('mul', x),
-        ringlikes.inverse('mul', grouplikes.add([x, grouplikes.constant(1)])),
+        multiplicative_group_inverse(x),
+        multiplicative_group_inverse(grouplikes.add([x, grouplikes.constant(1)])),
     ];
     const addend_cases = [
         x,
-        ringlikes.inverse('add', x),
+        additive_group_inverse(x),
         grouplikes.mul([grouplikes.constant(3), x]),
         grouplikes.pow(x, 2),
-        ringlikes.inverse('mul', grouplikes.add([x, grouplikes.constant(1)])),
+        multiplicative_group_inverse(grouplikes.add([x, grouplikes.constant(1)])),
     ];
 
     for (const a of factor_cases)
@@ -2991,6 +2979,611 @@ function distributivity() {
             manual_drag_options
         );
     }
+}
+
+// -----------------------------------------------------------------------------
+// Broader Grouplike algebra coverage
+// These tests deliberately use only the finalized Grouplike contract. Laws
+// spanning multiple operations belong in other structures and are not tested
+// here as Grouplike properties.
+// -----------------------------------------------------------------------------
+
+function algebraValue(type, components) {
+    return new Expression(
+        type,
+        Object.freeze(components.map(value => new Expression('constant', value)))
+    );
+}
+
+function algebraValueComponents(expression) {
+    return expression.contents.map(component => component.contents);
+}
+
+function algebraApproximatelyEqual(left, right) {
+    if (Array.isArray(left) || Array.isArray(right)) {
+        return Array.isArray(left) && Array.isArray(right) &&
+            left.length === right.length &&
+            left.every((item, index) => algebraApproximatelyEqual(item, right[index]));
+    }
+    return approximatelyEqual(left, right);
+}
+
+function algebraEvaluator(structures, values, unary) {
+    const evaluate = expression => {
+        if (expression.type === 'constant') return expression.contents;
+        if (values[expression.type] != null) return values[expression.type](expression);
+        if (unary[expression.type] != null) {
+            return unary[expression.type](evaluate(expression.contents[0]));
+        }
+        const structure = structures[expression.type];
+        if (structure == null) return NaN;
+        return structure.evaluator(evaluate)(expression);
+    };
+    return evaluate;
+}
+
+function assertAlgebraEquivalent(left, right, evaluate, property, context) {
+    const left_value = evaluate(left);
+    const right_value = evaluate(right);
+    stats.evaluations++;
+    stats.semantic_cases++;
+    assert(
+        algebraApproximatelyEqual(left_value, right_value),
+        `${property} failed\n${context}\n`+
+        `left: ${JSON.stringify(left_value)}\nright: ${JSON.stringify(right_value)}`
+    );
+}
+
+function forEachAlgebraPair(cases, callback) {
+    for (const a of cases)
+    for (const b of cases)
+        callback(a, b);
+}
+
+function forEachAlgebraTriple(cases, callback) {
+    for (const a of cases)
+    for (const b of cases)
+    for (const c of cases)
+        callback(a, b, c);
+}
+
+function inverseDivision(label, inverse_type, side) {
+    return divisor => expression => new Expression(
+        label,
+        Object.freeze(
+            side === 'left'?
+                [new Expression(inverse_type, Object.freeze([divisor])), expression]
+              : [expression, new Expression(inverse_type, Object.freeze([divisor]))]
+        )
+    );
+}
+
+function scalarDivision(label, negate_type) {
+    return divisor => expression => new Expression(
+        label,
+        Object.freeze([
+            expression,
+            new Expression(negate_type, Object.freeze([divisor])),
+        ])
+    );
+}
+
+function booleanAndSetAlgebras() {
+    const zero_local = new Expression('constant', 0);
+    const one_local = new Expression('constant', 1);
+    const universe = new Expression('constant', 7);
+
+    const boolean_and = Grouplike(
+        'boolean_and',
+        {
+            is_commutative:true,
+            is_associative:true,
+            left_identity:one_local,
+            right_identity:one_local,
+            left_annihilator:zero_local,
+            right_annihilator:zero_local,
+            is_idempotent:true,
+        },
+        items => items.reduce((left, right) => Number(Boolean(left) && Boolean(right)), 1)
+    );
+    const boolean_or = Grouplike(
+        'boolean_or',
+        {
+            is_commutative:true,
+            is_associative:true,
+            left_identity:zero_local,
+            right_identity:zero_local,
+            left_annihilator:one_local,
+            right_annihilator:one_local,
+            is_idempotent:true,
+        },
+        items => items.reduce((left, right) => Number(Boolean(left) || Boolean(right)), 0)
+    );
+    const boolean_xor = Grouplike(
+        'boolean_xor',
+        {
+            is_commutative:true,
+            is_associative:true,
+            left_identity:zero_local,
+            right_identity:zero_local,
+            self_combination:zero_local,
+        },
+        items => items.reduce((left, right) => left ^ right, 0)
+    );
+    const union = Grouplike(
+        'set_union',
+        {
+            is_commutative:true,
+            is_associative:true,
+            left_identity:zero_local,
+            right_identity:zero_local,
+            left_annihilator:universe,
+            right_annihilator:universe,
+            is_idempotent:true,
+        },
+        items => items.reduce((left, right) => left | right, 0)
+    );
+    const intersection = Grouplike(
+        'set_intersection',
+        {
+            is_commutative:true,
+            is_associative:true,
+            left_identity:universe,
+            right_identity:universe,
+            left_annihilator:zero_local,
+            right_annihilator:zero_local,
+            is_idempotent:true,
+        },
+        items => items.reduce((left, right) => left & right, 7)
+    );
+
+    const structures = {
+        boolean_and,
+        boolean_or,
+        boolean_xor,
+        set_union:union,
+        set_intersection:intersection,
+    };
+    const evaluate = algebraEvaluator(structures, {}, {});
+
+    for (const structure of [boolean_and, boolean_or]) {
+        const cases = [zero_local, one_local];
+        forEachAlgebraPair(cases, (a, b) => {
+            assertAlgebraEquivalent(
+                structure.create([a, b]),
+                structure.create([b, a]),
+                evaluate,
+                `${structure.label} commutativity`,
+                `a=${a.contents}, b=${b.contents}`
+            );
+        });
+        forEachAlgebraTriple(cases, (a, b, c) => {
+            assertAlgebraEquivalent(
+                structure.create([structure.create([a, b]), c]),
+                structure.create([a, structure.create([b, c])]),
+                evaluate,
+                `${structure.label} associativity`,
+                `a=${a.contents}, b=${b.contents}, c=${c.contents}`
+            );
+        });
+        for (const a of cases) {
+            assertSameExpression(
+                structure.combine(a, a),
+                a,
+                `${structure.label} idempotence`,
+                `a=${a.contents}`
+            );
+        }
+        assert(structure.left_divide(null, one_local) == null,
+            `${structure.label}: division should be absent`);
+        assert(structure.right_divide(null, one_local) == null,
+            `${structure.label}: division should be absent`);
+    }
+
+    for (const a of [zero_local, one_local]) {
+        assertSameExpression(
+            boolean_xor.combine(a, a),
+            zero_local,
+            'boolean_xor self-combination',
+            `a=${a.contents}`
+        );
+    }
+
+    const set_cases = [0, 1, 2, 3, 5, 7].map(value => new Expression('constant', value));
+    for (const structure of [union, intersection]) {
+        forEachAlgebraPair(set_cases, (a, b) => {
+            assertAlgebraEquivalent(
+                structure.create([a, b]),
+                structure.create([b, a]),
+                evaluate,
+                `${structure.label} commutativity`,
+                `a=${a.contents}, b=${b.contents}`
+            );
+        });
+        forEachAlgebraTriple(set_cases, (a, b, c) => {
+            assertAlgebraEquivalent(
+                structure.create([structure.create([a, b]), c]),
+                structure.create([a, structure.create([b, c])]),
+                evaluate,
+                `${structure.label} associativity`,
+                `a=${a.contents}, b=${b.contents}, c=${c.contents}`
+            );
+        });
+        for (const a of set_cases) {
+            assertSameExpression(
+                structure.combine(a, a),
+                a,
+                `${structure.label} idempotence`,
+                `a=${a.contents}`
+            );
+        }
+    }
+}
+
+function vectorAlgebra() {
+    const vector = values => algebraValue('vector2', values);
+    const zero_vector = vector([0, 0]);
+    const negate = value => value.map(component => -component);
+    const add_values = items => items.reduce(
+        (sum, value) => sum.map((component, index) => component + value[index]),
+        [0, 0]
+    );
+    const divide = scalarDivision('vector_add', 'vector_negate');
+    const vector_add = Grouplike(
+        'vector_add',
+        {
+            is_commutative:true,
+            is_associative:true,
+            left_identity:zero_vector,
+            right_identity:zero_vector,
+            left_divide:divide,
+            right_divide:divide,
+        },
+        add_values
+    );
+    const evaluate = algebraEvaluator(
+        { vector_add },
+        { vector2:expression => algebraValueComponents(expression) },
+        { vector_negate:negate }
+    );
+    const cases = [
+        vector([0, 0]), vector([1, 0]), vector([0, 1]),
+        vector([2, -3]), vector([-1, 4]),
+    ];
+
+    forEachAlgebraPair(cases, (a, b) => {
+        assertAlgebraEquivalent(
+            vector_add.create([a, b]),
+            vector_add.create([b, a]),
+            evaluate,
+            'vector addition commutativity',
+            `a=${JSON.stringify(evaluate(a))}, b=${JSON.stringify(evaluate(b))}`
+        );
+        const quotient = vector_add.right_divide(null, b)(a);
+        assertAlgebraEquivalent(
+            vector_add.create([quotient, b]),
+            a,
+            evaluate,
+            'vector additive right division',
+            `a=${JSON.stringify(evaluate(a))}, b=${JSON.stringify(evaluate(b))}`
+        );
+        const left_quotient = vector_add.left_divide(null, b)(a);
+        assertAlgebraEquivalent(
+            vector_add.create([b, left_quotient]),
+            a,
+            evaluate,
+            'vector additive left division',
+            `a=${JSON.stringify(evaluate(a))}, b=${JSON.stringify(evaluate(b))}`
+        );
+    });
+
+    forEachAlgebraTriple(cases, (a, b, c) => {
+        assertAlgebraEquivalent(
+            vector_add.create([vector_add.create([a, b]), c]),
+            vector_add.create([a, vector_add.create([b, c])]),
+            evaluate,
+            'vector addition associativity',
+            `a=${JSON.stringify(evaluate(a))}, b=${JSON.stringify(evaluate(b))}, c=${JSON.stringify(evaluate(c))}`
+        );
+    });
+}
+
+function complexAlgebra() {
+    const complex = values => algebraValue('complex', values);
+    const zero_complex = complex([0, 0]);
+    const one_complex = complex([1, 0]);
+    const multiply = ([ar, ai], [br, bi]) => [ar*br - ai*bi, ar*bi + ai*br];
+    const inverse = ([real, imaginary]) => {
+        const norm = real*real + imaginary*imaginary;
+        return [real/norm, -imaginary/norm];
+    };
+    const left_divide = inverseDivision('complex_mul', 'complex_inverse', 'left');
+    const right_divide = inverseDivision('complex_mul', 'complex_inverse', 'right');
+    const complex_mul = Grouplike(
+        'complex_mul',
+        {
+            is_commutative:true,
+            is_associative:true,
+            left_identity:one_complex,
+            right_identity:one_complex,
+            left_annihilator:zero_complex,
+            right_annihilator:zero_complex,
+            left_divide,
+            right_divide,
+        },
+        items => items.reduce(multiply, [1, 0])
+    );
+    const evaluate = algebraEvaluator(
+        { complex_mul },
+        { complex:expression => algebraValueComponents(expression) },
+        { complex_inverse:inverse }
+    );
+    const cases = [
+        complex([1, 0]), complex([0, 1]), complex([1, 1]),
+        complex([2, -1]), complex([-1, 2]),
+    ];
+
+    forEachAlgebraPair(cases, (a, b) => {
+        assertAlgebraEquivalent(
+            complex_mul.create([a, b]),
+            complex_mul.create([b, a]),
+            evaluate,
+            'complex multiplication commutativity',
+            `a=${JSON.stringify(evaluate(a))}, b=${JSON.stringify(evaluate(b))}`
+        );
+        const quotient = complex_mul.right_divide(null, b)(a);
+        assertAlgebraEquivalent(
+            complex_mul.create([quotient, b]),
+            a,
+            evaluate,
+            'complex right division',
+            `a=${JSON.stringify(evaluate(a))}, b=${JSON.stringify(evaluate(b))}`
+        );
+    });
+    forEachAlgebraTriple(cases, (a, b, c) => {
+        assertAlgebraEquivalent(
+            complex_mul.create([complex_mul.create([a, b]), c]),
+            complex_mul.create([a, complex_mul.create([b, c])]),
+            evaluate,
+            'complex multiplication associativity',
+            `a=${JSON.stringify(evaluate(a))}, b=${JSON.stringify(evaluate(b))}, c=${JSON.stringify(evaluate(c))}`
+        );
+    });
+}
+
+function quaternionMultiply(a, b) {
+    const [aw, ax, ay, az] = a;
+    const [bw, bx, by, bz] = b;
+    return [
+        aw*bw - ax*bx - ay*by - az*bz,
+        aw*bx + ax*bw + ay*bz - az*by,
+        aw*by - ax*bz + ay*bw + az*bx,
+        aw*bz + ax*by - ay*bx + az*bw,
+    ];
+}
+
+function quaternionConjugate([w, x, y, z]) {
+    return [w, -x, -y, -z];
+}
+
+function quaternionInverse(value) {
+    const norm = value.reduce((sum, component) => sum + component*component, 0);
+    return quaternionConjugate(value).map(component => component / norm);
+}
+
+function quaternionAlgebra() {
+    const quaternion = values => algebraValue('quaternion', values);
+    const zero_quaternion = quaternion([0, 0, 0, 0]);
+    const one_quaternion = quaternion([1, 0, 0, 0]);
+    const left_divide = inverseDivision('quaternion_mul', 'quaternion_inverse', 'left');
+    const right_divide = inverseDivision('quaternion_mul', 'quaternion_inverse', 'right');
+    const quaternion_mul = Grouplike(
+        'quaternion_mul',
+        {
+            is_associative:true,
+            left_identity:one_quaternion,
+            right_identity:one_quaternion,
+            left_annihilator:zero_quaternion,
+            right_annihilator:zero_quaternion,
+            left_divide,
+            right_divide,
+        },
+        items => items.reduce(quaternionMultiply, [1, 0, 0, 0])
+    );
+    const evaluate = algebraEvaluator(
+        { quaternion_mul },
+        { quaternion:expression => algebraValueComponents(expression) },
+        { quaternion_inverse:quaternionInverse }
+    );
+    const cases = [
+        quaternion([1, 0, 0, 0]),
+        quaternion([0, 1, 0, 0]),
+        quaternion([0, 0, 1, 0]),
+        quaternion([0, 0, 0, 1]),
+        quaternion([1, 1, 0, 0]),
+        quaternion([1, -1, 2, 0]),
+    ];
+
+    forEachAlgebraTriple(cases, (a, b, c) => {
+        assertAlgebraEquivalent(
+            quaternion_mul.create([quaternion_mul.create([a, b]), c]),
+            quaternion_mul.create([a, quaternion_mul.create([b, c])]),
+            evaluate,
+            'quaternion multiplication associativity',
+            `a=${JSON.stringify(evaluate(a))}, b=${JSON.stringify(evaluate(b))}, c=${JSON.stringify(evaluate(c))}`
+        );
+    });
+
+    forEachAlgebraPair(cases, (a, b) => {
+        const right_quotient = quaternion_mul.right_divide(null, b)(a);
+        assertAlgebraEquivalent(
+            quaternion_mul.create([right_quotient, b]),
+            a,
+            evaluate,
+            'quaternion right division',
+            `a=${JSON.stringify(evaluate(a))}, b=${JSON.stringify(evaluate(b))}`
+        );
+        const left_quotient = quaternion_mul.left_divide(null, b)(a);
+        assertAlgebraEquivalent(
+            quaternion_mul.create([b, left_quotient]),
+            a,
+            evaluate,
+            'quaternion left division',
+            `a=${JSON.stringify(evaluate(a))}, b=${JSON.stringify(evaluate(b))}`
+        );
+    });
+
+    const i = cases[1];
+    const j = cases[2];
+    assert(
+        !algebraApproximatelyEqual(
+            evaluate(quaternion_mul.create([i, j])),
+            evaluate(quaternion_mul.create([j, i]))
+        ),
+        'quaternion multiplication should remain noncommutative'
+    );
+    const ij = quaternion_mul.create([i, j]);
+    assert(quaternion_mul.commute(ij, 0, 1) === ij,
+        'noncommutative Grouplike should not advertise a swap by changing the expression');
+}
+
+function octonionConjugate(value) {
+    return [value[0], ...value.slice(1).map(component => -component)];
+}
+
+function octonionMultiply(left, right) {
+    const a = left.slice(0, 4);
+    const b = left.slice(4, 8);
+    const c = right.slice(0, 4);
+    const d = right.slice(4, 8);
+    const ac = quaternionMultiply(a, c);
+    const d_conj_b = quaternionMultiply(d, quaternionConjugate(b));
+    const conj_a_d = quaternionMultiply(quaternionConjugate(a), d);
+    const cb = quaternionMultiply(c, b);
+    return [
+        ...ac.map((component, index) => component - d_conj_b[index]),
+        ...conj_a_d.map((component, index) => component + cb[index]),
+    ];
+}
+
+function octonionInverse(value) {
+    const norm = value.reduce((sum, component) => sum + component*component, 0);
+    return octonionConjugate(value).map(component => component / norm);
+}
+
+function octonionAlgebra() {
+    const octonion = values => algebraValue('octonion', values);
+    const zero_octonion = octonion([0, 0, 0, 0, 0, 0, 0, 0]);
+    const one_octonion = octonion([1, 0, 0, 0, 0, 0, 0, 0]);
+    const left_divide = inverseDivision('octonion_mul', 'octonion_inverse', 'left');
+    const right_divide = inverseDivision('octonion_mul', 'octonion_inverse', 'right');
+    const octonion_mul = Grouplike(
+        'octonion_mul',
+        {
+            left_identity:one_octonion,
+            right_identity:one_octonion,
+            left_annihilator:zero_octonion,
+            right_annihilator:zero_octonion,
+            left_divide,
+            right_divide,
+        },
+        items => octonionMultiply(items[0], items[1])
+    );
+    const evaluate = algebraEvaluator(
+        { octonion_mul },
+        { octonion:expression => algebraValueComponents(expression) },
+        { octonion_inverse:octonionInverse }
+    );
+    const basis = index => octonion(
+        Array.from({length:8}, (_, component) => component === index? 1 : 0)
+    );
+    const cases = [
+        one_octonion,
+        basis(1), basis(2), basis(3), basis(4),
+        octonion([1, 1, 0, 0, 0, 0, 0, 0]),
+    ];
+
+    forEachAlgebraPair(cases, (a, b) => {
+        const right_quotient = octonion_mul.right_divide(null, b)(a);
+        assertAlgebraEquivalent(
+            octonion_mul.create([right_quotient, b]),
+            a,
+            evaluate,
+            'octonion right division',
+            `a=${JSON.stringify(evaluate(a))}, b=${JSON.stringify(evaluate(b))}`
+        );
+        const left_quotient = octonion_mul.left_divide(null, b)(a);
+        assertAlgebraEquivalent(
+            octonion_mul.create([b, left_quotient]),
+            a,
+            evaluate,
+            'octonion left division',
+            `a=${JSON.stringify(evaluate(a))}, b=${JSON.stringify(evaluate(b))}`
+        );
+    });
+
+    let found_nonassociative = false;
+    for (const a of cases)
+    for (const b of cases)
+    for (const c of cases) {
+        const left = octonion_mul.create([octonion_mul.create([a, b]), c]);
+        const right = octonion_mul.create([a, octonion_mul.create([b, c])]);
+        if (!algebraApproximatelyEqual(evaluate(left), evaluate(right))) {
+            found_nonassociative = true;
+            break;
+        }
+    }
+    assert(found_nonassociative,
+        'octonion sample set should demonstrate nonassociativity');
+
+    const a = basis(1);
+    const b = basis(2);
+    const nested = octonion_mul.create([octonion_mul.create([a, b]), basis(4)]);
+    assert(
+        nested.type === 'octonion_mul' && nested.contents[0].type === 'octonion_mul',
+        'nonassociative Grouplike should preserve explicit binary nesting'
+    );
+}
+
+function inverseThroughDivision() {
+    const additive_structure = grouplikes.structures.find(structure => structure.label === 'add');
+    const multiplicative_structure = grouplikes.structures.find(structure => structure.label === 'mul');
+    assert(additive_structure != null && multiplicative_structure != null,
+        'division-derived inverse tests require additive and multiplicative Grouplikes');
+
+    for (const a of field_expression_cases) {
+        const additive_division = additive_structure.right_divide(null, a);
+        assert(typeof additive_division === 'function',
+            'additive inverse should be derivable from right division');
+        const additive_candidate = additive_division(zero);
+        const additive_where = variables => isDefined(a, variables);
+        if (hasAdmissibleAssignment(additive_where)) {
+            assertExpressionsEquivalent(
+                grouplikes.add([a, additive_candidate]),
+                zero,
+                'additive inverse derived through division',
+                `a = ${describeCase(a)}`,
+                additive_where
+            );
+        }
+
+        const multiplicative_where = variables => isDefinedNonzero(a, variables);
+        if (!hasAdmissibleAssignment(multiplicative_where)) continue;
+        const multiplicative_division = multiplicative_structure.right_divide(null, a);
+        assert(typeof multiplicative_division === 'function',
+            'multiplicative inverse should be derivable from right division');
+        const multiplicative_candidate = multiplicative_division(one);
+        assertExpressionsEquivalent(
+            grouplikes.mul([a, multiplicative_candidate]),
+            one,
+            'multiplicative inverse derived through division',
+            `a = ${describeCase(a)}`,
+            multiplicative_where
+        );
+    }
+
+    assert(ringlikes.inverse == null,
+        'Ringlikes should not expose semantic inverse construction');
 }
 
 // -----------------------------------------------------------------------------
@@ -3041,6 +3634,12 @@ function distributivity() {
     divisionStructureInterface,
     divisionDefinition,
     multiplicativeBalance,
+    inverseThroughDivision,
+    booleanAndSetAlgebras,
+    vectorAlgebra,
+    complexAlgebra,
+    quaternionAlgebra,
+    octonionAlgebra,
     distributivity,
 ].forEach(test => test());
 

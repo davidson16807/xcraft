@@ -6,8 +6,14 @@ Operates on grouplikes that can be expressed as scales.
 */
 const ScaleExpressions = (grouplikes, scales) => {
 
-    function inverse(expression) {
+    function is_inverse(expression) {
         typecheck(expression, 'Expression');
+        return scales.from_expression(expression).coefficient < 0;
+    }
+
+    function absolute(expression) {
+        typecheck(expression, 'Expression');
+        if (!is_inverse(expression)) return expression;
         return scales.to_expression(
             scales.invert(
                 scales.from_expression(expression)));
@@ -46,8 +52,8 @@ const ScaleExpressions = (grouplikes, scales) => {
     }
 
     return Object.freeze({
-        inverse,
         is_inverse,
+        absolute,
         combine,
         left_distribute,
         right_distribute,
