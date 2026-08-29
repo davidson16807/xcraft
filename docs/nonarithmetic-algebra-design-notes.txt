@@ -1,0 +1,634 @@
+XCRAFT NON-ARITHMETIC ALGEBRA DESIGN NOTES
+==========================================
+
+Purpose
+-------
+This note summarizes the architectural discussion about extending XCraft beyond ordinary arithmetic to support a wider range of algebraic structures, including:
+
+- boolean algebra
+- vector algebra
+- linear algebra
+- set algebra
+- complex numbers
+- quaternions
+- octonions
+- geometric algebras
+- Lie algebras
+- unary functions and their inverses
+
+The central goal is to replace overlapping or misleading algebraic flags with a sparse set of properties that each correspond to distinct behavior, while keeping the actual implementation of those properties inside the relevant algebraic structure.
+
+CURRENT PROBLEM
+---------------
+
+The current Grouplike model has overlapping concepts such as:
+
+- is_inverse
+- is_left_cancellative
+- is_right_cancellative
+
+These have been used to authorize balance/removal operations even though they describe different mathematical laws.
+
+For example:
+
+Identity:
+    e * x = x
+    x * e = x
+
+Cancellation:
+    a * x = a * y  =>  x = y
+    x * a = y * a  =>  x = y
+
+Inverse:
+    x_L^-1 * x = e_L
+    x * x_R^-1 = e_R
+
+These are not interchangeable.
+
+The current balance implementation also has inconsistent behavior:
+embedded operands may be blocked by Grouplike cancellation/inverse-related flags, while balancing a lone expression can bypass those checks and still proceed.
+
+GENERAL DESIGN PRINCIPLE
+------------------------
+
+Strongly agreed principle:
+
+    NO CALLER OUTSIDE GROUPLIKE SHOULD INSPECT GROUPLIKE PROPERTIES
+    TO DECIDE HOW TO PERFORM AN ALGEBRAIC OPERATION.
+
+Properties configure Grouplike.
+
+Public Grouplike operations should embody those properties and either:
+
+- return the mathematically valid result, or
+- return null / no-op when the operation is not applicable.
+
+Relations, drag code, dispatchers, and other callers should ask for an operation, not reconstruct algebraic logic from flags.
+
+This is intended to prevent the same property from being interpreted differently by different callers.
+
+BALANCE SHOULD BE REPRESENTED AS REAL ALGEBRA
+---------------------------------------------
+
+The existing remove()/balance shortcut should not be considered a fundamental algebraic operation.
+
+For example, transforming:
+
+    a * b = c
+
+by moving b should conceptually proceed through division:
+
+    (a * b) / b = c / b
+
+then simplification:
+
+    a * 1 = c / b
+    a = c / b
+
+Likewise, for a lone element:
+
+    b = c
+
+the same operation produces:
+
+    b / b = c / b
+
+then:
+
+    1 = c / b
+
+This removes the need for separate mathematical logic for:
+- balancing an operand inside an operation
+- balancing a lone side
+
+The UI may optionally auto-simplify the intermediate result, but the model should represent the same underlying algebraic process.
+
+DIVISION, NOT "IS_INVERSE", SHOULD DRIVE BALANCE
+------------------------------------------------
+
+The proposed balance capabilities are directional:
+
+    has_left_divide
+    has_right_divide
+
+Their intended mathematical meanings are based on solving:
+
+    a * x = b      (left division)
+    x * a = b      (right division)
+
+The corresponding Grouplike operations should construct the appropriate resulting Expression or return null.
+
+Important interpretation:
+
+has_left_divide / has_right_divide mean that the algebra defines such an operation.
+
+They do NOT mean every element is always divisible.
+
+Examples:
+- ordinary multiplication can support division even though division by zero is invalid
+- matrix multiplication can support division only for invertible matrices
+- complex multiplication supports division except at zero
+
+Element-specific invalidity may be represented using caveats or null results.
+
+Relations should call the division operation and never inspect has_*_divide directly.
+
+PROPOSED FIRST-PASS GROUPLIKE ATTRIBUTES
+----------------------------------------
+
+The current preferred first-pass set is:
+
+    is_commutative
+    is_associative
+
+    has_left_divide
+    has_right_divide
+
+    left_identity
+    right_identity
+
+    left_annihilator
+    right_annihilator
+
+    is_idempotent
+    self_combination
+
+The last two are still somewhat provisional, but both are considered acceptable in Grouplike for pragmatic reasons if constructor checks prevent contradictory definitions.
+
+ATTRIBUTE SEMANTICS
+-------------------
+
+is_commutative
+    a * b = b * a
+
+This authorizes ordinary commutation only.
+
+It should not be generalized into a vague "swapability" property.
+
+is_associative
+    (a * b) * c = a * (b * c)
+
+This authorizes flattening/reassociation behavior.
+
+For nonassociative Grouplikes, the system should preserve grouping and must not create differently grouped or differently sized flattened Expressions through its own transformations.
+
+Level designers are trusted to construct valid binary Expressions for nonassociative Grouplikes.
+
+has_left_divide
+    Indicates that Grouplike implements left division.
+
+has_right_divide
+    Indicates that Grouplike implements right division.
+
+left_identity
+    An Expression e such that:
+        e * x = x
+
+right_identity
+    An Expression e such that:
+        x * e = x
+
+left_annihilator
+    An Expression z such that:
+        z * x = z
+
+right_annihilator
+    An Expression z such that:
+        x * z = z
+
+is_idempotent
+    x * x = x
+
+self_combination
+    A fixed Expression s such that:
+        x * x = s
+
+Examples:
+    self_combination = 0
+        can represent square-zero behavior
+
+    self_combination = 1
+        can represent exponent-two-like behavior
+
+Important:
+is_idempotent and self_combination describe overlapping branches of combine().
+They should therefore not both be enabled at once.
+
+IDEMPOTENCE DOES NOT IMPLY AN IDENTITY
+--------------------------------------
+
+Idempotence:
+
+    x * x = x
+
+does NOT imply the existence of any identity element.
+
+Example:
+    max(x, x) = x
+
+but max over the integers has no integer identity element.
+
+Therefore idempotence cannot be represented as:
+
+    self_combination = identity
+
+That expression instead means:
+
+    x * x = e
+
+where e is a fixed identity.
+
+Example:
+Boolean XOR satisfies:
+
+    x XOR x = 0
+
+and 0 is the XOR identity, but XOR is not idempotent.
+
+IDENTITY AND ANNIHILATOR ARE BOTH VALID
+---------------------------------------
+
+A Grouplike may legitimately have both an identity and an annihilator.
+
+Examples:
+
+Ordinary multiplication:
+    identity    = 1
+    annihilator = 0
+
+Boolean AND:
+    identity    = true
+    annihilator = false
+
+Therefore the constructor must NOT forbid:
+
+    left_identity + left_annihilator
+
+or:
+
+    right_identity + right_annihilator
+
+simply because both are present.
+
+The contradictory case is when the SAME Expression shape is configured as both identity and annihilator on the same side.
+
+For example, if e is both left identity and left annihilator:
+
+    e * x = x
+    e * x = e
+
+which forces every x = e, i.e. only the trivial one-element algebra.
+
+Unless trivial algebras are deliberately supported, constructor validation should reject:
+
+    left_identity and left_annihilator with the same shape
+
+and:
+
+    right_identity and right_annihilator with the same shape
+
+No separate precedence flag such as annihilate_identity appears necessary.
+
+Where valid identity and annihilator laws overlap from opposite sides, they produce the same result.
+
+CONSTRUCTOR CONSISTENCY CHECKS
+------------------------------
+
+Proposed checks include:
+
+1. If both left_identity and right_identity are supplied, their shapes must agree.
+
+2. If both left_annihilator and right_annihilator are supplied, their shapes must agree.
+
+3. If is_idempotent is true, self_combination must be undefined.
+
+4. If self_combination is supplied together with an identity, self_combination must agree with that identity.
+
+Reason:
+    if x * x = s for all x
+    and e is an identity,
+    then substituting x = e gives:
+        s = e * e = e
+
+5. If self_combination is supplied together with an annihilator, self_combination must agree with that annihilator.
+
+Reason:
+    substituting x = z gives:
+        s = z * z = z
+
+6. Therefore a Grouplike with distinct identity and annihilator cannot also have a universal fixed self_combination.
+
+7. Same-side identity and annihilator may both exist, but they should not be the same shape unless trivial algebras are intentionally supported.
+
+Possible normalization discussed:
+- for commutative Grouplikes, a supplied left identity may imply the same right identity
+- similarly for annihilators
+- similarly, one directional division capability may imply the other
+
+This remains a design convenience rather than a requirement.
+
+CANCELLATIVITY
+--------------
+
+The following properties were discussed:
+
+    is_left_cancellative
+    is_right_cancellative
+
+Their proper meanings are:
+
+Left cancellation:
+    a * x = a * y  =>  x = y
+
+Right cancellation:
+    x * a = y * a  =>  x = y
+
+These are NOT required for the proposed balance/division mechanism.
+
+They become useful if XCraft later implements direct relation transformations such as:
+
+    x * a = x * b
+        =>
+    a = b
+
+or:
+
+    a * x = b * x
+        =>
+    a = b
+
+Because no current planned operation strictly requires them, the preferred first pass is to omit them and add them later when a real relation-level cancellation operation exists.
+
+A useful future test case is natural-number addition:
+it is cancellative but does not have additive inverses within the natural numbers.
+
+ANTICOMMUTATIVITY
+-----------------
+
+Ordinary commutativity:
+
+    a * b = b * a
+
+and anticommutativity:
+
+    a * b = -(b * a)
+
+must not share a simple boolean "swapability" behavior.
+
+Anticommutativity requires introducing a negative/opposite expression, so it depends on another algebraic structure capable of representing that inverse/negation.
+
+Examples:
+- Lie bracket
+- vector cross product
+
+It does NOT require division.
+
+Therefore this proposed constructor rule is incorrect:
+
+    is_anticommutative =>
+        has_left_divide || has_right_divide
+
+Anticommutativity and division are unrelated.
+
+There is also an implementation complication for associative flattened expressions:
+moving an operand through multiple positions requires tracking the parity of the permutation and introducing the correct sign.
+
+Because this is more involved and not required for the first pass, the preferred current direction is:
+
+    leave is_anticommutative out of the initial Grouplike refactor
+
+and later implement it either:
+- with carefully defined Grouplike support plus a negation dependency, or
+- in a dedicated structure analogous to PowerTriangle* laws.
+
+SELF-COMBINATION AND RELATED LAWS
+---------------------------------
+
+self_combination and is_idempotent are not fully orthogonal because both govern:
+
+    combine(x, x)
+
+However, using both as mutually exclusive attributes is considered a reasonable pragmatic compromise.
+
+If the family of self-combination laws becomes more complex, it may later deserve a dedicated structure analogous to PowerTriangle*.
+
+General nilpotence:
+
+    x^n = 0
+
+is not fully represented by a fixed self_combination rule.
+
+A fixed self_combination can represent only the n = 2 / square-zero case directly.
+
+BOOLEAN AND SET ABSORPTION
+--------------------------
+
+Annihilator laws belong naturally inside Grouplike.
+
+Example:
+    0 * x = 0
+
+However, Boolean/set absorption laws are different:
+
+    x AND (x OR y) = x
+    x OR (x AND y) = x
+
+These relate two different operations and therefore should live in a dedicated cross-operation structure, similar in spirit to existing equivalence/PowerTriangle law structures.
+
+NONASSOCIATIVE GROUPLIKES
+-------------------------
+
+The system does not need to become a full level-authoring validator.
+
+For a Grouplike where:
+
+    is_associative = false
+
+the level designer is trusted to construct only expressions where grouping is explicit, typically binary nodes with contents.length == 2.
+
+The engine's responsibility is narrower:
+
+- do not flatten nonassociative expressions
+- do not arbitrarily reassociate them
+- do not transform them into expressions with a different grouping or content length unless a dedicated law explicitly permits it
+
+This is important for:
+- octonions
+- cross products
+- Lie brackets
+- other nonassociative operations
+
+OTHER ALGEBRAIC STRUCTURES
+--------------------------
+
+Geometric algebra
+~~~~~~~~~~~~~~~~~
+
+A dedicated GeometricAlgebra structure is likely appropriate for basis-specific behavior:
+
+- basis vector squares
+- metric signatures
+- grades
+- blade multiplication
+- sign changes from basis swaps
+
+It may be possible to reuse some of this machinery for:
+- complex numbers
+- quaternions
+- possibly parts of octonion machinery
+
+but that reuse is not a requirement.
+
+Octonions should not be forced into an associative Clifford/geometric algebra abstraction.
+
+Lie algebra
+~~~~~~~~~~~
+
+The Jacobi identity should be implemented by a dedicated structure, analogous to existing PowerTriangle* law structures.
+
+Module/linear algebra
+~~~~~~~~~~~~~~~~~~~~~
+
+Different operations may be represented by distinct tags:
+
+    mul     scalar * scalar
+    dot     vector dot vector
+    cross   vector cross vector
+    matmul  matrix * matrix
+    etc.
+
+A new Modulelike-style structure could describe interactions between scalar and vector operations, such as:
+
+    a(v + w) = av + aw
+    (a + b)v = av + bv
+    (ab)v = a(bv)
+    1v = v
+
+This avoids requiring Grouplike itself to understand heterogeneous carrier types.
+
+Unary functions and inverses
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The same explicit-operation philosophy applies.
+
+Instead of directly "removing" f from:
+
+    f(x) = y
+
+balancing should apply f^-1 to both sides:
+
+    f^-1(f(x)) = f^-1(y)
+
+Then a separate inverse-composition/strip simplification reduces:
+
+    f^-1(f(x)) -> x
+
+This matches the proposed treatment of binary balance operations.
+
+IMPLEMENTATION PHILOSOPHY
+-------------------------
+
+The most important architectural rule is:
+
+    A PROPERTY SHOULD CONFIGURE THE STRUCTURE THAT OWNS IT.
+    CALLERS SHOULD REQUEST OPERATIONS, NOT INTERPRET PROPERTY FLAGS.
+
+Examples:
+
+Good:
+    grouplike.combine(...)
+    grouplike.commute(...)
+    grouplike.left_divide(...)
+    grouplike.right_divide(...)
+
+Bad:
+    if (grouplike.is_commutative) ...
+    if (grouplike.has_left_divide) ...
+    if (grouplike.is_idempotent) ...
+
+outside Grouplike.
+
+This keeps all implementations of a law centralized and prevents different code paths from assigning different meanings to the same attribute.
+
+TESTING DIRECTION
+-----------------
+
+A generic property suite should verify every law advertised by a Grouplike.
+
+Representative regression structures should eventually include:
+
+1. Commutative group
+   - e.g. integer/vector addition
+
+2. Cancellative non-group
+   - e.g. natural-number addition
+
+3. Idempotent algebra
+   - e.g. Boolean AND / set intersection
+
+4. Structure with identity + annihilator
+   - e.g. multiplication or Boolean AND
+
+5. Partial-division algebra
+   - e.g. complex multiplication
+
+6. Noncommutative associative division algebra
+   - e.g. quaternions
+
+7. Nonassociative division algebra
+   - e.g. octonions
+
+8. Anticommutative nonassociative operation
+   - e.g. Lie bracket or vector cross product, once supported
+
+CURRENT FIRST-PASS DIRECTION
+----------------------------
+
+Preferred Grouplike attributes:
+
+    is_commutative
+    is_associative
+
+    has_left_divide
+    has_right_divide
+
+    left_identity
+    right_identity
+
+    left_annihilator
+    right_annihilator
+
+    is_idempotent
+    self_combination
+
+Preferred omissions from first pass:
+
+    is_left_cancellative
+    is_right_cancellative
+    is_anticommutative
+
+These can be added later when the corresponding operations are implemented correctly.
+
+NEXT DESIGN STEP
+----------------
+
+Before changing implementation, the next useful design artifact would be a law/behavior table for each public Grouplike method:
+
+- create
+- append
+- combine
+- commute
+- left_divide
+- right_divide
+- simplify
+- any future balance-facing operation
+
+For each method, specify exactly:
+
+- which Grouplike attributes it is allowed to consume
+- what transformation each attribute authorizes
+- what combinations are contradictory
+- what combinations are inferred
+- when the operation returns null/no-op
+
+This should expose any remaining overlap before the code is refactored.
