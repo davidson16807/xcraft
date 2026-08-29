@@ -3047,15 +3047,22 @@ function forEachAlgebraTriple(cases, callback) {
         callback(a, b, c);
 }
 
-function inverseDivision(label, inverse_type, side) {
-    return divisor => expression => new Expression(
-        label,
-        Object.freeze(
-            side === 'left'?
-                [new Expression(inverse_type, Object.freeze([divisor])), expression]
-              : [expression, new Expression(inverse_type, Object.freeze([divisor]))]
-        )
-    );
+function inverseDivision(label, inverse_type, side, is_invertible) {
+    return divisor => {
+        if (!is_invertible(divisor)) return null;
+        return expression => new Expression(
+            label,
+            Object.freeze(
+                side === 'left'?
+                    [new Expression(inverse_type, Object.freeze([divisor])), expression]
+                  : [expression, new Expression(inverse_type, Object.freeze([divisor]))]
+            )
+        );
+    };
+}
+
+function isNonzeroAlgebraValue(expression) {
+    return algebraValueComponents(expression).some(component => component !== 0);
 }
 
 function scalarDivision(label, negate_type) {
@@ -3297,8 +3304,12 @@ function complexAlgebra() {
         const norm = real*real + imaginary*imaginary;
         return [real/norm, -imaginary/norm];
     };
-    const left_divide = inverseDivision('complex_mul', 'complex_inverse', 'left');
-    const right_divide = inverseDivision('complex_mul', 'complex_inverse', 'right');
+    const left_divide = inverseDivision(
+        'complex_mul', 'complex_inverse', 'left', isNonzeroAlgebraValue
+    );
+    const right_divide = inverseDivision(
+        'complex_mul', 'complex_inverse', 'right', isNonzeroAlgebraValue
+    );
     const complex_mul = Grouplike(
         'complex_mul',
         {
@@ -3318,8 +3329,35 @@ function complexAlgebra() {
         { complex:expression => algebraValueComponents(expression) },
         { complex_inverse:inverse }
     );
+    const partial_grouplikes = Object.freeze({
+        structures:Object.freeze([complex_mul]),
+        left_divide:(parent, source) => complex_mul.left_divide(parent, source),
+        right_divide:(parent, source) => complex_mul.right_divide(parent, source),
+    });
+    const partial_relations = Relations({
+        grouplikes:partial_grouplikes,
+        ringlikes,
+        orderlikes,
+        expression_shape,
+        expression_caveats,
+    });
+    assert(
+        partial_relations.balance(
+            new Relation('eq', zero_complex, one_complex), 0, null, 1
+        ).length === 0,
+        'partial division should not advertise balancing a lone zero divisor'
+    );
+    assert(
+        partial_relations.balance(
+            new Relation('eq', complex_mul.create([zero_complex, one_complex]), one_complex),
+            0,
+            0,
+            1
+        ).length === 0,
+        'partial division should not advertise balancing an embedded zero divisor'
+    );
     const cases = [
-        complex([1, 0]), complex([0, 1]), complex([1, 1]),
+        zero_complex, complex([1, 0]), complex([0, 1]), complex([1, 1]),
         complex([2, -1]), complex([-1, 2]),
     ];
 
@@ -3331,12 +3369,27 @@ function complexAlgebra() {
             'complex multiplication commutativity',
             `a=${JSON.stringify(evaluate(a))}, b=${JSON.stringify(evaluate(b))}`
         );
-        const quotient = complex_mul.right_divide(null, b)(a);
+        const right_division = complex_mul.right_divide(null, b);
+        const left_division = complex_mul.left_divide(null, b);
+        if (b === zero_complex) {
+            assert(right_division == null && left_division == null,
+                'complex division by zero should be unavailable');
+            return;
+        }
+        const quotient = right_division(a);
         assertAlgebraEquivalent(
             complex_mul.create([quotient, b]),
             a,
             evaluate,
             'complex right division',
+            `a=${JSON.stringify(evaluate(a))}, b=${JSON.stringify(evaluate(b))}`
+        );
+        const left_quotient = left_division(a);
+        assertAlgebraEquivalent(
+            complex_mul.create([b, left_quotient]),
+            a,
+            evaluate,
+            'complex left division',
             `a=${JSON.stringify(evaluate(a))}, b=${JSON.stringify(evaluate(b))}`
         );
     });
@@ -3375,8 +3428,12 @@ function quaternionAlgebra() {
     const quaternion = values => algebraValue('quaternion', values);
     const zero_quaternion = quaternion([0, 0, 0, 0]);
     const one_quaternion = quaternion([1, 0, 0, 0]);
-    const left_divide = inverseDivision('quaternion_mul', 'quaternion_inverse', 'left');
-    const right_divide = inverseDivision('quaternion_mul', 'quaternion_inverse', 'right');
+    const left_divide = inverseDivision(
+        'quaternion_mul', 'quaternion_inverse', 'left', isNonzeroAlgebraValue
+    );
+    const right_divide = inverseDivision(
+        'quaternion_mul', 'quaternion_inverse', 'right', isNonzeroAlgebraValue
+    );
     const quaternion_mul = Grouplike(
         'quaternion_mul',
         {
@@ -3396,6 +3453,7 @@ function quaternionAlgebra() {
         { quaternion_inverse:quaternionInverse }
     );
     const cases = [
+        zero_quaternion,
         quaternion([1, 0, 0, 0]),
         quaternion([0, 1, 0, 0]),
         quaternion([0, 0, 1, 0]),
@@ -3415,7 +3473,14 @@ function quaternionAlgebra() {
     });
 
     forEachAlgebraPair(cases, (a, b) => {
-        const right_quotient = quaternion_mul.right_divide(null, b)(a);
+        const right_division = quaternion_mul.right_divide(null, b);
+        const left_division = quaternion_mul.left_divide(null, b);
+        if (b === zero_quaternion) {
+            assert(right_division == null && left_division == null,
+                'quaternion division by zero should be unavailable');
+            return;
+        }
+        const right_quotient = right_division(a);
         assertAlgebraEquivalent(
             quaternion_mul.create([right_quotient, b]),
             a,
@@ -3423,7 +3488,7 @@ function quaternionAlgebra() {
             'quaternion right division',
             `a=${JSON.stringify(evaluate(a))}, b=${JSON.stringify(evaluate(b))}`
         );
-        const left_quotient = quaternion_mul.left_divide(null, b)(a);
+        const left_quotient = left_division(a);
         assertAlgebraEquivalent(
             quaternion_mul.create([b, left_quotient]),
             a,
@@ -3433,8 +3498,8 @@ function quaternionAlgebra() {
         );
     });
 
-    const i = cases[1];
-    const j = cases[2];
+    const i = cases[2];
+    const j = cases[3];
     assert(
         !algebraApproximatelyEqual(
             evaluate(quaternion_mul.create([i, j])),
@@ -3475,8 +3540,12 @@ function octonionAlgebra() {
     const octonion = values => algebraValue('octonion', values);
     const zero_octonion = octonion([0, 0, 0, 0, 0, 0, 0, 0]);
     const one_octonion = octonion([1, 0, 0, 0, 0, 0, 0, 0]);
-    const left_divide = inverseDivision('octonion_mul', 'octonion_inverse', 'left');
-    const right_divide = inverseDivision('octonion_mul', 'octonion_inverse', 'right');
+    const left_divide = inverseDivision(
+        'octonion_mul', 'octonion_inverse', 'left', isNonzeroAlgebraValue
+    );
+    const right_divide = inverseDivision(
+        'octonion_mul', 'octonion_inverse', 'right', isNonzeroAlgebraValue
+    );
     const octonion_mul = Grouplike(
         'octonion_mul',
         {
@@ -3498,13 +3567,20 @@ function octonionAlgebra() {
         Array.from({length:8}, (_, component) => component === index? 1 : 0)
     );
     const cases = [
-        one_octonion,
+        zero_octonion, one_octonion,
         basis(1), basis(2), basis(3), basis(4),
         octonion([1, 1, 0, 0, 0, 0, 0, 0]),
     ];
 
     forEachAlgebraPair(cases, (a, b) => {
-        const right_quotient = octonion_mul.right_divide(null, b)(a);
+        const right_division = octonion_mul.right_divide(null, b);
+        const left_division = octonion_mul.left_divide(null, b);
+        if (b === zero_octonion) {
+            assert(right_division == null && left_division == null,
+                'octonion division by zero should be unavailable');
+            return;
+        }
+        const right_quotient = right_division(a);
         assertAlgebraEquivalent(
             octonion_mul.create([right_quotient, b]),
             a,
@@ -3512,7 +3588,7 @@ function octonionAlgebra() {
             'octonion right division',
             `a=${JSON.stringify(evaluate(a))}, b=${JSON.stringify(evaluate(b))}`
         );
-        const left_quotient = octonion_mul.left_divide(null, b)(a);
+        const left_quotient = left_division(a);
         assertAlgebraEquivalent(
             octonion_mul.create([b, left_quotient]),
             a,

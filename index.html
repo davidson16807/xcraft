@@ -169,30 +169,31 @@
     const one = new Expression('constant', 1);
     const minus_one = new Expression('constant', -1);
 
-    const additive_divide = divisor => expression => {
-        const inverse = new Expression(
+    const inverse_divide = (type, inverse) => divisor => expression => {
+        const contents = expression.type === type && expression !== divisor?
+            [...expression.contents] : [expression];
+        const index = contents.indexOf(divisor);
+        contents.splice(index < 0? contents.length : index + 1, 0, inverse(divisor));
+        return new Expression(type, contents);
+    };
+
+    const additive_inverse = divisor => {
+        return new Expression(
             'mul',
             divisor.type === 'mul'?
                 [minus_one, ...divisor.contents]
               : [minus_one, divisor]
         )
-        const contents = expression.type === 'add'? [...expression.contents] : [expression];
-        const index = contents.indexOf(divisor);
-        contents.splice(index < 0? contents.length : index + 1, 0, inverse);
-        return new Expression('add', contents)
     };
 
-    const multiplicative_divide = divisor => expression => {
+    const multiplicative_inverse = divisor => {
         let inverse = new Expression('pow', [divisor, minus_one]).caveat(new Relation('neq', divisor, zero));
         if (divisor.type === 'pow' && divisor.contents.length === 2 &&
             divisor.contents[1].type === 'constant'
         ) {
             if (divisor.contents[1].contents === -1) inverse = divisor.contents[0];
         }
-        const contents = expression.type === 'mul'? [...expression.contents] : [expression];
-        const index = contents.indexOf(divisor);
-        contents.splice(index < 0? contents.length : index + 1, 0, inverse);
-        return new Expression('mul', contents);
+        return inverse;
     };
 
     const grouplikes = Grouplikes({
@@ -202,8 +203,8 @@
                 is_associative: true,
                 left_identity: zero,
                 right_identity: zero,
-                right_divide: additive_divide,
-                left_divide: additive_divide,
+                right_divide: inverse_divide('add', additive_inverse),
+                left_divide: inverse_divide('add', additive_inverse),
             },
             items => items.reduce((accumulator, item) => accumulator + item, 0)
         ),
@@ -215,8 +216,8 @@
                 right_identity: one,
                 left_annihilator: zero,
                 right_annihilator: zero,
-                right_divide: multiplicative_divide,
-                left_divide: multiplicative_divide,
+                right_divide: inverse_divide('mul', multiplicative_inverse),
+                left_divide: inverse_divide('mul', multiplicative_inverse),
             },
             items => items.reduce((accumulator, item) => accumulator * item, 1)
         ),
