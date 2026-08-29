@@ -140,13 +140,8 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         typecheck(index2, 'Number');
         typecheck(replacement, 'Expression');
         const structure = grouplike_expressions_for_tag[expression.type];
-        if (structure == null) return expression;
-        const lo = Math.min(index1, index2);
-        const hi = Math.max(index1, index2);
-        const contents = expression.contents.slice();
-        contents[lo] = replacement;
-        contents.splice(hi, 1);
-        return structure.create(contents);
+        return structure == null? null :
+            structure.collapse(expression, index1, index2, replacement);
     }
 
     const evaluator = variables => expression => {

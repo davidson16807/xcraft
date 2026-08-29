@@ -3905,6 +3905,117 @@ function nonassociativeDivisionCancellation() {
 }
 
 // -----------------------------------------------------------------------------
+// Associative, noncommutative ordering
+// Associativity permits flattening; it does not permit crossing intervening
+// operands during combine/distribute or constant simplification.
+// -----------------------------------------------------------------------------
+
+function associativeNoncommutativeOrdering() {
+    const a = new Expression('variable', 'a');
+    const b = new Expression('variable', 'b');
+    const c = new Expression('variable', 'c');
+    const replacement = new Expression('variable', 'r');
+
+    const sequence = Grouplike(
+        'sequence',
+        { is_associative:true },
+        items => items.reduce((value, item) => value * 10 + item, 0)
+    );
+    const parent = sequence.create([a, b, c]);
+
+    assert(
+        sequence.collapse(parent, 0, 2, replacement) == null,
+        'noncommutative associative collapse must not cross an intervening operand'
+    );
+    assertSameExpression(
+        sequence.collapse(parent, 0, 1, replacement),
+        sequence.create([replacement, c]),
+        'noncommutative associative collapse',
+        'adjacent operands may collapse without reordering'
+    );
+    assertSameExpression(
+        sequence.collapse(parent, 1, 2, replacement),
+        sequence.create([a, replacement]),
+        'noncommutative associative collapse',
+        'adjacent right operands may collapse without reordering'
+    );
+
+    const commutative_sequence = Grouplike(
+        'commutative_sequence',
+        { is_associative:true, is_commutative:true },
+        items => items.reduce((sum, item) => sum + item, 0)
+    );
+    const commutative_parent = commutative_sequence.create([a, b, c]);
+    assertSameExpression(
+        commutative_sequence.collapse(commutative_parent, 0, 2, replacement),
+        commutative_sequence.create([replacement, b]),
+        'commutative associative collapse',
+        'commutativity permits collapsing nonadjacent operands'
+    );
+
+    const one_local = new Expression('constant', 1);
+    const two_local = new Expression('constant', 2);
+    const three_local = new Expression('constant', 3);
+    const four_local = new Expression('constant', 4);
+    const mixed = sequence.create([one_local, two_local, a, three_local, four_local]);
+    const evaluate_local = expression =>
+        expression.type === 'constant'? expression.contents : NaN;
+    const constant_result = expression => {
+        if (!Array.isArray(expression.contents) ||
+            expression.contents.some(item => item.type !== 'constant')
+        ) return null;
+        return new Expression(
+            'constant',
+            expression.contents.reduce((sum, item) => sum + item.contents, 0)
+        );
+    };
+    assertSameExpression(
+        sequence.simplify(mixed, expression => expression, evaluate_local, constant_result),
+        sequence.create([
+            new Expression('constant', 3),
+            a,
+            new Expression('constant', 7),
+        ]),
+        'noncommutative associative simplification',
+        'only contiguous constant runs may be folded'
+    );
+
+    const structures = Object.fromEntries(
+        grouplikes.structures.map(structure => [structure.label, structure])
+    );
+    const noncommutative_add = Grouplike(
+        'add',
+        { is_associative:true },
+        items => items.reduce((sum, item) => sum + item, 0)
+    );
+    structures.add = noncommutative_add;
+    const local_grouplikes = Grouplikes(structures);
+    const local_shape = ExpressionShape(local_grouplikes);
+    const local_relations = Relations({
+        grouplikes:local_grouplikes,
+        ringlikes,
+        orderlikes,
+        expression_shape:local_shape,
+        expression_caveats,
+    });
+
+    const two_x = grouplikes.mul([grouplikes.constant(2), x]);
+    const three_x = grouplikes.mul([grouplikes.constant(3), x]);
+    const eight = grouplikes.constant(8);
+    const separated = noncommutative_add.create([two_x, eight, three_x]);
+    assert(
+        local_relations.combine(separated, 0, 2).length === 0,
+        'noncommutative associative combine must not combine like terms across an intervening operand'
+    );
+
+    const adjacent = noncommutative_add.create([two_x, three_x, eight]);
+    assert(
+        local_relations.combine(adjacent, 0, 1).length > 0,
+        'noncommutative associative combine should still combine adjacent like terms'
+    );
+}
+
+// -----------------------------------------------------------------------------
 // Run the specification
 // -----------------------------------------------------------------------------
 
@@ -3961,6 +4072,7 @@ function nonassociativeDivisionCancellation() {
     complexAlgebra,
     quaternionAlgebra,
     octonionAlgebra,
+    associativeNoncommutativeOrdering,
     distributivity,
 ].forEach(test => test());
 

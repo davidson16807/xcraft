@@ -135,23 +135,49 @@ const Grouplike = (label, properties, evaluatable) => {
         let contents = expression.contents.map(simplify);
 
         if (is_associative) {
-            const constants = contents
-                .map((item, index) => ({ item:item, index:index, value:evaluate(item, {}) }))
-                .filter(item => Number.isFinite(item.value));
+            const is_constant = item => Number.isFinite(evaluate(item, {}));
 
-            if (constants.length > 1) {
-                const constant_expression = expression.with({
-                    contents: freeze(constants.map(item => item.item)),
-                });
-                const combined = constant_result(constant_expression);
-                if (combined != null) {
-                    const first = constants[0].index;
-                    const constant_indexes = new Set(constants.map(item => item.index));
-                    contents = contents.flatMap((item, index) =>
-                        index === first? [combined] :
-                        constant_indexes.has(index)? [] : [item]
-                    );
+            if (is_commutative) {
+                const constants = contents
+                    .map((item, index) => ({ item:item, index:index }))
+                    .filter(item => is_constant(item.item));
+
+                if (constants.length > 1) {
+                    const constant_expression = expression.with({
+                        contents: freeze(constants.map(item => item.item)),
+                    });
+                    const combined = constant_result(constant_expression);
+                    if (combined != null) {
+                        const first = constants[0].index;
+                        const constant_indexes = new Set(constants.map(item => item.index));
+                        contents = contents.flatMap((item, index) =>
+                            index === first? [combined] :
+                            constant_indexes.has(index)? [] : [item]
+                        );
+                    }
                 }
+            } else {
+                const folded = [];
+                for (let index = 0; index < contents.length;) {
+                    if (!is_constant(contents[index])) {
+                        folded.push(contents[index++]);
+                        continue;
+                    }
+
+                    let end = index + 1;
+                    while (end < contents.length && is_constant(contents[end])) ++end;
+                    const run = contents.slice(index, end);
+                    if (run.length > 1) {
+                        const constant_expression = expression.with({ contents:freeze(run) });
+                        const combined = constant_result(constant_expression);
+                        if (combined != null) folded.push(combined);
+                        else folded.push(...run);
+                    } else {
+                        folded.push(run[0]);
+                    }
+                    index = end;
+                }
+                contents = folded;
             }
         }
 
@@ -191,6 +217,22 @@ const Grouplike = (label, properties, evaluatable) => {
     function canonicalize(content_shapes) {
         typecheck(content_shapes, 'Array');
         return is_commutative? content_shapes.slice().sort() : content_shapes;
+    }
+
+    function collapse(expression, index1, index2, replacement) {
+        typecheck(expression, 'Expression');
+        typecheck(index1, 'Number');
+        typecheck(index2, 'Number');
+        typecheck(replacement, 'Expression');
+        if (expression.type !== label || !Array.isArray(expression.contents)) return null;
+        if (!is_commutative && Math.abs(index1 - index2) !== 1) return null;
+
+        const lo = Math.min(index1, index2);
+        const hi = Math.max(index1, index2);
+        const contents = expression.contents.slice();
+        contents[lo] = replacement;
+        contents.splice(hi, 1);
+        return create(contents);
     }
 
     /*
@@ -276,6 +318,7 @@ const Grouplike = (label, properties, evaluatable) => {
         combine,
         commute,
         canonicalize,
+        collapse,
         left_divide,
         right_divide,
         strip,

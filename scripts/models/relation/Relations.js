@@ -168,8 +168,9 @@ function Relations(dependencies) {
 
         return _distinct(replacements.map(replacement => {
             const gathered = caveats.gather(parent, replacement);
-            return gathered && grouplikes.collapse(parent, index1, index2, replacement)
-                    .caveat(...gathered);
+            if (gathered == null) return null;
+            const collapsed = grouplikes.collapse(parent, index1, index2, replacement);
+            return collapsed == null? null : collapsed.caveat(...gathered);
         }));
     }
 
@@ -203,9 +204,9 @@ function Relations(dependencies) {
 
         return _distinct(replacements.map(replacement => {
             const gathered = caveats.gather(parent, replacement);
-            return gathered &&
-                grouplikes.collapse(parent, source_index, target_index, replacement)
-                    .caveat(...gathered);
+            if (gathered == null) return null;
+            const collapsed = grouplikes.collapse(parent, source_index, target_index, replacement);
+            return collapsed == null? null : collapsed.caveat(...gathered);
         }));
     }
 
@@ -295,9 +296,9 @@ function Relations(dependencies) {
 
             const gathered = caveats.gather(current, replacement);
             if (gathered == null) continue;
-            const collapsed = grouplikes.collapse(current, index, index + 1, replacement)
-                .caveat(...gathered);
-            return _simplify_expression(collapsed);
+            const collapsed = grouplikes.collapse(current, index, index + 1, replacement);
+            if (collapsed == null) continue;
+            return _simplify_expression(collapsed.caveat(...gathered));
         }
 
         return current;
