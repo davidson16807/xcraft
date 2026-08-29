@@ -83,7 +83,7 @@ const Grouplike = (label, properties, evaluatable) => {
     if (is_commutative) {
         require_same_optionals(left_identity, right_identity, `commutative left and right identity must match`);
         require_same_optionals(left_annihilator, right_annihilator, `commutative left and right annihilator must match`);
-        require((left_division != null) == (right_division != null), `left and right division must exist together`);
+        require((left_division != null) == (right_division != null), `commutative left and right division must exist together`);
     }
 
     if (self_combination != null) {
@@ -163,13 +163,6 @@ const Grouplike = (label, properties, evaluatable) => {
         return expression.with({ contents: freeze(contents) });
     }
 
-    function append(left, right) {
-        typecheck(left, 'Expression');
-        typecheck(right, 'Expression');
-        return left.type === label && is_associative?
-            create([...left.contents, right]) : create([left, right]);
-    }
-
     function combine(left, right) {
         typecheck(left, 'Expression');
         typecheck(right, 'Expression');
@@ -226,7 +219,6 @@ const Grouplike = (label, properties, evaluatable) => {
     return freeze({
         label,
         create,
-        append,
         combine,
         commute,
         left_divide,

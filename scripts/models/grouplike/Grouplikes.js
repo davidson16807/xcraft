@@ -65,15 +65,6 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         return structure.simplify(expression, simplify, evaluate, _constant_result);
     }
 
-    function append(type, left, right) {
-        typecheck(type, 'String');
-        typecheck(left, 'Expression');
-        typecheck(right, 'Expression');
-        const structure = grouplike_expressions_for_tag[type];
-        if (structure == null) return left;
-        return structure.append(left, right);
-    }
-
     function combine(type, left, right) {
         typecheck(type, 'String');
         typecheck(left, 'Expression');
@@ -157,7 +148,6 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         root,
         harmonic,
         div,
-        append,
         combine,
         commute,
         left_divide,

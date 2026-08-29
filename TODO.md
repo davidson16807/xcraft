@@ -34,6 +34,7 @@ OBTRUSIVE:
 * "techtree" of operations
 * mode=god, mode=creative, mode=story
 * expand target side width to prevent sides rapidly switching back and forth
+* internationalization
 
 * traverse through GRE workbook and find properties to implement in code or demonstrate through levels
 
