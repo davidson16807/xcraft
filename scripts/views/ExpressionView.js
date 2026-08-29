@@ -75,6 +75,22 @@ function ExpressionView(dependencies) {
         ]);
     }
 
+    function draw_product_factor(item, draggable_paths, valid_targets, parent_precedence) {
+        if (item.factor.type === 'constant' && item.factor.contents === -1) {
+            return html.span(
+                path_attributes(item.path, draggable_paths, valid_targets, 'multiplication-sign'),
+                [math('-', 'math-operator')]
+            );
+        }
+        return draw(
+            item.factor,
+            item.path,
+            draggable_paths,
+            valid_targets,
+            parent_precedence
+        );
+    }
+
     function draw_mul(expression, path, draggable_paths, valid_targets) {
         const items = expression.contents.map(
             (factor, i) => ({ factor:factor, path:paths.nary(path, i) })
@@ -88,7 +104,7 @@ function ExpressionView(dependencies) {
                 numerator.map((item, i) =>
                     product_factor_nodes(
                         item.factor,
-                        draw(item.factor, item.path, draggable_paths, valid_targets, 2),
+                        draw_product_factor(item, draggable_paths, valid_targets, 2),
                         i > 0? numerator[i-1].factor : null
                     )
                 ).flat()
@@ -104,7 +120,7 @@ function ExpressionView(dependencies) {
               : numerator.map((item, i) =>
                     product_factor_nodes(
                         item.factor,
-                        draw(item.factor, item.path, draggable_paths, valid_targets, numerator_parent),
+                        draw_product_factor(item, draggable_paths, valid_targets, numerator_parent),
                         i > 0? numerator[i-1].factor : null
                     )
                 ).flat()
@@ -158,23 +174,11 @@ function ExpressionView(dependencies) {
     This is used for signed addends so the visible sign and term behave as one
     draggable addend while child factors keep their own paths.
     */
-    function draw_contents(
-        expression,
-        path,
-        draggable_paths,
-        valid_targets,
-        parent_precedence = 1
-    ) {
+    function draw_contents(expression, path, draggable_paths, valid_targets) {
         if (expression.type === 'constant') return math(String(expression.contents));
         if (expression.type === 'variable') return math(expression.contents);
 
-        const node = draw(
-            expression,
-            path,
-            draggable_paths,
-            valid_targets,
-            parent_precedence
-        );
+        const node = draw(expression, path, draggable_paths, valid_targets, 1);
         node.removeAttribute('data-path');
         node.removeAttribute('data-drop-key');
         node.removeAttribute('data-draggable');
@@ -248,19 +252,16 @@ function ExpressionView(dependencies) {
                 return html.span(path_attributes(path, draggable_paths, valid_targets, 'expression-add'),
                     expression.contents.map((term, i) => {
                         const is_inverse = ringlikes.is_inverse('add', term);
-                        const absolute = ringlikes.absolute('add', term);
                         const term_path = paths.nary(path, i);
                         return html.span(path_attributes(term_path, draggable_paths, valid_targets, 'addend'),
                             [
-                                ...(i > 0)? [math(is_inverse? '-' : '+', 'math-operator')]
-                                 : is_inverse? [math('-', 'math-operator')]
-                                 : [],
+                                ...(i > 0 && !is_inverse)? [math('+', 'math-operator')] : [],
                                 draw_contents(
-                                    absolute,
+                                    term,
                                     term_path,
                                     draggable_paths,
                                     valid_targets,
-                                    is_inverse? precedence_for_tag('add') + 1 : precedence_for_tag('add')
+                                    precedence_for_tag('add')
                                 )
                             ]);
                     })

@@ -987,11 +987,7 @@ function caveatTracking() {
 function dragChoices() {
     const rhs = grouplikes.constant(2);
 
-    for (const a of [
-        x,
-        grouplikes.constant(2),
-        grouplikes.add([x, grouplikes.constant(3)]),
-    ]) {
+    for (const a of [x, grouplikes.constant(2)]) {
         const equation = new Relation('eq', a, rhs);
         const context = `lone expression a = ${describeCase(a)}`;
         const choices = algebra.choices(equation, '0/0', '1', manual_drag_options);
@@ -1034,6 +1030,51 @@ ${context}`
             choice.type === 'balance'
         ), 'drag choices: choices should carry expression, operator, target side, and drag type');
     }
+
+    const composite = grouplikes.add([x, grouplikes.constant(3)]);
+    const composite_rhs = grouplikes.constant(7);
+    const composite_choices = algebra.choices(
+        new Relation('eq', composite, composite_rhs),
+        '0/0',
+        '1',
+        manual_drag_options
+    );
+    const additive_composite = composite_choices.find(choice =>
+        orderedExpressionKey(choice.equation.left) ===
+            orderedExpressionKey(additive_divide(composite)(composite)) &&
+        orderedExpressionKey(choice.equation.right) ===
+            orderedExpressionKey(additive_divide(composite)(composite_rhs))
+    );
+    assert(additive_composite != null,
+        'drag choices: composite lone expression should preserve additive self-division');
+
+    const negative_factor_path = '0/0/1/0';
+    const nested_sum_path = '0/0/1/1';
+    assert(
+        algebra.draggable_paths(additive_composite.equation, manual_drag_options)
+            .includes(negative_factor_path),
+        'drag choices: the negative factor of a composite additive inverse should be draggable'
+    );
+    const negative_distribution = algebra.choices(
+        additive_composite.equation,
+        negative_factor_path,
+        nested_sum_path,
+        manual_drag_options
+    );
+    assert(
+        negative_distribution.length === 1 &&
+        negative_distribution[0].type === 'distribute',
+        'drag choices: dragging the negative factor across a composite sum should distribute it'
+    );
+
+    const expression_view_source = fs.readFileSync(
+        path.join(root, 'scripts/views/ExpressionView.js'),
+        'utf8'
+    );
+    assert(
+        !expression_view_source.includes("ringlikes.absolute('add', term)"),
+        'expression view: signed addends must preserve the original AST paths'
+    );
 
     const zero_equation = new Relation('eq', zero, rhs);
     assert(
