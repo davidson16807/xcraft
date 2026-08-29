@@ -81,7 +81,9 @@ function ExpressionView(dependencies) {
             item.path,
             draggable_paths,
             valid_targets,
-            parent_precedence
+            parent_precedence,
+            false,
+            !!item.render_inverse
         );
     }
 
@@ -120,9 +122,26 @@ function ExpressionView(dependencies) {
         return canonical.length === 2 && canonical[0] === '0' && canonical[1] === '1';
     }
 
+    function inverse_source(item) {
+        return ringlikes.absolute('mul', item.factor);
+    }
+
+    function inverse_item(type, item, direction) {
+        const source = inverse_source(item);
+        const inverse = direction === 'left'?
+            grouplikes.left_inverse(type, source)
+          : grouplikes.right_inverse(type, source);
+        return inverse == null? null : {
+            factor:inverse,
+            path:item.path,
+            render_inverse:true,
+        };
+    }
+
     function division_parts(type, items) {
         const is_inverse = item => ringlikes.is_inverse('mul', item.factor);
 
+        // Preserve conventional fraction notation for commutative algebras.
         if (may_reorder(type)) {
             return {
                 type:'fraction',
@@ -138,6 +157,13 @@ function ExpressionView(dependencies) {
         if (inverse_indexes.length === 1 && items.length > 1) {
             const index = inverse_indexes[0];
             if (index === 0) {
+                const inverse = inverse_item(type, items[0], 'left');
+                if (inverse != null) {
+                    return {
+                        type:'product',
+                        items:[inverse, ...items.slice(1)],
+                    };
+                }
                 return {
                     type:'left',
                     divisor:items[0],
@@ -145,10 +171,17 @@ function ExpressionView(dependencies) {
                 };
             }
             if (index === items.length - 1) {
+                const inverse = inverse_item(type, items[index], 'right');
+                if (inverse != null) {
+                    return {
+                        type:'product',
+                        items:[...items.slice(0, -1), inverse],
+                    };
+                }
                 return {
                     type:'right',
                     dividend:items.slice(0, -1),
-                    divisor:items[items.length - 1],
+                    divisor:items[index],
                 };
             }
         }
@@ -324,7 +357,15 @@ function ExpressionView(dependencies) {
         ]);
     }
 
-    function _draw(expression, path, draggable_paths, valid_targets, parent_precedence, is_power_base) {
+    function _draw(
+        expression,
+        path,
+        draggable_paths,
+        valid_targets,
+        parent_precedence,
+        is_power_base,
+        render_inverse
+    ) {
         let node;
 
         switch (expression.type) {
@@ -409,7 +450,7 @@ function ExpressionView(dependencies) {
                 const base = expression.contents[0];
                 const exponent = expression.contents[1];
 
-                if (ringlikes.is_inverse('mul', expression)) {
+                if (ringlikes.is_inverse('mul', expression) && !render_inverse) {
                     return html.span(
                         path_attributes(path, draggable_paths, valid_targets, 'expression-fraction'),
                         [
@@ -455,7 +496,8 @@ function ExpressionView(dependencies) {
         draggable_paths = empty_paths,
         valid_targets = empty_paths,
         parent_precedence = 0,
-        is_power_base = false
+        is_power_base = false,
+        render_inverse = false
     ) {
         typecheck(expression, 'Expression');
         typecheck(path, 'String');
@@ -463,8 +505,17 @@ function ExpressionView(dependencies) {
         typecheck(valid_targets, 'Set');
         typecheck(parent_precedence, 'Number');
         typecheck(is_power_base, 'Boolean');
+        typecheck(render_inverse, 'Boolean');
         return maybe_parenthesize(
-            _draw(expression, path, draggable_paths, valid_targets, parent_precedence, is_power_base),
+            _draw(
+                expression,
+                path,
+                draggable_paths,
+                valid_targets,
+                parent_precedence,
+                is_power_base,
+                render_inverse
+            ),
             expression,
             parent_precedence,
             is_power_base
