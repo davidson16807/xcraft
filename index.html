@@ -56,53 +56,59 @@
 
 <div id="app">
 
-    <div class="top left short-axis-group control">
+    <div class="top left long-axis-group">
 
-        <div class="banner"> 
-            <div class="title"><div id="logo"></div>craft</div>
-            <div id="subtitle" class="subtitle">An introduction to algebra</div>
+        <div class="short-axis-group control">
+
+            <div class="banner"> 
+                <div class="title"><div id="logo"></div>craft</div>
+            </div>
+
+            <div class="short-axis-group group-joined">
+
+                <button id="undo" type="button" class="btn">
+                    <div>Undo</div>
+                    <img src="icons/undo.svg"/>
+                    <div class="instructions">ctrl+Z</div>
+                </button>
+
+                <button id="redo" type="button" class="btn">
+                    <div>Redo</div>
+                    <img src="icons/redo.svg"/>
+                    <div class="instructions">ctrl+Y</div>
+                </button>
+
+                <button id="restart" type="button" class="btn">
+                    <div>Restart</div>
+                    <img src="icons/rotate-ccw.svg"/>
+                </button>
+
+                <button id="history-toggle" type="button" class="btn operation-toggle" aria-pressed="true">
+                    <div>History</div>
+                    <img src="icons/history.svg"/>
+                    <div id="history-indicator">Off</div>
+                </button>
+
+                <button id="auto-simplify" type="button" class="btn operation-toggle" aria-pressed="true">
+                    <div>Simplify</div>
+                    <img src="icons/equal.svg"/>
+                    <div id="auto-simplify-indicator">On</div>
+                </button>
+
+                <button id="theme" type="button" class="btn">
+                    <div>Theme</div>
+                    <div id='light'><img src="icons/light.svg"/><div>Light</div></div>
+                    <div id='dark'><img src="icons/dark.svg"/><div>Dark</div></div>
+                </button>
+
+            </div>
+
         </div>
 
-        <div class="short-axis-group group-joined">
-
-            <button id="undo" type="button" class="btn">
-                <div>Undo</div>
-                <img src="icons/undo.svg"/>
-                <div class="instructions">ctrl+Z</div>
-            </button>
-
-            <button id="redo" type="button" class="btn">
-                <div>Redo</div>
-                <img src="icons/redo.svg"/>
-                <div class="instructions">ctrl+Y</div>
-            </button>
-
-            <button id="restart" type="button" class="btn">
-                <div>Restart</div>
-                <img src="icons/rotate-ccw.svg"/>
-            </button>
-
-            <button id="history-toggle" type="button" class="btn operation-toggle" aria-pressed="true">
-                <div>History</div>
-                <img src="icons/history.svg"/>
-                <div id="history-indicator">Off</div>
-            </button>
-
-            <button id="auto-simplify" type="button" class="btn operation-toggle" aria-pressed="true">
-                <div>Simplify</div>
-                <img src="icons/equal.svg"/>
-                <div id="auto-simplify-indicator">On</div>
-            </button>
-
-            <button id="theme" type="button" class="btn">
-                <div>Theme</div>
-                <div id='light'><img src="icons/light.svg"/><div>Light</div></div>
-                <div id='dark'><img src="icons/dark.svg"/><div>Dark</div></div>
-            </button>
-
-        </div>
+        <div id="tagline" class="tagline">An introduction to algebra</div>
 
     </div>
+
 
     <nav class="top right control level-navigation" aria-label="Level navigation">
 
@@ -155,13 +161,16 @@
         document.getElementById('logo'), 
         {throwOnError: false })
 
-    const subtitles = [
+    const taglines = [
         'An introduction to algebra',
         'Every change to both sides',
         'There are no wrong moves',
         'The search for x',
+        'The quest for x',
+        'A game played according to certain simple rules with meaningless marks on paper', // -David Hilbert
+        'A game played according to certain simple rules with meaningless symbols on a screen', 
     ];
-    document.getElementById('subtitle').replaceChildren(subtitles[Math.floor(Math.random()*subtitles.length)]);
+    document.getElementById('tagline').replaceChildren(taglines[Math.floor(Math.random()*taglines.length)]);
 
     const freeze = Object.freeze;
 

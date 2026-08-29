@@ -173,10 +173,11 @@ In portrait orientations, it will expand from bottom right to bottom left.
     color: dimgrey;
     font-size: 423%;
 }
-/*.title, .subtitle {
-    padding-left: 0.61rem;
+.tagline {
+    padding-left: 2rem;
+    padding-top: 0.5rem;
     display: none;
-}*/
+}
 @media (min-width: 640px) and ((pointer: fine) or (pointer: none)) {
   .mobile-logo {
     display: none;
@@ -186,7 +187,7 @@ In portrait orientations, it will expand from bottom right to bottom left.
   }
 }
 @media (min-width: 900px) and ((pointer: fine) or (pointer: none)) {
-  .title, .subtitle {
+  .tagline {
     display: inherit;
   }
 }
