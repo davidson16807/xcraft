@@ -96,6 +96,18 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         return structure == null? contents : structure.canonicalize(contents);
     }
 
+    function rebuild(expression, contents) {
+        typecheck(expression, 'Expression+Relation');
+        typecheck(contents, 'Array');
+        const structure = grouplike_expressions_for_tag[expression.type];
+        if (structure == null) {
+            return expression.with({ contents:Object.freeze(contents) });
+        }
+        const rebuilt = structure.create(contents);
+        return rebuilt == null? expression.with({ contents:Object.freeze(contents) }) :
+            rebuilt.caveat(...expression.caveats);
+    }
+
     function _divide(parent, source, direction) {
         typecheck(parent, 'Expression+1');
         typecheck(source, 'Expression');
@@ -158,6 +170,7 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         combine,
         commute,
         canonicalize,
+        rebuild,
         left_divide,
         right_divide,
         collapse,

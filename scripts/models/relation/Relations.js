@@ -269,7 +269,7 @@ function Relations(dependencies) {
         if (Array.isArray(current.contents)) {
             const contents = current.contents.map(_simplify_expression);
             if (contents.some((item, index) => item !== current.contents[index])) {
-                current = current.with({ contents:freeze(contents) });
+                current = grouplikes.rebuild(current, contents);
             }
         }
 

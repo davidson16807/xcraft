@@ -294,7 +294,7 @@ function solveLevel9() {
 function solveLevel10() {
     let q = levels[9].equation;
     q = move(q, '0/0/0/0', '0/0/0/1', manual_drag_options);
-    q = move(q, '0/0/1', '1', auto_simplify_drag_options);
+    q = move(q, '0/0/2', '1', auto_simplify_drag_options);
     q = move(q, '1/0/1', '0', auto_simplify_drag_options);
     q = move(q, '0/0/0', '0/0/2', manual_drag_options);
     q = move(q, '0/0/1', '1', auto_simplify_drag_options);
@@ -1624,6 +1624,36 @@ function expressionShapeCanonicalization() {
 // Additive closure
 // a + b is an Expression.
 // -----------------------------------------------------------------------------
+
+function associativeReplacement() {
+    const three = grouplikes.constant(3);
+    const seven = grouplikes.constant(7);
+    const negative_x = additive_inverse(x);
+    const negative_three = additive_inverse(three);
+    const parent = grouplikes.add([seven, x]);
+    const replacement = grouplikes.add([negative_x, negative_three]);
+    const rebuilt = paths.replace(parent, '1', replacement);
+    const expected = grouplikes.add([seven, negative_x, negative_three]);
+
+    assertSameExpression(
+        rebuilt,
+        expected,
+        'associative replacement',
+        'replacing a child of add with another add should flatten through associativity'
+    );
+    assert(
+        rebuilt.type === 'add' && rebuilt.contents.every(item => item.type !== 'add'),
+        'associative replacement: same-type associative children should not remain nested'
+    );
+
+    const nonassociative_parent = grouplikes.pow(x, three);
+    const nonassociative_replacement = grouplikes.pow(seven, three);
+    const ordered = paths.replace(nonassociative_parent, '0', nonassociative_replacement);
+    assert(
+        ordered.type === 'pow' && ordered.contents[0] === nonassociative_replacement,
+        'associative replacement: nonassociative parents should preserve explicit nesting'
+    );
+}
 
 function additiveClosure() {
     forEachPair((a, b) => {
@@ -3789,6 +3819,7 @@ function inverseThroughDivision() {
     fractionPreservation,
     ringExpressionInterface,
     expressionShapeCanonicalization,
+    associativeReplacement,
     additiveClosure,
     additiveCommutativity,
     additiveAssociativity,

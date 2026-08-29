@@ -67,7 +67,7 @@ const ExpressionPaths = (grouplikes) => {
         if (!Array.isArray(expression.contents)) return expression;
         const contents = expression.contents.slice();
         contents[Number(segment)] = replacement;
-        return expression.with({contents: Object.freeze(contents)});
+        return grouplikes.rebuild(expression, contents);
     }
 
     function _replace(expression, segments, replacement) {
