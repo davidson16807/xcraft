@@ -206,12 +206,12 @@
     const grouplikes = Grouplikes({
         'add': Grouplike('add',
             {
-                is_commutative: true,
+                is_commutative: false,
                 is_associative: true,
                 left_identity: zero,
                 right_identity: zero,
-                right_divide: inverse_divide('add', additive_inverse),
-                left_divide: inverse_divide('add', additive_inverse),
+                left_divide: left_inverse_divide('add', additive_inverse),
+                right_divide: right_inverse_divide('add', additive_inverse),
             },
             items => items.reduce((accumulator, item) => accumulator + item, 0)
         ),
@@ -223,8 +223,8 @@
                 right_identity: one,
                 left_annihilator: zero,
                 right_annihilator: zero,
-                right_divide: inverse_divide('mul', multiplicative_inverse),
-                left_divide: inverse_divide('mul', multiplicative_inverse),
+                left_divide: left_inverse_divide('mul', multiplicative_inverse),
+                right_divide: right_inverse_divide('mul', multiplicative_inverse),
             },
             items => items.reduce((accumulator, item) => accumulator * item, 1)
         ),
