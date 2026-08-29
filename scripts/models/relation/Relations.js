@@ -127,7 +127,7 @@ function Relations(dependencies) {
         typecheck(inner, 'Expression');
         typecheck(outer_fixed, 'Expression');
         typecheck(inner_fixed, 'Expression');
-        return _distinct(invertibles.map(invertible => {
+        return _distinct([grouplikes, ...invertibles].map(invertible => {
             const replacement = invertible.strip(
                 outer,
                 inner,
@@ -248,7 +248,7 @@ function Relations(dependencies) {
                 const outer_fixed = expression.contents[outer_index];
 
                 for (const inner_fixed of inner.contents) {
-                    for (const invertible of invertibles) {
+                    for (const invertible of [grouplikes, ...invertibles]) {
                         const replacement = invertible.strip(expression, inner, outer_fixed, inner_fixed );
                         if (replacement == null) continue;
                         const gathered = caveats.gather(expression, replacement);

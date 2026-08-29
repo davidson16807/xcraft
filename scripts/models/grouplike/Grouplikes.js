@@ -124,6 +124,16 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         return _divide(parent, source, 'right_divide');
     }
 
+    function strip(outer, inner, outer_fixed, inner_fixed) {
+        typecheck(outer, 'Expression');
+        typecheck(inner, 'Expression');
+        typecheck(outer_fixed, 'Expression');
+        typecheck(inner_fixed, 'Expression');
+        const structure = grouplike_expressions_for_tag[outer.type];
+        return structure == null? null :
+            structure.strip(outer, inner, outer_fixed, inner_fixed);
+    }
+
     function collapse(expression, index1, index2, replacement) {
         typecheck(expression, 'Expression');
         typecheck(index1, 'Number');
@@ -173,6 +183,7 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
         rebuild,
         left_divide,
         right_divide,
+        strip,
         collapse,
         simplify,
         evaluate,

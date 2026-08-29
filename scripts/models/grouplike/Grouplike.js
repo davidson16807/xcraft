@@ -241,6 +241,35 @@ const Grouplike = (label, properties, evaluatable) => {
         return _divide(parent, source, right_division, false);
     }
 
+    /*
+    Division definitions imply their own cancellation law. If applying one of
+    this Grouplike's divisions to `inner` produces `outer`, then the selected
+    operand can be stripped from `inner` without requiring associativity.
+    */
+    function strip(outer, inner, outer_fixed, inner_fixed) {
+        typecheck(outer, 'Expression');
+        typecheck(inner, 'Expression');
+        typecheck(outer_fixed, 'Expression');
+        typecheck(inner_fixed, 'Expression');
+        if (outer.type !== label || inner.type !== label || !Array.isArray(inner.contents)) {
+            return null;
+        }
+
+        for (const divide of [left_divide, right_divide]) {
+            const operation = divide(inner, inner_fixed);
+            if (operation == null) continue;
+            const divided = operation(inner);
+            if (divided == null || !same(divided, outer)) continue;
+
+            const index = inner.contents.indexOf(inner_fixed);
+            if (index < 0) continue;
+            const contents = inner.contents.slice();
+            contents.splice(index, 1);
+            return create(contents);
+        }
+        return null;
+    }
+
     return freeze({
         label,
         create,
@@ -249,6 +278,7 @@ const Grouplike = (label, properties, evaluatable) => {
         canonicalize,
         left_divide,
         right_divide,
+        strip,
         simplify,
         evaluator,
     });

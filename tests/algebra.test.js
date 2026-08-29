@@ -3807,6 +3807,104 @@ function inverseThroughDivision() {
 }
 
 // -----------------------------------------------------------------------------
+// Division cancellation without associativity
+// Division definitions imply cancellation even when grouping cannot flatten.
+// -----------------------------------------------------------------------------
+
+function nonassociativeDivisionCancellation() {
+    const a = new Expression('variable', 'a');
+    const b = new Expression('variable', 'b');
+    const identity = new Expression('constant', 0);
+    const negate = expression => new Expression('neg', Object.freeze([expression]));
+    const label = 'nonassoc_add';
+
+    const left_divide = divisor => expression => new Expression(
+        label,
+        Object.freeze([negate(divisor), expression])
+    );
+    const right_divide = divisor => expression => new Expression(
+        label,
+        Object.freeze([expression, negate(divisor)])
+    );
+
+    const structure = Grouplike(
+        label,
+        {
+            is_commutative:true,
+            is_associative:false,
+            left_identity:identity,
+            right_identity:identity,
+            left_divide,
+            right_divide,
+        },
+        () => NaN
+    );
+
+    const inner = structure.create([a, b]);
+    const divide = structure.right_divide(inner, b);
+    assert(typeof divide === 'function',
+        'nonassociative division: right division should be available');
+    const outer = divide(inner);
+    const inverse_b = outer.contents[1];
+
+    assertShape(
+        structure.strip(outer, inner, inverse_b, b),
+        a,
+        'nonassociative division: division should imply cancellation without associativity'
+    );
+
+    const local_grouplikes = Object.freeze({
+        strip:(...args) => structure.strip(...args),
+        rebuild:(expression, contents) => expression.type === label?
+            structure.create(contents) : expression.with({contents:Object.freeze(contents)}),
+        simplify:expression => expression,
+        combine:() => null,
+        collapse:(expression, index1, index2, replacement) => {
+            const contents = expression.contents.slice();
+            contents[Math.min(index1, index2)] = replacement;
+            contents.splice(Math.max(index1, index2), 1);
+            return structure.create(contents);
+        },
+    });
+    const local_relations = Relations({
+        grouplikes:local_grouplikes,
+        ringlikes,
+        orderlikes,
+        expression_shape,
+        expression_caveats,
+        invertibles:[],
+        equivalences:[],
+    });
+
+    const equation = new Relation('eq', outer, identity);
+    assertShape(
+        local_relations.simplify(equation).left,
+        a,
+        'nonassociative division: Relations.simplify should cancel a derived division'
+    );
+
+    const local_paths = ExpressionPaths(local_grouplikes);
+    const local_path_operations = RelationPathOperations({
+        expression_paths:local_paths,
+        equations:local_relations,
+    });
+    const strip_choices = local_path_operations.strip(
+        equation,
+        '0/0/0/1',
+        '0/0/1'
+    );
+    assert(
+        strip_choices.length === 1 && strip_choices[0].type === 'strip',
+        'nonassociative division: dragging inverse operands across nested parents should strip'
+    );
+    assertShape(
+        strip_choices[0].equation.left,
+        a,
+        'nonassociative division: strip drag should cancel the divided operand'
+    );
+}
+
+// -----------------------------------------------------------------------------
 // Run the specification
 // -----------------------------------------------------------------------------
 
@@ -3855,6 +3953,7 @@ function inverseThroughDivision() {
     multiplicativeCancellation,
     divisionStructureInterface,
     divisionDefinition,
+    nonassociativeDivisionCancellation,
     multiplicativeBalance,
     inverseThroughDivision,
     booleanAndSetAlgebras,
