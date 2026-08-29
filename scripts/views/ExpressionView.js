@@ -198,6 +198,20 @@ function ExpressionView(dependencies) {
         return node;
     }
 
+    /*
+    An addend may be algebraically negative without rendering with a leading
+    minus sign. For example, mul([3, -2]) renders as 3·(-2). Suppress the
+    additive '+' only when the visible term itself begins with a negative
+    constant/factor.
+    */
+    function has_leading_negative(expression) {
+        if (expression.type === 'constant') return expression.contents < 0;
+        return expression.type === 'mul' &&
+            expression.contents.length > 0 &&
+            expression.contents[0].type === 'constant' &&
+            expression.contents[0].contents < 0;
+    }
+
     function draw_log_projection(base_node, result_node, attributes) {
         return html.span(attributes, [
             html.span({ class:'log-operator' }, [
@@ -262,11 +276,11 @@ function ExpressionView(dependencies) {
             case 'add':
                 return html.span(path_attributes(path, draggable_paths, valid_targets, 'expression-add'),
                     expression.contents.map((term, i) => {
-                        const is_inverse = ringlikes.is_inverse('add', term);
                         const term_path = paths.nary(path, i);
                         return html.span(path_attributes(term_path, draggable_paths, valid_targets, 'addend'),
                             [
-                                ...(i > 0 && !is_inverse)? [math('+', 'math-operator')] : [],
+                                ...(i > 0 && !has_leading_negative(term))?
+                                    [math('+', 'math-operator')] : [],
                                 draw_contents(
                                     term,
                                     term_path,

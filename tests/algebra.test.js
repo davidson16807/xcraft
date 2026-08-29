@@ -1087,6 +1087,12 @@ ${context}`
         ),
         'expression view: equal-precedence nesting should be parenthesized'
     );
+    assert(
+        expression_view_source.includes('function has_leading_negative') &&
+        expression_view_source.includes('!has_leading_negative(term)') &&
+        !expression_view_source.includes("const is_inverse = ringlikes.is_inverse('add', term)"),
+        'expression view: additive separators should follow the visible leading sign, not semantic negativity'
+    );
 
     const zero_equation = new Relation('eq', zero, rhs);
     assert(
