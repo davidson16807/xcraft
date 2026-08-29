@@ -20,7 +20,7 @@ function ExpressionView(dependencies) {
 
     function maybe_parenthesize(node, expression, parent_precedence, is_power_base) {
         const needs_parentheses =
-            precedence_for_tag(expression.type) < parent_precedence ||
+            precedence_for_tag(expression.type) <= parent_precedence ||
             (is_power_base && expression.type === 'pow');
 
         if (!needs_parentheses) return node;
@@ -76,12 +76,6 @@ function ExpressionView(dependencies) {
     }
 
     function draw_product_factor(item, draggable_paths, valid_targets, parent_precedence) {
-        if (item.factor.type === 'constant' && item.factor.contents === -1) {
-            return html.span(
-                path_attributes(item.path, draggable_paths, valid_targets, 'multiplication-sign'),
-                [math('-', 'math-operator')]
-            );
-        }
         return draw(
             item.factor,
             item.path,
@@ -89,6 +83,35 @@ function ExpressionView(dependencies) {
             valid_targets,
             parent_precedence
         );
+    }
+
+    function draw_leading_negative(item, draggable_paths, valid_targets) {
+        return html.span(
+            path_attributes(item.path, draggable_paths, valid_targets, 'multiplication-sign'),
+            [math('-', 'math-operator')]
+        );
+    }
+
+    function product_nodes(items, draggable_paths, valid_targets, parent_precedence) {
+        const leading_negative =
+            items.length > 0 &&
+            items[0].factor.type === 'constant' &&
+            items[0].factor.contents === -1?
+                items[0] : null;
+        const factors = leading_negative == null? items : items.slice(1);
+
+        return [
+            ...(leading_negative == null? [] : [
+                draw_leading_negative(leading_negative, draggable_paths, valid_targets)
+            ]),
+            ...factors.map((item, i) =>
+                product_factor_nodes(
+                    item.factor,
+                    draw_product_factor(item, draggable_paths, valid_targets, parent_precedence),
+                    i > 0? factors[i-1].factor : null
+                )
+            ).flat(),
+        ];
     }
 
     function draw_mul(expression, path, draggable_paths, valid_targets) {
@@ -101,13 +124,7 @@ function ExpressionView(dependencies) {
         if (denominator.length === 0) {
             return html.span(
                 path_attributes(path, draggable_paths, valid_targets, 'expression-mul'),
-                numerator.map((item, i) =>
-                    product_factor_nodes(
-                        item.factor,
-                        draw_product_factor(item, draggable_paths, valid_targets, 2),
-                        i > 0? numerator[i-1].factor : null
-                    )
-                ).flat()
+                product_nodes(numerator, draggable_paths, valid_targets, 2)
             );
         }
 
@@ -117,13 +134,7 @@ function ExpressionView(dependencies) {
         const numerator_node = html.span({ class:'fraction-numerator' },
             numerator.length === 0?
                 [math('1')]
-              : numerator.map((item, i) =>
-                    product_factor_nodes(
-                        item.factor,
-                        draw_product_factor(item, draggable_paths, valid_targets, numerator_parent),
-                        i > 0? numerator[i-1].factor : null
-                    )
-                ).flat()
+              : product_nodes(numerator, draggable_paths, valid_targets, numerator_parent)
         );
 
         const denominator_node = html.span({ class:'fraction-denominator' },

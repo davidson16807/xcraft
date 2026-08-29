@@ -1081,6 +1081,12 @@ ${context}`
         expression_view_source.includes('items[0].factor.contents === -1'),
         'expression view: unary minus shorthand should apply only to a leading -1 factor'
     );
+    assert(
+        expression_view_source.includes(
+            'precedence_for_tag(expression.type) <= parent_precedence'
+        ),
+        'expression view: equal-precedence nesting should be parenthesized'
+    );
 
     const zero_equation = new Relation('eq', zero, rhs);
     assert(
