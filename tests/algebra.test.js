@@ -987,7 +987,11 @@ function caveatTracking() {
 function dragChoices() {
     const rhs = grouplikes.constant(2);
 
-    for (const a of [x, grouplikes.constant(2)]) {
+    for (const a of [
+        x,
+        grouplikes.constant(2),
+        grouplikes.add([x, grouplikes.constant(3)]),
+    ]) {
         const equation = new Relation('eq', a, rhs);
         const context = `lone expression a = ${describeCase(a)}`;
         const choices = algebra.choices(equation, '0/0', '1', manual_drag_options);

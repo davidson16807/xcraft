@@ -158,11 +158,23 @@ function ExpressionView(dependencies) {
     This is used for signed addends so the visible sign and term behave as one
     draggable addend while child factors keep their own paths.
     */
-    function draw_contents(expression, path, draggable_paths, valid_targets) {
+    function draw_contents(
+        expression,
+        path,
+        draggable_paths,
+        valid_targets,
+        parent_precedence = 1
+    ) {
         if (expression.type === 'constant') return math(String(expression.contents));
         if (expression.type === 'variable') return math(expression.contents);
 
-        const node = draw(expression, path, draggable_paths, valid_targets, 1);
+        const node = draw(
+            expression,
+            path,
+            draggable_paths,
+            valid_targets,
+            parent_precedence
+        );
         node.removeAttribute('data-path');
         node.removeAttribute('data-drop-key');
         node.removeAttribute('data-draggable');
@@ -247,7 +259,8 @@ function ExpressionView(dependencies) {
                                     absolute,
                                     term_path,
                                     draggable_paths,
-                                    valid_targets
+                                    valid_targets,
+                                    is_inverse? precedence_for_tag('add') + 1 : precedence_for_tag('add')
                                 )
                             ]);
                     })
