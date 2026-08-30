@@ -20,7 +20,7 @@ class PowerTriangle extends Array {
     }
 
     with(vertex, value) {
-        typecheck(vertex, 'Number');
+        typecheck(vertex, 'Integer');
         typecheck(value, 'Expression+1');
         const values = [...this];
         values[vertex] = value;

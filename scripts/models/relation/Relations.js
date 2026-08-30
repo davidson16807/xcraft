@@ -146,8 +146,8 @@ function Relations(dependencies) {
     an equivalence law dictates that several expressions can be combined into one.*/
     function combine(parent, index1, index2) {
         typecheck(parent, 'Expression');
-        typecheck(index1, 'Number');
-        typecheck(index2, 'Number');
+        typecheck(index1, 'Integer');
+        typecheck(index2, 'Integer');
         if (!Array.isArray(parent.contents) || index1 === index2) return noop;
         // indexes match or parent is singleton? no-op
 
@@ -180,8 +180,8 @@ function Relations(dependencies) {
     an equivalence law dictates that one expression can become several.*/
     function distribute(parent, source_index, target_index) {
         typecheck(parent, 'Expression');
-        typecheck(source_index, 'Number');
-        typecheck(target_index, 'Number');
+        typecheck(source_index, 'Integer');
+        typecheck(target_index, 'Integer');
         if (!Array.isArray(parent.contents) || source_index === target_index) return noop;
         // indexes match or parent is singleton? no-op
 
@@ -221,8 +221,8 @@ function Relations(dependencies) {
     This function no-ops if the parent operation is neither commutative nor anti-commutative.*/
     function commute(parent, index1, index2) {
         typecheck(parent, 'Expression');
-        typecheck(index1, 'Number');
-        typecheck(index2, 'Number');
+        typecheck(index1, 'Integer');
+        typecheck(index2, 'Integer');
         if (!Array.isArray(parent.contents) || index1 === index2) return noop;
         // indexes match or parent is singleton? no-op
 

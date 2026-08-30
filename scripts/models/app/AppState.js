@@ -21,7 +21,7 @@ class AppState {
         courses
     ) {
         typecheck(levels, 'Array+1');
-        typecheck(level_index, 'Number');
+        typecheck(level_index, 'Integer');
         typecheck(equation, 'Relation');
         typecheck(drag_type, 'Object');
         typecheck(drag_state, 'Object');

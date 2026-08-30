@@ -3,11 +3,9 @@
 class Course {
     constructor(title, first_level_index, last_level_index) {
         typecheck(title, 'String');
-        typecheck(first_level_index, 'Number');
-        typecheck(last_level_index, 'Number');
+        typecheck(first_level_index, 'Integer');
+        typecheck(last_level_index, 'Integer');
         if (
-            !Number.isInteger(first_level_index) ||
-            !Number.isInteger(last_level_index) ||
             first_level_index < 0 ||
             last_level_index < first_level_index
         ) throw new Error('invalid course level range');

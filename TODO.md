@@ -12,14 +12,22 @@ sides of equation do not expand horizontally to fit contents
 (yx)/2ᵃ doesn't show 
 "37 Split same result logarithm" is a slop level
 "40 Power in a logarithm base" is a slop level and may be unsolvable
+lesson 27 should be under "logarithms"
+lesson 31-32, 38-40 should be under "logarithms"
+
 
 UNOBTRUSIVE:
 * levels need to switch to variables a,b,c for constants to indicate that root is being taken
 * large expressions like the denominator of "1 / x/14 + 3/14" can't be dragged - division is treated as a "pow" expression so it has no handle
 * track the highest level completed and disable progression beyond it until it is solved
+* larger padding between factor and term handles
 
 MAYBE OBTRUSIVE:
 * create levels to test other algebras: set notation, boolean algebra
+* "Simplify" button should simplify the equation and add result to history
+* lesson 13, caveat introduced by root should read "x≥0", not "x³≥0"
+* lesson 17, caveat introduced by logₓ(a) should read "a>0", not "x²>0" caveats shouldn't display if evaluation finds they are always satisfied
+* rational fractions are broken... again
 
 OBTRUSIVE:
 * allow inverting fractions on both sides

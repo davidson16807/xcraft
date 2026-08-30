@@ -82,8 +82,8 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
 
     function commute(expression, index1, index2) {
         typecheck(expression, 'Expression');
-        typecheck(index1, 'Number');
-        typecheck(index2, 'Number');
+        typecheck(index1, 'Integer');
+        typecheck(index2, 'Integer');
         const structure = grouplike_expressions_for_tag[expression.type];
         if (structure == null) return expression;
         return structure.commute(expression, index1, index2);
@@ -148,8 +148,8 @@ const Grouplikes = (grouplike_expressions_for_tag) => {
 
     function collapse(expression, index1, index2, replacement) {
         typecheck(expression, 'Expression');
-        typecheck(index1, 'Number');
-        typecheck(index2, 'Number');
+        typecheck(index1, 'Integer');
+        typecheck(index2, 'Integer');
         typecheck(replacement, 'Expression');
         const structure = grouplike_expressions_for_tag[expression.type];
         return structure == null? null : structure.collapse(expression, index1, index2, replacement);

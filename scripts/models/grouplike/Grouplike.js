@@ -206,8 +206,8 @@ const Grouplike = (label, properties, evaluatable) => {
 
     function commute(expression, index1, index2) {
         typecheck(expression, 'Expression');
-        typecheck(index1, 'Number');
-        typecheck(index2, 'Number');
+        typecheck(index1, 'Integer');
+        typecheck(index2, 'Integer');
         if (!is_commutative) return expression;
         const contents = expression.contents.slice();
         [contents[index1], contents[index2]] = [contents[index2], contents[index1]];
@@ -221,8 +221,8 @@ const Grouplike = (label, properties, evaluatable) => {
 
     function collapse(expression, index1, index2, replacement) {
         typecheck(expression, 'Expression');
-        typecheck(index1, 'Number');
-        typecheck(index2, 'Number');
+        typecheck(index1, 'Integer');
+        typecheck(index2, 'Integer');
         typecheck(replacement, 'Expression');
         if (expression.type !== label || !Array.isArray(expression.contents)) return null;
         if (!is_commutative && Math.abs(index1 - index2) !== 1) return null;

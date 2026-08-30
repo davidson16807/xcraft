@@ -44,7 +44,7 @@ function AppHistoryTraversal(max_history_size) {
 
         rollback: function(app, index) {
             typecheck(app, 'AppState');
-            typecheck(index, 'Number');
+            typecheck(index, 'Integer');
             const previous = app.undo_history[index];
             return app.with({
                 equation: previous,

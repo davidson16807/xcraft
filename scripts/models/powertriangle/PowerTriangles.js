@@ -91,8 +91,8 @@ const PowerTriangles = (grouplikes, expression_shape) => {
 
     /* Returns the remaining PowerTriangle index that is neither `first` nor `second`. */
     function other(first, second) {
-        typecheck(first, 'Number');
-        typecheck(second, 'Number');
+        typecheck(first, 'Integer');
+        typecheck(second, 'Integer');
         const vertex = vertices.find(vertex => vertex !== first && vertex !== second);
         return vertex == null? null : vertex;
     }
