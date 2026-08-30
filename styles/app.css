@@ -457,7 +457,7 @@ main:has(.history-stage:not([hidden])) .equation-row {
     line-height: 1;
     margin-right: -0.18em;
     transform: translateY(0.08em);
-    z-index: 1;
+    z-index: 0;
 }
 
 .root-radical {
@@ -528,7 +528,7 @@ main:has(.history-stage:not([hidden])) .equation-row {
     gap: 10px;
     width: max-content;
     max-width: min(46vw, 560px);
-    z-index: 20;
+    z-index: 1;
 }
 
 .drag-ghosts-row {
