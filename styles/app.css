@@ -202,13 +202,6 @@ button {
     border-top: 1px solid var(--hairline);
 }
 
-.level-counter {
-    padding: 0 0 6px;
-    color: var(--quiet);
-    text-align: center;
-    font-variant-numeric: tabular-nums;
-}
-
 main {
     flex: 1;
     width: min(1120px, calc(100% - 32px));
@@ -676,8 +669,7 @@ button.drag-ghost:focus-visible {
         overflow: visible;
     }
 
-    .level-menu,
-    .level-counter {
+    .level-menu {
         display: none;
     }
 

@@ -15,7 +15,6 @@ function AppView(dependencies, app_updater) {
         const history_element = dom_io.getElementById('history');
         const level_title = dom_io.getElementById('level-title');
         const level_concept = dom_io.getElementById('level-concept');
-        const level_counter = dom_io.getElementById('level-counter');
         const undo_button = dom_io.getElementById('undo');
         const redo_button = dom_io.getElementById('redo');
         const previous_button = dom_io.getElementById('previous-level');
@@ -35,7 +34,6 @@ function AppView(dependencies, app_updater) {
 
         level_title.textContent = level.title;
         level_concept.textContent = level.concept;
-        level_counter.textContent = `${app.level_index+1} / ${app.levels.length}`;
 
         undo_button.disabled = app.undo_history.length === 0;
         redo_button.disabled = app.redo_history.length === 0;
