@@ -19,8 +19,7 @@ UNOBTRUSIVE:
 * track the highest level completed and disable progression beyond it until it is solved
 
 MAYBE OBTRUSIVE:
-* ExpressionShape should only sort arguments for commutative and associative expressions
-* rename: self_combination→reflexive?
+* create levels to test other algebras: set notation, boolean algebra
 
 OBTRUSIVE:
 * allow inverting fractions on both sides
@@ -29,8 +28,6 @@ OBTRUSIVE:
 * ability to write your own equations
 * decouple essential EquationsView logic from logic that formats element visuals (e.g. showing × vs ⋅ for arithmetic, color dots like 🔴)
 * export to latex, python, javascript, etc.
-* allow representing other algebras: set notation, boolean algebra
-* courses
 * "techtree" of operations
 * mode=god, mode=creative, mode=story
 * expand target side width to prevent sides rapidly switching back and forth

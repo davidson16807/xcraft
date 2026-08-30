@@ -3440,7 +3440,7 @@ function booleanAndSetAlgebras() {
             is_associative:true,
             left_identity:zero_local,
             right_identity:zero_local,
-            self_combination:zero_local,
+            unique_square:zero_local,
         },
         items => items.reduce((left, right) => left ^ right, 0)
     );

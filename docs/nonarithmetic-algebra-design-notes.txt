@@ -151,7 +151,7 @@ The current preferred first-pass set is:
     right_annihilator
 
     is_idempotent
-    self_combination
+    unique_square
 
 The last two are still somewhat provisional, but both are considered acceptable in Grouplike for pragmatic reasons if constructor checks prevent contradictory definitions.
 
@@ -199,19 +199,19 @@ right_annihilator
 is_idempotent
     x * x = x
 
-self_combination
+unique_square
     A fixed Expression s such that:
         x * x = s
 
 Examples:
-    self_combination = 0
+    unique_square = 0
         can represent square-zero behavior
 
-    self_combination = 1
+    unique_square = 1
         can represent exponent-two-like behavior
 
 Important:
-is_idempotent and self_combination describe overlapping branches of combine().
+is_idempotent and unique_square describe overlapping branches of combine().
 They should therefore not both be enabled at once.
 
 IDEMPOTENCE DOES NOT IMPLY AN IDENTITY
@@ -230,7 +230,7 @@ but max over the integers has no integer identity element.
 
 Therefore idempotence cannot be represented as:
 
-    self_combination = identity
+    unique_square = identity
 
 That expression instead means:
 
@@ -300,9 +300,9 @@ Proposed checks include:
 
 2. If both left_annihilator and right_annihilator are supplied, their shapes must agree.
 
-3. If is_idempotent is true, self_combination must be undefined.
+3. If is_idempotent is true, unique_square must be undefined.
 
-4. If self_combination is supplied together with an identity, self_combination must agree with that identity.
+4. If unique_square is supplied together with an identity, unique_square must agree with that identity.
 
 Reason:
     if x * x = s for all x
@@ -310,13 +310,13 @@ Reason:
     then substituting x = e gives:
         s = e * e = e
 
-5. If self_combination is supplied together with an annihilator, self_combination must agree with that annihilator.
+5. If unique_square is supplied together with an annihilator, unique_square must agree with that annihilator.
 
 Reason:
     substituting x = z gives:
         s = z * z = z
 
-6. Therefore a Grouplike with distinct identity and annihilator cannot also have a universal fixed self_combination.
+6. Therefore a Grouplike with distinct identity and annihilator cannot also have a universal fixed unique_square.
 
 7. Same-side identity and annihilator may both exist, but they should not be the same shape unless trivial algebras are intentionally supported.
 
@@ -404,7 +404,7 @@ and later implement it either:
 SELF-COMBINATION AND RELATED LAWS
 ---------------------------------
 
-self_combination and is_idempotent are not fully orthogonal because both govern:
+unique_square and is_idempotent are not fully orthogonal because both govern:
 
     combine(x, x)
 
@@ -416,9 +416,9 @@ General nilpotence:
 
     x^n = 0
 
-is not fully represented by a fixed self_combination rule.
+is not fully represented by a fixed unique_square rule.
 
-A fixed self_combination can represent only the n = 2 / square-zero case directly.
+A fixed unique_square can represent only the n = 2 / square-zero case directly.
 
 BOOLEAN AND SET ABSORPTION
 --------------------------
@@ -599,7 +599,7 @@ Preferred Grouplike attributes:
     right_annihilator
 
     is_idempotent
-    self_combination
+    unique_square
 
 Preferred omissions from first pass:
 

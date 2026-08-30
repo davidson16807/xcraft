@@ -37,13 +37,13 @@ const Grouplike = (label, properties, evaluatable) => {
     const right_annihilator = properties.right_annihilator;
 
     const is_idempotent = !!properties.is_idempotent;
-    const self_combination = properties.self_combination;
+    const unique_square = properties.unique_square;
 
     typecheck(left_identity, 'Expression+1');
     typecheck(right_identity, 'Expression+1');
     typecheck(left_annihilator, 'Expression+1');
     typecheck(right_annihilator, 'Expression+1');
-    typecheck(self_combination, 'Expression+1');
+    typecheck(unique_square, 'Expression+1');
 
     const freeze = Object.freeze;
 
@@ -85,13 +85,13 @@ const Grouplike = (label, properties, evaluatable) => {
         require((left_division != null) == (right_division != null), `commutative left and right division must exist together`);
     }
 
-    if (self_combination != null) {
+    if (unique_square != null) {
         require(!is_idempotent, `idempotence and fixed self-combination are mutually exclusive`);
         [left_identity, right_identity].forEach(identity =>
-            require_same_optionals(self_combination, identity, 'self-combination disagrees with identity')
+            require_same_optionals(unique_square, identity, 'self-combination disagrees with identity')
         );
         [left_annihilator, right_annihilator].forEach(annihilator =>
-            require_same_optionals(self_combination, annihilator, 'self-combination disagrees with annihilator')
+            require_same_optionals(unique_square, annihilator, 'self-combination disagrees with annihilator')
         );
     }
 
@@ -199,7 +199,7 @@ const Grouplike = (label, properties, evaluatable) => {
 
         if (same(left, right)) {
             if (is_idempotent) return left;
-            if (self_combination != null) return self_combination;
+            if (unique_square != null) return unique_square;
         }
         return null;
     }
