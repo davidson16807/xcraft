@@ -65,9 +65,12 @@ function AppView(dependencies, app_updater) {
 
         if (app.history_visible) history_element.scrollTop = history_element.scrollHeight;
 
+
         level_menu.replaceChildren(
-            ...app.courses.map((course, course_index) => {
-                const should_open = app.open_courses.includes(course_index);
+            ...app.courses.map(course => {
+                const should_open =
+                    app.level_index >= course.first_level_index &&
+                    app.level_index <= course.last_level_index;
                 const level_buttons = app.levels
                     .slice(course.first_level_index, course.last_level_index + 1)
                     .map((level, offset) => {
@@ -82,12 +85,11 @@ function AppView(dependencies, app_updater) {
 
                 return html.node('details', {
                     'class': 'course',
-                    'data-course-index': course_index,
                     ...(should_open? { open:'' } : {}),
                 }, [
                     html.node('summary', {
                         class:'course-title',
-                        'data-course-toggle': course_index,
+                        'data-level-index': course.first_level_index,
                     }, [], course.title),
                     html.div({ class:'course-levels' }, level_buttons),
                 ]);
@@ -228,17 +230,11 @@ function AppView(dependencies, app_updater) {
 
         level_menu.addEventListener('click', event => {
             const button = event.target.closest('[data-level-index]');
-            if (button) {
-                dispatch(app_updater.select_level(app, Number(button.getAttribute('data-level-index'))));
-                return;
-            }
-
-            const course = event.target.closest('[data-course-toggle]');
-            if (!course) return;
+            if (!button) return;
             event.preventDefault();
-            dispatch(app_updater.toggle_course(
+            dispatch(app_updater.select_level(
                 app,
-                Number(course.getAttribute('data-course-toggle'))
+                Number(button.getAttribute('data-level-index'))
             ));
         });
 

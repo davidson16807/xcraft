@@ -382,9 +382,6 @@ function courseOrganization() {
         'day',
         manual_drag_options,
         false,
-        [courses.findIndex(course =>
-            index >= course.first_level_index && index <= course.last_level_index
-        )],
         courses
     );
 
@@ -401,28 +398,28 @@ function courseOrganization() {
         );
     });
 
-    let course_state = app_at(0);
     assert(
-        course_state.open_courses.join(',') === '0' &&
-        course_state.courses.length === courses.length,
-        'courses: course data and expanded sections should live in AppState'
-    );
-    course_state = app_updater.toggle_course(course_state, 1);
-    assert(
-        course_state.open_courses.join(',') === '0,1',
-        'courses: updater should open a course'
-    );
-    course_state = app_updater.toggle_course(course_state, 0);
-    assert(
-        course_state.open_courses.join(',') === '1',
-        'courses: updater should close a course'
+        app_at(0).courses.length === courses.length,
+        'courses: course data should live in AppState'
     );
 
-    const boundary = app_updater.next_level(app_at(9));
-    assert(
-        boundary.open_courses.includes(1),
-        'courses: entering a new course should open it through AppUpdater'
-    );
+    [
+        [0, 0],
+        [9, 0],
+        [10, 1],
+        [20, 1],
+        [21, 2],
+        [26, 2],
+        [27, 3],
+        [39, 3],
+    ].forEach(([level_index, course_index]) => {
+        const course = courses[course_index];
+        assert(
+            level_index >= course.first_level_index &&
+            level_index <= course.last_level_index,
+            `courses: lesson ${level_index + 1} should identify ${course.title} as its open course`
+        );
+    });
 
     const app_updater_source = fs.readFileSync(
         path.join(root, 'scripts/updaters/AppUpdater.js'),
@@ -430,8 +427,10 @@ function courseOrganization() {
     );
     assert(
         !app_updater_source.includes('dependencies.courses') &&
-        app_updater_source.includes('app.courses'),
-        'courses: AppUpdater should derive course data from AppState, not dependencies'
+        !app_updater_source.includes('app.courses') &&
+        !app_updater_source.includes('toggle_course') &&
+        !app_updater_source.includes('open_courses'),
+        'courses: AppUpdater should remain unaware of course organization'
     );
 
     const app_view_source = fs.readFileSync(
@@ -445,10 +444,13 @@ function courseOrganization() {
         app_view_source.includes("html.node('summary'") &&
         app_view_source.includes('course.first_level_index') &&
         app_view_source.includes('course.last_level_index') &&
-        app_view_source.includes('app.open_courses.includes(course_index)') &&
+        app_view_source.includes('app.level_index >= course.first_level_index') &&
+        app_view_source.includes("'data-level-index': course.first_level_index") &&
+        !app_view_source.includes('open_courses') &&
+        !app_view_source.includes('toggle_course') &&
         !app_view_source.includes("level_menu.querySelectorAll('[data-course-index]')") &&
         !app_view_source.includes("level_menu.querySelector('.level-menu-item.active')"),
-        'courses: AppView should render collapsible sections entirely from AppState'
+        'courses: AppView should derive the one open course from the current lesson and navigate headers to course starts'
     );
 }
 
