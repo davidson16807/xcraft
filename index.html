@@ -115,7 +115,7 @@
         <div id="level-menu" class="level-menu" aria-label="Levels"></div>
 
         <div class="level-navigation-footer">
-            <div id="level-counter" class="level-counter">1 / 27</div>
+            <div id="level-counter" class="level-counter">1 / 40</div>
 
             <div class="short-axis-group group-joined">
 
@@ -382,7 +382,10 @@
             [], [], // history
             window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches?
                 'night' : 'day',
-            { auto_simplify:false }
+            { auto_simplify:false },
+            false,
+            [0],
+            courses
         ), document
     );
 

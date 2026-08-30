@@ -18,8 +18,20 @@ function AppUpdater(dependencies) {
         return app;
     }
 
+    function course_index_for_level(app, level_index) {
+        return app.courses.findIndex(course =>
+            level_index >= course.first_level_index &&
+            level_index <= course.last_level_index
+        );
+    }
+
     function load_level(app, index) {
         const bounded = Math.max(0, Math.min(app.levels.length-1, index));
+        const old_course = course_index_for_level(app, app.level_index);
+        const new_course = course_index_for_level(app, bounded);
+        const open_courses = new_course >= 0 && new_course !== old_course &&
+            !app.open_courses.includes(new_course)?
+                [...app.open_courses, new_course] : app.open_courses;
         const drag_type = drags.release();
         return app.with({
             level_index: bounded,
@@ -29,6 +41,18 @@ function AppUpdater(dependencies) {
             drag_choices: [],
             undo_history: [],
             redo_history: [],
+            open_courses: open_courses,
+        });
+    }
+
+    function toggle_course(app, course_index) {
+        if (!Number.isInteger(course_index) || course_index < 0 || course_index >= app.courses.length) {
+            return app;
+        }
+        return app.with({
+            open_courses: app.open_courses.includes(course_index)?
+                app.open_courses.filter(index => index !== course_index)
+              : [...app.open_courses, course_index],
         });
     }
 
@@ -54,6 +78,7 @@ function AppUpdater(dependencies) {
         last_level: (app) => release(load_level(app, app.level_index-1)),
         next_level: (app) => release(load_level(app, app.level_index+1)),
         select_level: (app, level_index) => release(load_level(app, level_index)),
+        toggle_course: (app, course_index) => toggle_course(app, course_index),
         toggle_theme: (app) => app.with({ theme: app.theme === 'day'? 'night' : 'day' }),
         toggle_history: (app) => app.with({ history_visible: !app.history_visible }),
         toggle_auto_simplify: (app) => release(app.with({

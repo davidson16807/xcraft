@@ -150,6 +150,28 @@ button {
     padding: 8px;
 }
 
+.course + .course {
+    margin-top: 4px;
+}
+
+.course-title {
+    padding: 7px 8px;
+    border-radius: 6px;
+    color: var(--ink);
+    cursor: pointer;
+    font-weight: 650;
+    line-height: 1.25;
+}
+
+.course-title:hover,
+.course-title:focus-visible {
+    background: var(--offpaper);
+}
+
+.course-levels {
+    padding-left: 8px;
+}
+
 .level-menu-item {
     width: 100%;
     display: block;

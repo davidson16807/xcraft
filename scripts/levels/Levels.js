@@ -1,5 +1,31 @@
 'use strict';
 
+class Course {
+    constructor(title, first_level_index, last_level_index) {
+        typecheck(title, 'String');
+        typecheck(first_level_index, 'Number');
+        typecheck(last_level_index, 'Number');
+        if (
+            !Number.isInteger(first_level_index) ||
+            !Number.isInteger(last_level_index) ||
+            first_level_index < 0 ||
+            last_level_index < first_level_index
+        ) throw new Error('invalid course level range');
+
+        this.title = title;
+        this.first_level_index = first_level_index;
+        this.last_level_index = last_level_index;
+        Object.freeze(this);
+    }
+}
+
+const courses = Object.freeze([
+    new Course('Arithmetic', 0, 9),
+    new Course('Exponents', 10, 20),
+    new Course('Roots', 21, 26),
+    new Course('Logarithms', 27, 39),
+]);
+
 function Levels(grouplikes) {
     const c = grouplikes.constant;
     const v = grouplikes.variable;

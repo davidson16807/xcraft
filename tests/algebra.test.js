@@ -331,6 +331,128 @@ function solvePowerTriangleLevels() {
 }
 
 // -----------------------------------------------------------------------------
+// Course organization
+// Courses are view groupings over the flat level array. Navigation remains
+// entirely level-index based, including transitions across course boundaries.
+// -----------------------------------------------------------------------------
+
+function courseOrganization() {
+    const expected = [
+        ['Arithmetic', 0, 9],
+        ['Exponents', 10, 20],
+        ['Roots', 21, 26],
+        ['Logarithms', 27, 39],
+    ];
+
+    assert(levels.length === 40, 'courses: grouping must not change the lesson count');
+    assert(courses.length === expected.length, 'courses: expected four course ranges');
+
+    courses.forEach((course, index) => {
+        const [title, first, last] = expected[index];
+        assert(course instanceof Course, `courses: ${title} should be a Course`);
+        assert(
+            course.title === title &&
+            course.first_level_index === first &&
+            course.last_level_index === last,
+            `courses: ${title} should span lessons ${first + 1}-${last + 1}`
+        );
+    });
+
+    const covered = courses.flatMap(course =>
+        Array.from(
+            { length:course.last_level_index - course.first_level_index + 1 },
+            (_, offset) => course.first_level_index + offset
+        )
+    );
+    assert(
+        covered.join(',') === Array.from({ length:levels.length }, (_, index) => index).join(','),
+        'courses: ranges should cover every lesson exactly once and in order'
+    );
+
+    const released = equation_drags.release();
+    const app_at = index => new AppState(
+        levels,
+        index,
+        levels[index].equation,
+        released,
+        released.initialize(),
+        [],
+        [],
+        [],
+        'day',
+        manual_drag_options,
+        false,
+        [courses.findIndex(course =>
+            index >= course.first_level_index && index <= course.last_level_index
+        )],
+        courses
+    );
+
+    [9, 20, 26].forEach(index => {
+        const next = app_updater.next_level(app_at(index));
+        assert(
+            next.level_index === index + 1,
+            `courses: Next should cross boundary after lesson ${index + 1}`
+        );
+        const previous = app_updater.last_level(next);
+        assert(
+            previous.level_index === index,
+            `courses: Previous should cross boundary before lesson ${index + 2}`
+        );
+    });
+
+    let course_state = app_at(0);
+    assert(
+        course_state.open_courses.join(',') === '0' &&
+        course_state.courses.length === courses.length,
+        'courses: course data and expanded sections should live in AppState'
+    );
+    course_state = app_updater.toggle_course(course_state, 1);
+    assert(
+        course_state.open_courses.join(',') === '0,1',
+        'courses: updater should open a course'
+    );
+    course_state = app_updater.toggle_course(course_state, 0);
+    assert(
+        course_state.open_courses.join(',') === '1',
+        'courses: updater should close a course'
+    );
+
+    const boundary = app_updater.next_level(app_at(9));
+    assert(
+        boundary.open_courses.includes(1),
+        'courses: entering a new course should open it through AppUpdater'
+    );
+
+    const app_updater_source = fs.readFileSync(
+        path.join(root, 'scripts/updaters/AppUpdater.js'),
+        'utf8'
+    );
+    assert(
+        !app_updater_source.includes('dependencies.courses') &&
+        app_updater_source.includes('app.courses'),
+        'courses: AppUpdater should derive course data from AppState, not dependencies'
+    );
+
+    const app_view_source = fs.readFileSync(
+        path.join(root, 'scripts/views/AppView.js'),
+        'utf8'
+    );
+    assert(
+        app_view_source.includes("html.node('details'") &&
+        app_view_source.includes('app.courses.map') &&
+        !app_view_source.includes('dependencies.courses') &&
+        app_view_source.includes("html.node('summary'") &&
+        app_view_source.includes('course.first_level_index') &&
+        app_view_source.includes('course.last_level_index') &&
+        app_view_source.includes('app.open_courses.includes(course_index)') &&
+        !app_view_source.includes("level_menu.querySelectorAll('[data-course-index]')") &&
+        !app_view_source.includes("level_menu.querySelector('.level-menu-item.active')"),
+        'courses: AppView should render collapsible sections entirely from AppState'
+    );
+}
+
+// -----------------------------------------------------------------------------
 // Property-test vocabulary and cases
 // -----------------------------------------------------------------------------
 
@@ -4093,6 +4215,7 @@ function associativeNoncommutativeOrdering() {
 ].forEach(test => test());
 
 [
+    courseOrganization,
     relationalExpressions,
     caveatTracking,
     dragChoices,

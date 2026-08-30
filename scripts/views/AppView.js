@@ -66,14 +66,32 @@ function AppView(dependencies, app_updater) {
         if (app.history_visible) history_element.scrollTop = history_element.scrollHeight;
 
         level_menu.replaceChildren(
-            ...app.levels.map((level, i) =>
-                html.button({
-                    'class': 'level-menu-item' + (i === app.level_index? ' active' : ''),
-                    'data-level-index': i,
-                    'aria-current': i === app.level_index? 'step' : 'false',
-                    'aria-label': `Level ${i+1}: ${level.title}`
-                }, [], `${i+1}. ${level.title}`)
-            )
+            ...app.courses.map((course, course_index) => {
+                const should_open = app.open_courses.includes(course_index);
+                const level_buttons = app.levels
+                    .slice(course.first_level_index, course.last_level_index + 1)
+                    .map((level, offset) => {
+                        const i = course.first_level_index + offset;
+                        return html.button({
+                            'class': 'level-menu-item' + (i === app.level_index? ' active' : ''),
+                            'data-level-index': i,
+                            'aria-current': i === app.level_index? 'step' : 'false',
+                            'aria-label': `Level ${i+1}: ${level.title}`
+                        }, [], `${i+1}. ${level.title}`);
+                    });
+
+                return html.node('details', {
+                    'class': 'course',
+                    'data-course-index': course_index,
+                    ...(should_open? { open:'' } : {}),
+                }, [
+                    html.node('summary', {
+                        class:'course-title',
+                        'data-course-toggle': course_index,
+                    }, [], course.title),
+                    html.div({ class:'course-levels' }, level_buttons),
+                ]);
+            })
         );
 
         equation_view.draw(
@@ -210,8 +228,18 @@ function AppView(dependencies, app_updater) {
 
         level_menu.addEventListener('click', event => {
             const button = event.target.closest('[data-level-index]');
-            if (!button) return;
-            dispatch(app_updater.select_level(app, Number(button.getAttribute('data-level-index'))));
+            if (button) {
+                dispatch(app_updater.select_level(app, Number(button.getAttribute('data-level-index'))));
+                return;
+            }
+
+            const course = event.target.closest('[data-course-toggle]');
+            if (!course) return;
+            event.preventDefault();
+            dispatch(app_updater.toggle_course(
+                app,
+                Number(course.getAttribute('data-course-toggle'))
+            ));
         });
 
         dom_io.addEventListener('keydown', event => {

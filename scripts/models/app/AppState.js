@@ -17,7 +17,9 @@ class AppState {
         redo_history,
         theme,
         drag_options,
-        history_visible
+        history_visible,
+        open_courses,
+        courses
     ) {
         typecheck(levels, 'Array+1');
         typecheck(level_index, 'Number');
@@ -30,6 +32,8 @@ class AppState {
         typecheck(theme, 'String+1');
         typecheck(drag_options, 'Object+1');
         typecheck(history_visible, 'Boolean+1');
+        typecheck(open_courses, 'Array+1');
+        typecheck(courses, 'Array+1');
         this.levels = Object.freeze([...(levels || [])]);
         this.level_index = level_index;
         this.equation = equation;
@@ -43,6 +47,8 @@ class AppState {
             drag_options || { auto_simplify:false }
         );
         this.history_visible = !!history_visible;
+        this.open_courses = Object.freeze([...(open_courses || [])]);
+        this.courses = Object.freeze([...(courses || [])]);
         Object.freeze(this);
     }
 
@@ -59,6 +65,8 @@ class AppState {
             attributes.theme         != null? attributes.theme            : this.theme,
             attributes.drag_options  != null? attributes.drag_options     : this.drag_options,
             attributes.history_visible != null? attributes.history_visible : this.history_visible,
+            attributes.open_courses != null? attributes.open_courses : this.open_courses,
+            attributes.courses != null? attributes.courses : this.courses,
         );
     }
 }
