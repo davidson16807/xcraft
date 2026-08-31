@@ -372,11 +372,11 @@
     }, app_updater);
 
     const released = equation_drags.release();
-    const levels = Levels(grouplikes);
+    const curriculum = vanilla_curriculum(grouplikes);
     app_view.wire(
         new AppState(
-            levels, 0, // levels
-            levels[0].equation, // equation
+            curriculum.levels, 0, // levels
+            curriculum.levels[0].equation, // equation
             released, released.initialize(), // drag
             [], // drag choices
             [], [], // history
@@ -384,7 +384,7 @@
                 'night' : 'day',
             { auto_simplify:false },
             false,
-            courses
+            curriculum.courses
         ), document
     );
 

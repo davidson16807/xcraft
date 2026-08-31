@@ -192,7 +192,9 @@ const algebra = RelationDragOperations({
     equations: equations,
     equation_path_operations: equation_path_operations,
 });
-const levels = Levels(grouplikes);
+const curriculum = vanilla_curriculum(grouplikes);
+const levels = curriculum.levels;
+const courses = curriculum.courses;
 const history = AppHistoryTraversal(Infinity);
 const equation_drags = RelationDrags(algebra);
 const app_updater = AppUpdater({
@@ -305,28 +307,30 @@ function solveLevel10() {
 
 function solvePowerTriangleLevels() {
     const cases = [
-        [26, [['0/0/0', '1'], ['0/0/0', '0/0/1/0']]], // 2^x = 8 -> x = log_2(8)
-        [27, [['0/0/0', '1'], ['0/0/0', '0/0/1/0']]], // log_2(x) = 3 -> x = 2^3
-        [28, [['0/0/0', '0/0/1/0']]],                 // 2^log_2(x) -> x
-        [29, [['0/0/0', '0/0/1/0']]],                 // log_2(2^x) -> x
-        [30, [['0/0/0', '0/0/1']]],                   // sqrt(x)sqrt(y) -> sqrt(xy)
-        [31, [['0/0/0', '0/0/1']]],                   // a^(1/x)a^(1/y) -> a^(1/x+1/y)
-        [32, [['0/0/0', '0/0/1']]],                   // log_2(x)+log_2(y) -> log_2(xy)
-        [33, [['0/0/0', '0/0/1']]],                   // log_2(xy) -> log_2(x)+log_2(y)
-        [34, [['0/0/1', '1'], ['0/0/1', '0/0/0/1']]], // log_x(8)=3 -> x=8^(1/3)
-        [35, [['0/0/0', '0/0/1']]],                   // log_x(a)||log_y(a) -> log_(xy)(a)
-        [36, [['0/0/1', '0/0/0']]],                   // log_(xy)(a) -> log_x(a)||log_y(a)
-        [37, [['0/0/0', '0/0/1']]],                   // root_3(root_2(x)) -> root_6(x)
-        [38, [['0/0/1', '0/0/0']]],                   // root_6(x) -> root_3(root_2(x))
-        [39, [['0/0/1', '0/0/0']]],                   // root_(2*3*a)(x) -> root_(3*a)(root_2(x))
+        ['Solve an exponent', [['0/0/0', '1'], ['0/0/0', '0/0/1/0']]],
+        ['Solve a logarithm', [['0/0/0', '1'], ['0/0/0', '0/0/1/0']]],
+        ['Power-log cancellation', [['0/0/0', '0/0/1/0']]],
+        ['Log-power cancellation', [['0/0/0', '0/0/1/0']]],
+        ['Root product', [['0/0/0', '0/0/1']]],
+        ['Same result roots', [['0/0/0', '0/0/1']]],
+        ['Logarithm of a product', [['0/0/0', '0/0/1']]],
+        ['Split a logarithm', [['0/0/0', '0/0/1']]],
+        ['Solve a logarithm base', [['0/0/1', '1'], ['0/0/1', '0/0/0/1']]],
+        ['Same result logarithms', [['0/0/0', '0/0/1']]],
+        ['Split same result logarithms', [['0/0/1', '0/0/0']]],
+        ['Root of a root', [['0/0/0', '0/0/1']]],
+        ['Split a root index', [['0/0/1', '0/0/0']]],
+        ['Factor a root index', [['0/0/1', '0/0/0']]],
     ];
 
-    cases.forEach(([index, moves]) => {
-        let q = levels[index].equation;
+    cases.forEach(([title, moves]) => {
+        const level = levels.find(item => item.title === title);
+        assert(level != null, `power triangle level should exist: ${title}`);
+        let q = level.equation;
         moves.forEach(([source, target]) => {
             q = move(q, source, target, manual_drag_options);
         });
-        assertShape(q, levels[index].goal, `level ${index+1}: ${levels[index].title}`);
+        assertShape(q, level.goal, `level: ${title}`);
     });
 }
 
@@ -340,12 +344,20 @@ function courseOrganization() {
     const expected = [
         ['Arithmetic', 0, 9],
         ['Exponents', 10, 20],
-        ['Roots', 21, 26],
-        ['Logarithms', 27, 39],
+        ['Roots', 21, 30],
+        ['Logarithms', 31, 39],
     ];
 
     assert(levels.length === 40, 'courses: grouping must not change the lesson count');
     assert(courses.length === expected.length, 'courses: expected four course ranges');
+    assert(
+        levels.every((level, index) => level.index === index),
+        'courses: flattened lessons should retain their global curriculum index'
+    );
+    assert(
+        Object.isFrozen(levels) && Object.isFrozen(courses),
+        'courses: Curriculum should expose immutable model arrays'
+    );
 
     courses.forEach((course, index) => {
         const [title, first, last] = expected[index];
@@ -385,7 +397,7 @@ function courseOrganization() {
         courses
     );
 
-    [9, 20, 26].forEach(index => {
+    [9, 20, 30].forEach(index => {
         const next = app_updater.next_level(app_at(index));
         assert(
             next.level_index === index + 1,
@@ -409,8 +421,8 @@ function courseOrganization() {
         [10, 1],
         [20, 1],
         [21, 2],
-        [26, 2],
-        [27, 3],
+        [30, 2],
+        [31, 3],
         [39, 3],
     ].forEach(([level_index, course_index]) => {
         const course = courses[course_index];

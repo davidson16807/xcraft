@@ -12,9 +12,6 @@ sides of equation do not expand horizontally to fit contents
 (yx)/2ᵃ doesn't show 
 "37 Split same result logarithm" is a slop level
 "40 Power in a logarithm base" is a slop level and may be unsolvable
-lesson 27 should be under "logarithms"
-lesson 31-32, 38-40 should be under "logarithms"
-
 
 UNOBTRUSIVE:
 * levels need to switch to variables a,b,c for constants to indicate that root is being taken
